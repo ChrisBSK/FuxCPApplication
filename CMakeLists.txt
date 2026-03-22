@@ -24,8 +24,29 @@ target_sources(myproject PRIVATE
         src/service/GenerationService.h
 
         src/model/FuxTypes.h
-        src/model/CantusFirmus.h
-        src/model/CounterpointSolution.h
+        src/model/GenerationInput.h
+
+
+        src/ui/footer/FooterPanel.cpp
+        src/ui/footer/FooterPanel.h
+
+        src/ui/header/HeaderPanel.cpp
+        src/ui/header/HeaderPanel.h
+
+        src/ui/history/HistoryPanel.cpp
+        src/ui/history/HistoryPanel.h
+
+        src/ui/keyboard/Keyboard.cpp
+        src/ui/keyboard/Keyboard.h
+
+        src/ui/leftPanel/LeftPanel.cpp
+        src/ui/leftPanel/LeftPanel.h
+
+        src/ui/WorkArea/WorkAreaPanel.cpp
+        src/ui/WorkArea/WorkAreaPanel.h
+
+        src/ui/optionsWindow/OptionsPanel.cpp
+        src/ui/optionsWindow/OptionsPanel.h
 
 )
 

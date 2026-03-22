@@ -35,14 +35,17 @@ public:
     juce::String getLastError() const;
     bool isInputValidationError() const;
 
+    juce::String getLastGeneratedMidiPath() const;
+    void reset();
+
     void setOnFinishedCallback(std::function<void()> callback)
     {
         juce::ScopedLock lock(callbackLock);
         onFinishedCallback = std::move(callback);
     }
 
-    juce::String getLastGeneratedMidiPath() const;
-    void reset();
+
+
 
 protected:
     void run() override;
@@ -80,6 +83,10 @@ private:
 
     // Seed (optionnel)
     int currentSeed = 42;
+
+    juce::CriticalSection resultLock;
+
+
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GenerationService)
 };

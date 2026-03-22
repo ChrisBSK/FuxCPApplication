@@ -113,6 +113,7 @@ namespace
     }
 }
 
+
 namespace DefaultSettings
 {
     const std::vector<int> melodic   = {0, 1, 1, 576, 2, 2, 2, 1};
@@ -167,26 +168,15 @@ bool GenerationService::startGeneration(const std::vector<int>& cantusFirmus,
     lastGeneratedMidiPath.clear();
 
     juce::String err;
-    if (!validateSpecies(species, err))
+    if (!validateSpecies(species, err)
+        || !validateVoiceCount(voiceCount, err)
+        || !validateCantusFirmus(cantusFirmus, err))
     {
         inputValidationError = true;
         lastError = err;
         return false;
     }
 
-    if (!validateVoiceCount(voiceCount, err))
-    {
-        inputValidationError = true;
-        lastError = err;
-        return false;
-    }
-
-    if (!validateCantusFirmus(cantusFirmus, err))
-    {
-        inputValidationError = true;
-        lastError = err;
-        return false;
-    }
 
     cantusFirmusToGenerate = cantusFirmus;
     speciesToGenerate = species;
@@ -232,12 +222,14 @@ void GenerationService::run()
         juce::MessageManager::callAsync([cb]() mutable { cb(); });
 }
 
+
+
 bool GenerationService::generateMidiFromInputs(const std::vector<int>& cantusFirmus,
                                                int species,
                                                int voiceCount,
                                                const juce::File& midiOutFile)
 {
-    const juce::String kNoSolution = "Aucune solution n'existe";
+
 
     try
     {
@@ -273,7 +265,7 @@ bool GenerationService::generateMidiFromInputs(const std::vector<int>& cantusFir
         }
 
         // Timeout du solveur (important)
-        Gecode::Search::TimeStop ts(500000); // 0.5 sec
+        Gecode::Search::TimeStop ts(5000); // 5 sec
         Gecode::Search::Options options;
         options.stop = &ts;
 
@@ -293,29 +285,18 @@ bool GenerationService::generateMidiFromInputs(const std::vector<int>& cantusFir
 
         if (!solution)
         {
-            lastError = kNoSolution;
+            lastError = "Aucune solution n'existe";
             return false;
         }
 
         int solSize = solution->getSize();
 
-        if (solSize % counterpointVoices != 0)
+        if (solSize % counterpointVoices != 0 || solSize <= 0 || solSize < counterpointVoices)
         {
-            lastError = "Solution mal formee";
+            lastError = "Aucune solution n'existe";
             return false;
         }
 
-        if (solSize <= 0)
-        {
-            lastError = "Solution invalide";
-            return false;
-        }
-
-        if (solSize < counterpointVoices)
-        {
-            lastError = "Solution incoherente";
-            return false;
-        }
 
         size_t notesPerVoice = solSize / counterpointVoices;
 
@@ -331,11 +312,6 @@ bool GenerationService::generateMidiFromInputs(const std::vector<int>& cantusFir
             return false;
         }
 
-        if (!raw)
-        {
-            lastError = "Solution nulle";
-            return false;
-        }
 
         std::vector<std::vector<int>> voices(counterpointVoices);
 
