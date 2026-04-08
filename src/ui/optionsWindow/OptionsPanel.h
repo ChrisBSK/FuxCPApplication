@@ -1,30 +1,44 @@
 #pragma once
+
 #include <juce_gui_basics/juce_gui_basics.h>
 
+// =============================
+// VoiceBox
+// =============================
+class VoiceBox : public juce::Component
+{
+public:
+    VoiceBox(const juce::String& name);
+
+    void paint(juce::Graphics& g) override;
+    void resized() override;
+
+private:
+    juce::Label title;
+    juce::ComboBox speciesBox;
+    juce::ComboBox typeBox;
+};
+
+// =============================
+// OptionsPanel
+// =============================
 class OptionsPanel : public juce::Component
 {
 public:
-    OptionsPanel()
-    {
-        addAndMakeVisible(option1);
-        addAndMakeVisible(option2);
+    OptionsPanel();
 
-        option1.setButtonText("Option 1");
-        option2.setButtonText("Option 2");
-    }
-
-    void paint(juce::Graphics& g) override
-    {
-        g.fillAll(juce::Colours::darkgrey.withAlpha(0.9f));
-    }
-
-    void resized() override
-    {
-        option1.setBounds(40, 40, 200, 30);
-        option2.setBounds(40, 80, 200, 30);
-    }
+    void paint(juce::Graphics& g) override;
+    void resized() override;
 
 private:
-    juce::ToggleButton option1;
-    juce::ToggleButton option2;
+    juce::Component column1, column2, column3, column4;
+
+    juce::Label title1, title2, title3, title4;
+
+    VoiceBox box1 { "Voix 1" };
+    VoiceBox box2 { "Voix 2" };
+    VoiceBox box3 { "Voix 3" };
+    VoiceBox box4 { "Voix 4" };
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OptionsPanel)
 };

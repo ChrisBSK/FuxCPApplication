@@ -1,0 +1,88 @@
+#include "AppController.h"
+#include <juce_audio_basics/juce_audio_basics.h>
+#include <juce_events/juce_events.h>
+// =========================
+// Constructeurs
+// =========================
+
+AppController::AppController()
+{
+}
+
+AppController::AppController(const juce::String& title)
+    : problem(title)
+{
+}
+
+// =========================
+// Génération
+// =========================
+
+void AppController::startGeneration(const juce::String& outputPath)
+{
+    CantusProblem::CostParameters costs;
+
+    costs.melodic   = {0, 1, 1, 576, 2, 2, 2, 1};
+    costs.general   = {4, 1, 1, 2, 2, 2, 8, 1};
+    costs.specific  = {8, 4, 0, 2, 1, 8, 50};
+    costs.importance= {8,7,5,2,9,3,14,12,6,11,4,10,1,13};
+
+    problem.setCostParameters(costs);
+    problem.setBorrowMode(1);
+
+    // Lance la génération dans le thread worker
+    bool started = generationService.startGeneration(problem, outputPath, this);
+
+    if (!started)
+    {
+        juce::AlertWindow::showMessageBoxAsync(
+            juce::AlertWindow::WarningIcon,
+            "Erreur",
+            "Impossible de lancer la génération.\nPeut-être déjà en cours ?");
+    }
+}
+
+// =========================
+// Accès modèle
+// =========================
+
+CantusProblem& AppController::getProblem()
+{
+    return problem;
+}
+
+const CantusProblem& AppController::getProblem() const
+{
+    return problem;
+}
+
+// =========================
+// Callback thread → UI
+// =========================
+
+void AppController::handleAsyncUpdate()
+{
+    bool success = generationService.getLastGenerationSuccess();
+
+    if (success)
+    {
+        // AU MOINS UNE SOLUTION TROUVÉE
+        juce::AlertWindow::showMessageBoxAsync(
+            juce::AlertWindow::InfoIcon,
+            "Résultat",
+            " Une solution existe !");
+    }
+    else
+    {
+        //  AUCUNE SOLUTION OU ERREUR
+        juce::String errorMsg = generationService.getLastError();
+
+        if (errorMsg.isEmpty())
+            errorMsg = " Aucune solution trouvée.";
+
+        juce::AlertWindow::showMessageBoxAsync(
+            juce::AlertWindow::WarningIcon,
+            "Résultat",
+            errorMsg);
+    }
+}

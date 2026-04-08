@@ -24,7 +24,10 @@ target_sources(myproject PRIVATE
         src/service/GenerationService.h
 
         src/model/FuxTypes.h
-        src/model/GenerationInput.h
+        src/model/CantusProblem.cpp
+        src/model/CantusProblem.h
+
+
 
 
         src/ui/footer/FooterPanel.cpp
@@ -36,8 +39,8 @@ target_sources(myproject PRIVATE
         src/ui/history/HistoryPanel.cpp
         src/ui/history/HistoryPanel.h
 
-        src/ui/keyboard/Keyboard.cpp
-        src/ui/keyboard/Keyboard.h
+        src/ui/keyboard/KeyboardComponent.cpp
+        src/ui/keyboard/KeyboardComponent.h
 
         src/ui/leftPanel/LeftPanel.cpp
         src/ui/leftPanel/LeftPanel.h
@@ -48,6 +51,15 @@ target_sources(myproject PRIVATE
         src/ui/optionsWindow/OptionsPanel.cpp
         src/ui/optionsWindow/OptionsPanel.h
 
+        src/ui/optionsWindow/OptionsPanel.cpp
+        src/ui/optionsWindow/OptionsPanel.h
+
+        src/audio/synth/SimpleSynth.cpp
+        src/audio/synth/SimpleSynth.h
+
+        src/controller/AppController.cpp
+        src/controller/AppController.h
+
 )
 
 target_include_directories(myproject PRIVATE
@@ -57,6 +69,7 @@ target_include_directories(myproject PRIVATE
 
 
 target_link_libraries(myproject PRIVATE
+        juce::juce_gui_basics
         juce::juce_gui_extra
         juce::juce_recommended_config_flags
         juce::juce_recommended_warning_flags
@@ -67,6 +80,8 @@ target_link_libraries(myproject PRIVATE
         juce::juce_audio_utils
         juce::juce_events
         juce::juce_core
+
+
 
         damien
 )

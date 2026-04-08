@@ -1,5 +1,6 @@
 #include "LeftPanel.h"
 #include "../optionsWindow/OptionsPanel.h"
+#include "../../controller/AppController.h"
 
 static std::vector<int> parseCantusFirmus(const juce::String& text);
 
@@ -18,10 +19,12 @@ namespace Messages
     static const juce::String noSolution   = juce::String::fromUTF8(u8"Aucune solution trouvée");
 }
 
-LeftPanel::LeftPanel() {
+
+LeftPanel::LeftPanel(AppController& controller)
+    : appController(controller)  {
     label.setText("Cantus Firmus (MIDI)",juce::sendNotification);
     addAndMakeVisible(text);
-    addAndMakeVisible(label);
+    //addAndMakeVisible(label);
 
 
     voices.addItem(("2"), 2);
@@ -30,17 +33,8 @@ LeftPanel::LeftPanel() {
 
     labelVoices.setText("Number of voices",juce::sendNotification);
     addAndMakeVisible(voices);
-    addAndMakeVisible(labelVoices);
+    //addAndMakeVisible(labelVoices);
 
-    species.addItem(("1"), 1);
-    species.addItem(("2"), 2);
-    species.addItem(("3"), 3);
-    species.addItem(("4"), 4);
-    species.addItem(("5"), 5);
-
-    labelSpecies.setText("Species",juce::sendNotification);
-    addAndMakeVisible(species);
-    addAndMakeVisible(labelSpecies);
 
     moreOptions.setButtonText("More Options");
     addAndMakeVisible(moreOptions);
@@ -69,77 +63,103 @@ LeftPanel::LeftPanel() {
 
     generateButton.onClick = [this]()
     {
-        GenerationInput input;
         juce::String error;
 
-        if (!collectAndValidateInput(input, error))
+        auto rawText = text.getText().trim();
+
+        if (rawText.isEmpty())
         {
-            showAlert(juce::AlertWindow::WarningIcon,
-                      Messages::titleError,
-                      error);
+            showAlert(juce::AlertWindow::WarningIcon, Messages::titleError, Messages::cfEmpty);
             return;
         }
 
-        prepareOutputFile();
-
-        bool started = generationService.startGeneration(
-            input.cantusFirmus,
-            input.species,
-            input.numberOfVoices,
-            midiOutFileToGenerate.getFullPathName()
-        );
-
-        if (!started)
+        if (!rawText.containsOnly("0123456789 ,;"))
         {
-            showAlert(juce::AlertWindow::WarningIcon,
-                      Messages::titleError,
-                      generationService.getLastError());
+            showAlert(juce::AlertWindow::WarningIcon, Messages::titleError, Messages::cfNotNumbers);
+            return;
         }
+
+        auto cf = parseCantusFirmus(rawText);
+
+        if (cf.empty())
+        {
+            showAlert(juce::AlertWindow::WarningIcon, Messages::titleError, Messages::cfInvalid);
+            return;
+        }
+
+        if (voices.getSelectedItemIndex() == -1)
+        {
+            showAlert(juce::AlertWindow::WarningIcon, Messages::titleError, Messages::noVoices);
+            return;
+        }
+
+        int numVoices = voices.getSelectedId();
+
+        // =========================
+        // 🔥 MODEL (IMPORTANT)
+        // =========================
+
+        auto& problem = appController.getProblem();
+
+        problem.setCantusFirmus(cf);
+
+        std::vector<CantusProblem::Voice> voicesVec;
+
+
+        int numGeneratedVoices = numVoices - 1;
+
+        for (int i = 0; i < speciesBoxes.size(); ++i)
+        {
+            CantusProblem::Voice v;
+            v.id = i;
+
+
+            v.species = speciesBoxes[i]->getSelectedId();
+
+            if (i < typeBoxes.size()) {
+                int id = typeBoxes[i]->getSelectedId();
+                v.type = id - 4;
+            }
+            else
+                v.type = 1;
+
+            DBG("Voice " << i
+                << " species=" << v.species
+                << " type=" << v.type);
+
+            voicesVec.push_back(v);
+        }
+
+        problem.setVoices(voicesVec);
+
+        // =========================
+        // LANCEMENT
+        // =========================
+
+        appController.startGeneration("dummy.mid");
     };
 
+
+    voices.onChange = [this]()
+    {
+        int numVoices = voices.getSelectedId();
+        updateVoiceSpeciesUI(numVoices);
+    };
+
+    updateVoiceSpeciesUI(0);
+
+    speciesHeader.setText(
+        juce::String::fromUTF8(u8"Espèce"),
+        juce::dontSendNotification
+    );
+    typeHeader.setText("Type", juce::dontSendNotification);
+
+    addAndMakeVisible(speciesHeader);
+    addAndMakeVisible(typeHeader);
 }
 
 
-bool LeftPanel::collectAndValidateInput(GenerationInput& input, juce::String& error)
-{
-    auto rawText = text.getText().trim();
 
-    if (rawText.isEmpty())
-    {
-        error = Messages::cfEmpty;
-        return false;
-    }
-
-    if (!rawText.containsOnly("0123456789 ,;"))
-    {
-        error = Messages::cfNotNumbers;
-        return false;
-    }
-
-    input.cantusFirmus = parseCantusFirmus(rawText);
-
-    if (input.cantusFirmus.empty())
-    {
-        error = Messages::cfInvalid;
-        return false;
-    }
-
-    if (voices.getSelectedItemIndex() == -1)
-    {
-        error = Messages::noVoices;
-        return false;
-    }
-    input.numberOfVoices = voices.getSelectedId();
-
-    if (species.getSelectedItemIndex() == -1)
-    {
-        error = Messages::noSpecies;
-        return false;
-    }
-    input.species = species.getSelectedId();
-
-    return true;
-}
 
 void LeftPanel::prepareOutputFile()
 {
@@ -154,7 +174,6 @@ void LeftPanel::prepareOutputFile()
 
 
 
-
 LeftPanel::~LeftPanel()
 {
     //le thread solver est terminé avant destruction
@@ -166,53 +185,181 @@ LeftPanel::~LeftPanel()
 
 void LeftPanel::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colours::darkgreen);
+    g.fillAll(juce::Colours::darkgrey);
 
-    g.setColour(juce::Colours::white);
+    auto area = getLocalBounds();
 
+    const int spacing = 40;
+    const int numSections = 3;
+
+    int totalSpacing = spacing * (numSections - 1);
+    int sectionHeight = (area.getHeight() - totalSpacing) / numSections;
+
+    const int titleHeight = 24;
+
+    juce::Colour darkGreen = juce::Colour(0xff2f4f4f);
+
+    juce::String titles[3] =
+    {
+        "Cantus Firmus",
+        "Number of voices",
+        "Buttons"
+    };
+
+    for (int i = 0; i < numSections; ++i)
+    {
+        auto section = area.removeFromTop(sectionHeight);
+
+        // 🔥 uniquement la barre de titre
+        auto titleArea = section.removeFromTop(titleHeight);
+
+        g.setColour(darkGreen);
+        g.fillRect(titleArea);
+
+        g.setColour(juce::Colours::white);
+        g.setFont(juce::Font(14.0f, juce::Font::bold));
+        g.drawText(titles[i], titleArea.reduced(10, 0),
+                   juce::Justification::centredLeft);
+
+        // (optionnel) petite ligne séparatrice
+        g.setColour(juce::Colours::black.withAlpha(0.3f));
+        g.drawLine((float)section.getX(),
+                   (float)section.getY(),
+                   (float)section.getRight(),
+                   (float)section.getY(),
+                   1.0f);
+
+        if (i < numSections - 1)
+            area.removeFromTop(spacing);
+    }
 }
 
 void LeftPanel::resized()
 {
-    int margin = 20;
-    int width = 150;
-    int labelHeight = 25;
-    int boxHeight = 30;
-    int spacing = 10;
+    auto area = getLocalBounds();
 
-    int y = margin;
+    const int spacing = 40;
+    const int numSections = 3;
+    const float widthRatio = 0.6f;
 
-    // Cantus Firmus
-    label.setBounds(margin, y, width, labelHeight);
-    y += labelHeight + spacing;
+    int totalSpacing = spacing * (numSections - 1);
+    int sectionHeight = (area.getHeight() - totalSpacing) / numSections;
 
-    text.setBounds(margin, y, width, boxHeight);
-    y += boxHeight + 30;
+    // =========================
+    // SECTION 1 : Cantus Firmus
+    // =========================
+    auto section1 = area.removeFromTop(sectionHeight);
+    auto content1 = section1.reduced(10);
 
+    content1.removeFromTop(30);
 
-    // Number of voices
-    labelVoices.setBounds(margin, y, width, labelHeight);
-    y += labelHeight + spacing;
+    {
+        auto row = content1.removeFromTop(22);
+        int width = static_cast<int>(row.getWidth() * widthRatio);
+        int x = row.getX() + 10; // léger décalage à gauche
+        text.setBounds(x, row.getY(), width, row.getHeight());
+    }
 
-    voices.setBounds(margin, y, width, boxHeight);
-    y += boxHeight + 30;
+    area.removeFromTop(spacing);
 
+    int dynamicRows = speciesLabels.size();
+    int rowHeight = 18 + 2 + 22 + 2 + 22 + 4; // label + species + type
 
-    // Species
-    labelSpecies.setBounds(margin, y, width, labelHeight);
-    y += labelHeight + spacing;
+    int dynamicHeight = dynamicRows * rowHeight;
+    int baseHeight = 80; // voix combobox + marges
 
-    species.setBounds(margin, y, width, boxHeight);
+    int section2Height = baseHeight + dynamicHeight;
 
-    y += boxHeight + 70; // espace après species
+    // =========================
+    // SECTION 2 : Number of voices
+    // =========================
+    auto section2 = area.removeFromTop(section2Height);
+    auto content2 = section2.reduced(10);
 
-    moreOptions.setBounds(margin, y, width, boxHeight);
-    y += boxHeight + spacing;
+    content2.removeFromTop(20);
 
-    generateButton.setBounds(margin, y, width, boxHeight);
-    y += boxHeight + spacing;
+    int dynamicIndent = 20;
+    int dynamicLabelHeight = 18;
+    int boxHeight = 22;
+    int dynamicGap = 2;
 
+    {
+        auto row = content2.removeFromTop(22);
+        int width = static_cast<int>(row.getWidth() * widthRatio);
+        int x = row.getX() + 10; // un peu sur la gauche
+        voices.setBounds(x, row.getY(), width, row.getHeight());
+    }
 
+    content2.removeFromTop(12); // espace sous la combobox "Number of voices"
+
+    {
+        int width = content2.getWidth() * 0.35f;
+        int x = content2.getX() + dynamicIndent;
+        int y = content2.getY();
+
+        for (int i = 0; i < speciesLabels.size(); ++i)
+        {
+            int y = content2.getY();
+
+            const int labelHeight = 18;
+            const int boxHeight = 22;
+
+            // 🔥 colonnes
+            int leftX = content2.getX() + 10;
+            int colSpacing = 10;
+
+            int labelWidth = 80;
+            int boxWidth = 60;
+
+            // =========================
+            // HEADER (Espèce / Type)
+            // =========================
+            int headerY = y;
+
+            int speciesX = leftX + labelWidth + colSpacing;
+            int typeX    = speciesX + boxWidth + colSpacing;
+
+            speciesHeader.setBounds(speciesX, headerY, boxWidth, labelHeight);
+            typeHeader.setBounds(typeX, headerY, boxWidth, labelHeight);
+
+            y += labelHeight + 5;
+
+            // =========================
+            // LIGNES
+            // =========================
+            for (int i = 0; i < speciesLabels.size(); ++i)
+            {
+                // 🔽 label "Voix X"
+                speciesLabels[i]->setBounds(leftX, y, labelWidth, labelHeight);
+
+                // 🔽 species
+                speciesBoxes[i]->setBounds(speciesX, y, boxWidth, boxHeight);
+
+                // 🔽 type
+                typeBoxes[i]->setBounds(typeX, y, boxWidth, boxHeight);
+
+                y += boxHeight + 8;
+            }
+        }
+    }
+
+    area.removeFromTop(spacing);
+
+    // =========================
+    // SECTION 3 : Buttons
+    // =========================
+    int section3Height = 170; // taille fixe pour les boutons
+    auto section3 = getLocalBounds().removeFromBottom(section3Height);
+    auto content3 = section3.reduced(15);
+
+    int buttonWidth = static_cast<int>(content3.getWidth() * widthRatio);
+    int buttonX = content3.getX() + (content3.getWidth() - buttonWidth) / 2;
+    int y = content3.getY() + 35;
+
+    moreOptions.setBounds(buttonX, y, buttonWidth, boxHeight);
+    y += boxHeight + 5;
+
+    generateButton.setBounds(buttonX, y, buttonWidth, boxHeight);
 }
 
 static std::vector<int> parseCantusFirmus(const juce::String& text)
@@ -241,6 +388,68 @@ static std::vector<int> parseCantusFirmus(const juce::String& text)
     }
 
     return result;
+}
+
+void LeftPanel::updateVoiceSpeciesUI(int numVoices)
+{
+    for (auto* box : speciesBoxes)
+        removeChildComponent(box);
+
+    for (auto* label : speciesLabels)
+        removeChildComponent(label);
+
+    speciesBoxes.clear();
+    speciesLabels.clear();
+
+    for (auto* box : typeBoxes)
+        removeChildComponent(box);
+
+    typeBoxes.clear();
+
+    for (int i = 0; i < numVoices; ++i)
+    {
+        auto* rowLabel = new juce::Label();
+
+        if (i == 0)
+            rowLabel->setText(juce::String::fromUTF8(u8"Cantus Firmus"),
+                              juce::dontSendNotification);
+        else
+            rowLabel->setText("Contrepoint " + juce::String(i) + "",
+                              juce::dontSendNotification);
+
+        addAndMakeVisible(rowLabel);
+        speciesLabels.add(rowLabel);
+
+        auto* speciesBox = new juce::ComboBox();
+        speciesBox->addItem("1", 1);
+        speciesBox->addItem("2", 2);
+        speciesBox->addItem("3", 3);
+        speciesBox->addItem("4", 4);
+        speciesBox->addItem("5", 5);
+        speciesBox->setSelectedId(1);
+
+        addAndMakeVisible(speciesBox);
+        speciesBoxes.add(speciesBox);
+
+        auto* typeBox = new juce::ComboBox();
+
+        // Exemple simple (à adapter selon ton modèle)
+        typeBox->addItem("-3", 1);
+        typeBox->addItem("-2", 2);
+        typeBox->addItem("-1", 3);
+        typeBox->addItem("0", 4);
+        typeBox->addItem("1", 5);
+        typeBox->addItem("2", 6);
+        typeBox->addItem("3", 7);
+
+
+        typeBox->setSelectedId(1);
+
+        addAndMakeVisible(typeBox);
+        typeBoxes.add(typeBox);
+    }
+
+    resized();
 }
 
 

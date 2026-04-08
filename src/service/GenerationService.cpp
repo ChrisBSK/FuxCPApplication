@@ -10,6 +10,9 @@
 #include "Utilities.hpp"
 #include <gecode/search.hh>
 
+#include "../controller/AppController.h"
+
+
 #include <cstdlib>
 #include <memory>
 #include <stdexcept>
@@ -18,6 +21,7 @@ struct GenerationService::Impl
 {
     bool initialized = false;
 };
+
 
 namespace
 {
@@ -34,78 +38,114 @@ namespace
         }
     }
 
-    static bool validateMidiNotes(const std::vector<int>& notes, juce::String& err)
+    std::vector<std::vector<int>> splitVoices(
+    const std::vector<int>& solution,
+    int numVoices,
+    int cfSize)
     {
-        for (int n : notes)
+        std::vector<std::vector<int>> voices;
+
+        for (int v = 0; v < numVoices; ++v)
         {
-            if (n < 0 || n > 127)
-            {
-                err = "Solution invalide : note MIDI hors plage [0..127]";
-                return false;
-            }
+            int start = v * cfSize;
+            int end   = start + cfSize;
+
+            voices.emplace_back(
+                solution.begin() + start,
+                solution.begin() + end
+            );
         }
-        return true;
+
+        return voices;
     }
 
-    bool writeMidiFile(const std::vector<int>& cantusFirmus,
-                       const std::vector<std::vector<int>>& counterpointVoices,
-                       int species,
-                       const juce::File& midiOutFile, juce::String& err)
+    std::vector<int> extractSolution(const std::string& str)
     {
-        // Validation CF (normalement déjà validé en amont)
-        if (!validateMidiNotes(cantusFirmus, err))
-            return false;
+        std::vector<int> result;
 
-        // Validation voix générées (CRITIQUE pour éviter crash JUCE)
-        for (const auto& v : counterpointVoices)
+        auto pos = str.find("Solution array");
+        if (pos == std::string::npos)
+            return result;
+
+        auto start = str.find("{", pos);
+        auto end   = str.find("}", start);
+
+        if (start == std::string::npos || end == std::string::npos)
+            return result;
+
+        std::string numbers = str.substr(start + 1, end - start - 1);
+
+        std::stringstream ss(numbers);
+        std::string token;
+
+        while (std::getline(ss, token, ','))
         {
-            if (!validateMidiNotes(v, err))
-                return false;
+            result.push_back(std::stoi(token));
         }
 
-        juce::MidiFile midiFile;
-        midiFile.setTicksPerQuarterNote(960);
+        return result;
+    }
 
-        // Durées : uniquement pour le rendu MIDI (pas pour découper la solution).
-        double noteDuration = 4.0;
-        if (species == 2) noteDuration = 2.0;
-        else if (species == 3) noteDuration = 1.0;
-        else if (species == 4) noteDuration = 2.0;
-        else if (species == 5) noteDuration = 1.0;
 
-        // Track 1: Cantus Firmus (channel 1)
+    bool writeMidiFile(const std::vector<int>& cantusFirmus,
+                   const std::vector<std::vector<int>>& voices,
+                   const juce::File& file)
+    {
+        juce::MidiFile midi;
+        midi.setTicksPerQuarterNote(960);
+
+        const int ticksPerNote = 960; // noire = 1 temps
+
+        // =========================
+        // 🎵 Track 1 : Cantus Firmus
+        // =========================
         juce::MidiMessageSequence cfTrack;
+
         for (size_t i = 0; i < cantusFirmus.size(); ++i)
         {
-            const double start = i * 960.0;
-            const double end = (i + 1) * 960.0;
-            cfTrack.addEvent(juce::MidiMessage::noteOn(1, cantusFirmus[i], 0.8f), start);
+            double start = i * ticksPerNote;
+            double end   = (i + 1) * ticksPerNote;
+
+            cfTrack.addEvent(juce::MidiMessage::noteOn(1, cantusFirmus[i], (juce::uint8)100), start);
             cfTrack.addEvent(juce::MidiMessage::noteOff(1, cantusFirmus[i]), end);
         }
-        midiFile.addTrack(cfTrack);
 
-        // Tracks suivantes: contrepoint (channels 2..)
-        int midiChannel = 2;
-        for (const auto& voice : counterpointVoices)
+        midi.addTrack(cfTrack);
+
+        // =========================
+        // 🎵 Tracks suivantes : voix générées
+        // =========================
+        int channel = 2;
+
+        for (const auto& voice : voices)
         {
             juce::MidiMessageSequence track;
-            double currentTime = 0.0;
 
-            for (int note : voice)
+            for (size_t i = 0; i < voice.size(); ++i)
             {
-                track.addEvent(juce::MidiMessage::noteOn(midiChannel, note, 0.8f), currentTime);
-                track.addEvent(juce::MidiMessage::noteOff(midiChannel, note),
-                               currentTime + noteDuration * 240.0);
-                currentTime += noteDuration * 240.0;
+                double start = i * ticksPerNote;
+                double end   = (i + 1) * ticksPerNote;
+
+                int note = voice[i];
+
+                track.addEvent(juce::MidiMessage::noteOn(channel, note, (juce::uint8)100), start);
+                track.addEvent(juce::MidiMessage::noteOff(channel, note), end);
             }
 
-            midiFile.addTrack(track);
-            ++midiChannel;
+            midi.addTrack(track);
+            channel++;
+
+            // sécurité : max 16 canaux MIDI
+            if (channel > 16)
+                break;
         }
 
-        if (auto outStream = std::unique_ptr<juce::FileOutputStream>(midiOutFile.createOutputStream()))
+        // =========================
+        // 💾 Écriture fichier
+        // =========================
+        if (auto stream = file.createOutputStream())
         {
-            midiFile.writeTo(*outStream);
+            midi.writeTo(*stream);
             return true;
         }
 
@@ -114,247 +154,236 @@ namespace
 }
 
 
-namespace DefaultSettings
-{
-    const std::vector<int> melodic   = {0, 1, 1, 576, 2, 2, 2, 1};
-    const std::vector<int> general   = {4, 1, 1, 2, 2, 2, 8, 1};
-    const std::vector<int> specific  = {8, 4, 0, 2, 1, 8, 50};
-    const std::vector<int> importance = {8, 7, 5, 2, 9, 3, 14, 12, 6, 11, 4, 10, 1, 13};
-}
 
 GenerationService::GenerationService()
-    : juce::Thread("FuxCP Solver Thread")
-{
-    pImpl = std::make_unique<Impl>();
-    pImpl->initialized = true;
+    : juce::Thread("FuxCP Solver Thread"),
+      pImpl(std::make_unique<Impl>()),
+      ready(false),
+      generationSuccess(false)
 
+{
+    pImpl->initialized = true;
     ready = true;
     lastError.clear();
-    lastGeneratedMidiPath.clear();
-    inputValidationError = false;
-    generationSuccess.store(false);
+
 }
 
 GenerationService::~GenerationService()
 {
-    {
-        juce::ScopedLock lock(callbackLock);
-        onFinishedCallback = nullptr;
-    }
-    stopThread(-1);
+    stopThread(-1); // Attendre que le thread se termine
 }
 
-bool GenerationService::startGeneration(const std::vector<int>& cantusFirmus,
-                                        int species,
-                                        int voiceCount,
-                                        const juce::String& outputPath)
+bool GenerationService::startGeneration(const CantusProblem& cantusProblem, const juce::String& outputPath, AppController* controller)
 {
+
     if (isThreadRunning())
     {
-        lastError = "Une generation est deja en cours";
+        lastError = "Une géneration est déjà en cours";
         return false;
     }
 
     if (!isReady())
     {
-        lastError = "Service not ready";
+        lastError = "Le service n'est pas prêt";
         return false;
     }
 
-    // Reset état (prototype interactif)
-    inputValidationError = false;
+    cantusProblemToGenerate = &cantusProblem;
+    outputPathToGenerate = outputPath;
+
+    {
+        juce::ScopedLock lock(callbackLock);
+        appController = controller;
+    }
+
     generationSuccess.store(false);
     lastError.clear();
-    lastGeneratedMidiPath.clear();
-
-    juce::String err;
-    if (!validateSpecies(species, err)
-        || !validateVoiceCount(voiceCount, err)
-        || !validateCantusFirmus(cantusFirmus, err))
-    {
-        inputValidationError = true;
-        lastError = err;
-        return false;
-    }
-
-
-    cantusFirmusToGenerate = cantusFirmus;
-    speciesToGenerate = species;
-    voiceCountToGenerate = voiceCount;
-    outputPathToGenerate = outputPath;
-    midiOutFileToGenerate = juce::File(outputPathToGenerate);
-
     startThread();
+
     return true;
 }
 
 void GenerationService::run()
 {
-    bool success = false;
 
-    try
-    {
-        success = generateMidiFromInputs(cantusFirmusToGenerate,
-                                         speciesToGenerate,
-                                         voiceCountToGenerate,
-                                         midiOutFileToGenerate);
+    if (cantusProblemToGenerate == nullptr) {
+        generationSuccess.store(false);
+        lastError = "Problème invalide (nullptr)";
+        return;
     }
-    catch (const std::exception& e)
+
+    bool success = generateMidiFromInputs(*cantusProblemToGenerate, outputPathToGenerate);
+    generationSuccess.store(success);
+
+    AppController* controllerToNotify = nullptr;
     {
-        lastError = juce::String("Erreur pendant la generation: ") + e.what();
-        success = false;
+        juce::ScopedLock lock(callbackLock);
+        controllerToNotify = appController;
+    }
+
+    if (controllerToNotify != nullptr)
+        controllerToNotify->triggerAsyncUpdate();
+}
+
+bool GenerationService::isGenerating() const { return isThreadRunning(); }
+bool GenerationService::getLastGenerationSuccess() const { return generationSuccess.load(); }
+juce::String GenerationService::getLastGeneratedMidiPath() const { return lastGeneratedMidiPath; }
+
+static CantusProblem::CostParameters createDefaultCosts()
+{
+    return {
+            {0, 1, 1, 576, 2, 2, 2, 1},                 // melodic
+            {4, 1, 1, 2, 2, 2, 8, 1},                   // general
+            {8, 4, 0, 2, 1, 8, 50},                     // specific
+            {8, 7, 5, 2, 9, 3, 14, 12, 6, 11, 4, 10, 1, 13} // importance
+    };
+}
+
+bool GenerationService::generateMidiFromInputs(const CantusProblem& problem, const juce::String& outputPath)
+{
+    inputValidationError = false;
+
+    if (!ready) {
+        lastError = "Le service n\'est pas prêt";
+        return false;
+    }
+
+    if (problem.isEmpty()) {
+        inputValidationError = true;
+        lastError = "Le problème est vide. \n \n Entrez un problème complet ";
+        return false;
+    }
+
+
+    if (problem.getVoiceCount() == -1)
+    {
+        inputValidationError = true;
+        lastError = "No voices defined.";
+        return false;
+    }
+
+
+
+    CounterpointProblem* fuxProblem = createFuxProblem(problem);
+
+    if (fuxProblem == nullptr)
+    {
+        lastError = "Erreur création problème Fux";
+        return false;
+    }
+
+    // =========================
+    // SOLVEUR (copié FuxTest)
+    // =========================
+    BAB<CounterpointProblem> engine(fuxProblem);
+
+    int nb_sol = 0;
+
+    try {
+        while (CounterpointProblem* pb = engine.next())
+        {
+            nb_sol++;
+
+            std::string solutionStr = pb->to_string();
+            DBG(solutionStr);
+
+            // 🔥 extraction
+            auto solution = extractSolution(solutionStr);
+
+            int cfSize = problem.getCantusFirmus().size();
+            int numVoices = problem.getVoiceCount();
+
+            // sécurité
+            if (solution.size() == numVoices * cfSize)
+            {
+                auto voices = splitVoices(solution, numVoices, cfSize);
+
+                if (!voices.empty())
+                    voices.erase(voices.begin());
+
+                juce::File desktop = juce::File::getSpecialLocation(
+                    juce::File::userDesktopDirectory);
+
+                juce::File midiFile = desktop.getChildFile("fux_solution.mid");
+
+                writeMidiFile(problem.getCantusFirmus(), voices, midiFile);
+            }
+            else
+            {
+                DBG("Erreur taille solution !");
+            }
+
+            delete pb;
+            break;
+        }
     }
     catch (...)
     {
-        lastError = "Erreur inconnue pendant la generation";
-        success = false;
+
     }
 
-    generationSuccess.store(success);
+    delete fuxProblem;
+    // =========================
+    // RESULTAT (identique FuxTest)
+    // =========================
 
-    // Appel callback UI sans capturer `this`
-    std::function<void()> cb;
+    if (nb_sol > 0)
     {
-        juce::ScopedLock lock(callbackLock);
-        cb = onFinishedCallback;
-    }
-    if (cb)
-        juce::MessageManager::callAsync([cb]() mutable { cb(); });
-}
-
-
-
-bool GenerationService::generateMidiFromInputs(const std::vector<int>& cantusFirmus,
-                                               int species,
-                                               int voiceCount,
-                                               const juce::File& midiOutFile)
-{
-
-
-    try
-    {
-        std::srand(currentSeed);
-
-        const int counterpointVoices = voiceCount - 1;
-
-        if (counterpointVoices <= 0)
-        {
-            lastError = "Nombre de voix invalide";
-            return false;
-        }
-
-        std::vector<Species> spList = { mapSpeciesIntToFux(species) };
-        std::vector<int> v_type(counterpointVoices, 2);
-
-        auto melodic     = DefaultSettings::melodic;
-        auto general     = DefaultSettings::general;
-        auto specific    = DefaultSettings::specific;
-        auto importance  = DefaultSettings::importance;
-
-        int borrowMode = 1;
-
-        std::unique_ptr<CounterpointProblem> problem(
-            create_problem(cantusFirmus, spList, v_type,
-                           melodic, general, specific, importance, borrowMode)
-        );
-
-        if (!problem)
-        {
-            lastError = "Erreur creation du probleme";
-            return false;
-        }
-
-        // Timeout du solveur (important)
-        Gecode::Search::TimeStop ts(5000); // 5 sec
-        Gecode::Search::Options options;
-        options.stop = &ts;
-
-        Gecode::BAB<CounterpointProblem> engine(problem.get(), options);
-
-        std::unique_ptr<CounterpointProblem> solution;
-
-        try
-        {
-            solution.reset(engine.next());
-        }
-        catch (...)
-        {
-            lastError = "Erreur solveur";
-            return false;
-        }
-
-        if (!solution)
-        {
-            lastError = "Aucune solution n'existe";
-            return false;
-        }
-
-        int solSize = solution->getSize();
-
-        if (solSize % counterpointVoices != 0 || solSize <= 0 || solSize < counterpointVoices)
-        {
-            lastError = "Aucune solution n'existe";
-            return false;
-        }
-
-
-        size_t notesPerVoice = solSize / counterpointVoices;
-
-        int* raw = nullptr;
-
-        try
-        {
-            raw = solution->return_solution();
-        }
-        catch (...)
-        {
-            lastError = "Erreur lecture solution";
-            return false;
-        }
-
-
-        std::vector<std::vector<int>> voices(counterpointVoices);
-
-        for (int v = 0; v < counterpointVoices; ++v)
-        {
-            size_t base = v * notesPerVoice;
-
-            if (base >= (size_t)solSize)
-                continue;
-
-            for (size_t i = 0; i < notesPerVoice; ++i)
-            {
-                size_t index = base + i;
-
-                if (index >= (size_t)solSize)
-                    break;
-
-                voices[v].push_back(raw[index]);
-            }
-        }
-
-        juce::String midiErr;
-        const bool ok = writeMidiFile(cantusFirmus, voices, species, midiOutFile, midiErr);
-
-        if (!ok)
-        {
-            lastError = "Erreur ecriture MIDI";
-            return false;
-        }
-
-        lastGeneratedMidiPath = midiOutFile.getFullPathName();
-
         lastError.clear();
         return true;
     }
-    catch (...)
+    else
     {
-        lastError = "Erreur inconnue";
+        lastError = "Aucune solution trouvée";
         return false;
     }
+
+
 }
 
-bool GenerationService::validateCantusFirmus(const std::vector<int>& cantusFirmus, juce::String& err)
+CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& problem)
+{
+    // =========================
+    // EXTRACTION DONNÉES MODÈLE
+    // =========================
+
+    const auto& cf = problem.getCantusFirmus();
+    auto spList = problem.getSpeciesList();
+    auto v_type = problem.getVoiceTypes();
+
+    auto costs = problem.getCostParameters();
+
+    // =========================
+    // CONVERSION (si nécessaire)
+    // =========================
+
+    // Si ton create_problem attend vector<Species> → convertir
+    std::vector<Species> spListFux;
+    spListFux.reserve(spList.size());
+
+    for (int s : spList)
+        spListFux.push_back(mapSpeciesIntToFux(s)); // déjà dans ton cpp 👍
+
+    // =========================
+    // CREATION PROBLEME FUX
+    // =========================
+
+    CounterpointProblem* pb = create_problem(
+        cf,
+        spListFux,
+        v_type,
+        costs.melodic,
+        costs.general,
+        costs.specific,
+        costs.importance,
+        problem.getBorrowMode()
+    );
+
+    return pb;
+}
+
+
+/*bool GenerationService::validateCantusFirmus(const std::vector<int>& cantusFirmus, juce::String& err)
 {
     if (cantusFirmus.empty())
     {
@@ -395,30 +424,20 @@ bool GenerationService::validateVoiceCount(int voiceCount, juce::String& err)
     }
     err.clear();
     return true;
-}
+}*/
 
 
 
-bool GenerationService::isGenerating() const { return isThreadRunning(); }
 
-bool GenerationService::isReady() const
-{
-    return ready && pImpl && pImpl->initialized;
-}
-
-bool GenerationService::getLastGenerationSuccess() const { return generationSuccess.load(); }
-
+bool GenerationService::isReady() const { return ready && pImpl && pImpl->initialized; }
 juce::String GenerationService::getLastError() const { return lastError; }
-
 bool GenerationService::isInputValidationError() const { return inputValidationError; }
 
-juce::String GenerationService::getLastGeneratedMidiPath() const { return lastGeneratedMidiPath; }
 
 void GenerationService::reset()
 {
     lastError.clear();
-    inputValidationError = false;
-    generationSuccess.store(false);
-    lastGeneratedMidiPath.clear();
+    if (pImpl)
+        pImpl->initialized = true;
     ready = true;
 }
