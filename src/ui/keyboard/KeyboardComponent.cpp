@@ -6,13 +6,43 @@ KeyboardComponent::KeyboardComponent(juce::MidiKeyboardState& state)
 {
     addAndMakeVisible(midiKeyboard);
 
-    midiKeyboard.setAvailableRange(36, 84);
+    midiKeyboard.setAvailableRange(24, 108); //piano standard en général
+    midiKeyboard.setKeyWidth(30.0f);
+
     midiKeyboard.setScrollButtonsVisible(true);
 
     setWantsKeyboardFocus(true);
+
+    state.addListener(this);
+
+
+
+
+
+}
+
+void KeyboardComponent::handleNoteOn(juce::MidiKeyboardState*, int,
+                                     int midiNoteNumber, float)
+{
+    if (onNotePressed)
+        onNotePressed(midiNoteNumber);
 }
 
 void KeyboardComponent::resized()
 {
-    midiKeyboard.setBounds(getLocalBounds().reduced(5));
+    auto width = getWidth();
+    int numKeys = 108 - 24 + 1;
+
+    float keyWidth = width / (float)numKeys;
+
+    midiKeyboard.setKeyWidth(keyWidth);
+    auto area = getLocalBounds();
+
+    // largeur réelle du clavier
+    float totalWidth = midiKeyboard.getTotalKeyboardWidth();
+
+    // centre horizontalement
+    int x = (area.getWidth() - totalWidth) / 2;
+
+    midiKeyboard.setBounds(x, 0, totalWidth, area.getHeight());
 }

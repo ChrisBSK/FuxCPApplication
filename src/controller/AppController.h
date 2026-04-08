@@ -34,6 +34,9 @@ public:
     CantusProblem& getProblem();
     const CantusProblem& getProblem() const;
 
+    std::vector<int> species;
+    std::vector<int> types;
+
 
 
 private:

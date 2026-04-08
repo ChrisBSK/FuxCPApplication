@@ -43,7 +43,11 @@ LeftPanel::LeftPanel(AppController& controller)
     moreOptions.onClick = [this]()
     {
 
-        auto* content = new OptionsPanel();
+        auto* content  = new OptionsPanel();
+
+        int numVoices = voices.getSelectedId();
+
+        content->setNumVoices(numVoices);
 
         juce::DialogWindow::LaunchOptions dialog;
 
@@ -447,7 +451,10 @@ void LeftPanel::updateVoiceSpeciesUI(int numVoices)
 
         addAndMakeVisible(typeBox);
         typeBoxes.add(typeBox);
+
+
     }
+
 
     resized();
 }
@@ -459,4 +466,14 @@ void LeftPanel::showAlert(juce::AlertWindow::AlertIconType icon,
                          const juce::String& message)
 {
     juce::AlertWindow::showMessageBoxAsync(icon, title, message);
+}
+
+juce::String LeftPanel::getCantusText() const
+{
+    return text.getText();
+}
+
+void LeftPanel::setCantusText(const juce::String& newText)
+{
+    text.setText(newText, juce::dontSendNotification);
 }

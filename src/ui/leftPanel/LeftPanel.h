@@ -18,6 +18,10 @@ public:
                    const juce::String& title,
                    const juce::String& message);
 
+    juce::String getCantusText() const;
+
+    void setCantusText(const juce::String& newText);
+
 private:
     juce::TextEditor text;
     juce::Label label;
@@ -38,7 +42,7 @@ private:
 
     void updateVoiceSpeciesUI(int numVoices);
     void prepareOutputFile();
- juce::Label speciesHeader;
+    juce::Label speciesHeader;
     juce::Label typeHeader;
 
     AppController& appController;

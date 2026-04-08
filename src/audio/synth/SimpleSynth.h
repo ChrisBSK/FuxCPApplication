@@ -50,4 +50,7 @@ private:
     double angleDelta = 0.0;
     float level = 0.0f;
     float tailOff = 0.0f;
+
+
+
 };

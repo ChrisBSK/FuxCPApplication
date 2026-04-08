@@ -14,6 +14,10 @@ void SimpleVoice::startNote(int midiNoteNumber, float velocity,
 
     auto freq = juce::MidiMessage::getMidiNoteInHertz(midiNoteNumber);
     angleDelta = freq * 2.0 * juce::MathConstants<double>::pi / getSampleRate();
+
+
+
+
 }
 
 void SimpleVoice::stopNote(float, bool allowTailOff)

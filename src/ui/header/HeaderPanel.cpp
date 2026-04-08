@@ -10,10 +10,10 @@ HeaderPanel::~HeaderPanel()
 
 void HeaderPanel::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colours::darkblue);
+    g.fillAll(juce::Colours::darkgrey);
 
     g.setColour(juce::Colours::white);
-    g.drawText("HEADER",
+    g.drawText("",
                getLocalBounds(),
                juce::Justification::centred,
                true);

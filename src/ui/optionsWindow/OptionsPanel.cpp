@@ -24,7 +24,12 @@ VoiceBox::VoiceBox(const juce::String& name)
 
 void VoiceBox::paint(juce::Graphics& g)
 {
-    g.setColour(juce::Colours::darkgrey.brighter());
+    //  Highlight actif
+    if (isActive)
+        g.setColour(juce::Colour(0xff2f4f4f));
+    else
+        g.setColour(juce::Colours::darkgrey.brighter());
+
     g.fillRoundedRectangle(getLocalBounds().toFloat(), 6.0f);
 }
 
@@ -46,7 +51,6 @@ void VoiceBox::resized()
 // OptionsPanel
 // =============================
 OptionsPanel::OptionsPanel()
-
 {
     addAndMakeVisible(column1);
     addAndMakeVisible(column2);
@@ -94,6 +98,7 @@ void OptionsPanel::resized()
     const int titleHeight = 30;
     const int width = (area.getWidth() - 3 * gap) / 4;
 
+    // ===== Column 1 =====
     auto col1Area = area.removeFromLeft(width);
     title1.setBounds(col1Area.removeFromTop(titleHeight));
     column1.setBounds(col1Area);
@@ -113,6 +118,7 @@ void OptionsPanel::resized()
 
     box4.setBounds(inner.removeFromTop(boxHeight));
 
+    // ===== Other columns =====
     area.removeFromLeft(gap);
 
     auto col2Area = area.removeFromLeft(width);
@@ -131,3 +137,18 @@ void OptionsPanel::resized()
     title4.setBounds(col4Area.removeFromTop(titleHeight));
     column4.setBounds(col4Area);
 }
+
+// =============================
+//  Set active voices
+// =============================
+void OptionsPanel::setNumVoices(int numVoices)
+{
+    std::vector<VoiceBox*> boxes = { &box1, &box2, &box3, &box4 };
+
+    for (int i = 0; i < boxes.size(); ++i)
+    {
+        boxes[i]->isActive = (i < numVoices);
+        boxes[i]->repaint();
+    }
+}
+

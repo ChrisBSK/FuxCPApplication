@@ -12,11 +12,15 @@ public:
 
     void paint(juce::Graphics& g) override;
     void resized() override;
+    bool isActive = false;
+    juce::ComboBox speciesBox;
+    juce::ComboBox typeBox;
+
 
 private:
     juce::Label title;
-    juce::ComboBox speciesBox;
-    juce::ComboBox typeBox;
+
+
 };
 
 // =============================
@@ -29,6 +33,8 @@ public:
 
     void paint(juce::Graphics& g) override;
     void resized() override;
+    void setNumVoices(int numVoices);
+    void updateVoice(int index, int species, int type);
 
 private:
     juce::Component column1, column2, column3, column4;
