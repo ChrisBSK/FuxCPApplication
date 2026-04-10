@@ -17,10 +17,11 @@ KeyboardComponent::KeyboardComponent(juce::MidiKeyboardState& state)
 
 
 
-
-
 }
 
+// =============================
+// Callback des notes jouées
+// =============================
 void KeyboardComponent::handleNoteOn(juce::MidiKeyboardState*, int,
                                      int midiNoteNumber, float)
 {

@@ -1,25 +1,43 @@
 #include "OptionsPanel.h"
-
+#include "../../controller/AppController.h"
 // =============================
-// VoiceBox
+// VoiceBox : UI d'une voix
 // =============================
 VoiceBox::VoiceBox(const juce::String& name)
 {
+    //  titre de la voix
     addAndMakeVisible(title);
     title.setText(name, juce::dontSendNotification);
     title.setJustificationType(juce::Justification::centred);
     title.setColour(juce::Label::textColourId, juce::Colours::white);
 
+    //  choix de l'espèce
     addAndMakeVisible(speciesBox);
     for (int i = 1; i <= 5; ++i)
         speciesBox.addItem("Species " + juce::String(i), i);
     speciesBox.setSelectedId(1);
 
+    //  choix du type
     addAndMakeVisible(typeBox);
     int id = 1;
     for (int i = -3; i <= 2; ++i)
         typeBox.addItem("Type " + juce::String(i), id++);
     typeBox.setSelectedId(1);
+
+    // =========================
+    // Connexion bouton UI → MODÈLE
+    // =========================
+    speciesBox.onChange = [this]()
+    {
+        if (settings)
+            settings->species = speciesBox.getSelectedId();
+    };
+
+    typeBox.onChange = [this]()
+    {
+        if (settings)
+            settings->type = typeBox.getSelectedId() - 4;
+    };
 }
 
 void VoiceBox::paint(juce::Graphics& g)
@@ -48,7 +66,7 @@ void VoiceBox::resized()
 }
 
 // =============================
-// OptionsPanel
+// OptionsPanel : panneau global
 // =============================
 OptionsPanel::OptionsPanel()
 {
@@ -149,6 +167,22 @@ void OptionsPanel::setNumVoices(int numVoices)
     {
         boxes[i]->isActive = (i < numVoices);
         boxes[i]->repaint();
+    }
+}
+
+void OptionsPanel::setVoiceSettings(std::vector<AppController::VoiceSettings>& settings)
+{
+    std::vector<VoiceBox*> boxes = { &box1, &box2, &box3, &box4 };
+
+    for (int i = 0; i < boxes.size(); ++i)
+    {
+        if (i < settings.size())
+        {
+            boxes[i]->settings = &settings[i];
+
+            boxes[i]->speciesBox.setSelectedId(settings[i].species);
+            boxes[i]->typeBox.setSelectedId(settings[i].type + 4);
+        }
     }
 }
 

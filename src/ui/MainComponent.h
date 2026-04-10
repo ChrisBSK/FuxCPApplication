@@ -11,6 +11,25 @@
 #include "../controller/AppController.h"
 #include "../audio/synth/SimpleSynth.h"
 #include "../audio/AudioPlayer.h"
+
+/**
+ * @brief Composant principal de l’application (Vue globale + orchestration).
+ *
+ * Rôle :
+ * - Assemble tous les sous-composants UI (header, leftPanel, workArea, etc.)
+ * - Gère l’audio (synthé + lecture MIDI)
+ * - Fait le lien entre interface utilisateur et moteur audio
+ *
+ * Responsabilités :
+ * - Organiser le layout global de l’application
+ * - Initialiser et connecter les composants (UI, contrôleur, audio)
+ * - Router les événements MIDI vers le synthé
+ *
+ * Ne contient PAS :
+ * - de logique métier (gérée par AppController / modèle)
+ * - de logique de génération musicale
+ */
+
 class MainComponent : public juce::Component
 {
 public:

@@ -1,11 +1,17 @@
 #include "SimpleSynth.h"
 #include <cmath>
 
+// =============================
+// SimpleVoice : une voix du synthé
+// =============================
 bool SimpleVoice::canPlaySound(juce::SynthesiserSound*)
 {
     return true;
 }
 
+// =============================
+// Démarrage de note
+// =============================
 void SimpleVoice::startNote(int midiNoteNumber, float velocity,
                            juce::SynthesiserSound*, int)
 {
@@ -20,6 +26,9 @@ void SimpleVoice::startNote(int midiNoteNumber, float velocity,
 
 }
 
+// =============================
+// Arrêt de note
+// =============================
 void SimpleVoice::stopNote(float, bool allowTailOff)
 {
     if (allowTailOff)
@@ -28,6 +37,9 @@ void SimpleVoice::stopNote(float, bool allowTailOff)
         clearCurrentNote();
 }
 
+// =============================
+// Génération audio
+// =============================
 void SimpleVoice::renderNextBlock(juce::AudioBuffer<float>& buffer,
                                  int startSample, int numSamples)
 {
@@ -43,9 +55,11 @@ void SimpleVoice::renderNextBlock(juce::AudioBuffer<float>& buffer,
     }
 }
 
-// =======================
-// SimpleSynth
-// =======================
+
+// =============================
+// SimpleSynth : conteneur global
+// =============================
+
 
 SimpleSynth::SimpleSynth()
 {
@@ -55,17 +69,27 @@ SimpleSynth::SimpleSynth()
     synth.addSound(new SimpleSound());
 }
 
+
+// =============================
+// Inititalisation AUDIO
+// =============================
 void SimpleSynth::prepare(double sampleRate)
 {
     synth.setCurrentPlaybackSampleRate(sampleRate);
 }
 
+// =============================
+// Rendu AUDIO global
+// =============================
 void SimpleSynth::render(juce::AudioBuffer<float>& buffer,
                         juce::MidiBuffer& midi)
 {
     synth.renderNextBlock(buffer, midi, 0, buffer.getNumSamples());
 }
 
+// =============================
+// CALLBACKS MIDI (non utilisés pour l'instant)
+// =============================
 void SimpleVoice::pitchWheelMoved(int)
 {
     // pas utilisé pour l'instant

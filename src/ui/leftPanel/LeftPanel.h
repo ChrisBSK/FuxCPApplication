@@ -3,6 +3,24 @@
 
 #include "../../service/GenerationService.h"
 
+/**
+ * @brief Panneau principal d’entrée utilisateur (Vue MVC).
+ *
+ * Rôle :
+ * - Permet de saisir le Cantus Firmus (texte MIDI)
+ * - Permet de configurer le nombre de voix, espèces et types
+ * - Lance la génération via le AppController
+ * - Ouvre le panneau d’options avancées (OptionsPanel)
+ *
+ * Responsabilités :
+ * - Gérer l’interface utilisateur (UI)
+ * - Synchroniser les choix utilisateur avec le modèle (via AppController)
+ *
+ * Ne contient PAS :
+ * - de logique métier (calcul, génération)
+ * - de traitement audio
+ */
+
 class AppController;
 
 class LeftPanel : public juce::Component

@@ -2,7 +2,16 @@
 #include "../optionsWindow/OptionsPanel.h"
 #include "../../controller/AppController.h"
 
+// =============================
+//  parsing du CF
+// =============================
+
+
 static std::vector<int> parseCantusFirmus(const juce::String& text);
+
+// =============================
+// Messages UI
+// =============================
 
 namespace Messages
 {
@@ -45,9 +54,13 @@ LeftPanel::LeftPanel(AppController& controller)
 
         auto* content  = new OptionsPanel();
 
+        content->setVoiceSettings(appController.getVoiceSettings());
+
         int numVoices = voices.getSelectedId();
 
         content->setNumVoices(numVoices);
+
+        content->setVoiceSettings(appController.getVoiceSettings());
 
         juce::DialogWindow::LaunchOptions dialog;
 
@@ -100,7 +113,7 @@ LeftPanel::LeftPanel(AppController& controller)
         int numVoices = voices.getSelectedId();
 
         // =========================
-        // 🔥 MODEL (IMPORTANT)
+        // MISE À JOUR DU MODÈLE
         // =========================
 
         auto& problem = appController.getProblem();
@@ -136,14 +149,11 @@ LeftPanel::LeftPanel(AppController& controller)
 
         problem.setVoices(voicesVec);
 
-        // =========================
-        // LANCEMENT
-        // =========================
 
         appController.startGeneration("dummy.mid");
     };
 
-
+    // Réaction au changement du nombre de voix
     voices.onChange = [this]()
     {
         int numVoices = voices.getSelectedId();
@@ -164,6 +174,9 @@ LeftPanel::LeftPanel(AppController& controller)
 
 
 
+// =============================
+// Fichier MIDI de sortie
+// =============================
 
 void LeftPanel::prepareOutputFile()
 {
@@ -214,7 +227,7 @@ void LeftPanel::paint(juce::Graphics& g)
     {
         auto section = area.removeFromTop(sectionHeight);
 
-        // 🔥 uniquement la barre de titre
+        // uniquement la barre de titre
         auto titleArea = section.removeFromTop(titleHeight);
 
         g.setColour(darkGreen);
@@ -225,7 +238,7 @@ void LeftPanel::paint(juce::Graphics& g)
         g.drawText(titles[i], titleArea.reduced(10, 0),
                    juce::Justification::centredLeft);
 
-        // (optionnel) petite ligne séparatrice
+        // petite ligne séparatrice
         g.setColour(juce::Colours::black.withAlpha(0.3f));
         g.drawLine((float)section.getX(),
                    (float)section.getY(),
@@ -243,129 +256,132 @@ void LeftPanel::resized()
     auto area = getLocalBounds();
 
     const int spacing = 40;
-    const int numSections = 3;
     const float widthRatio = 0.6f;
+    const int titleReservedHeight = 30; // L'espace qu'on laisse pour le titre
 
-    int totalSpacing = spacing * (numSections - 1);
-    int sectionHeight = (area.getHeight() - totalSpacing) / numSections;
+    int totalSpacing = spacing * 2;
+    int sectionHeight = (area.getHeight() - totalSpacing) / 3;
 
-    // =========================
-    // SECTION 1 : Cantus Firmus
-    // =========================
+    // ===== SECTION 1 : CF =====
     auto section1 = area.removeFromTop(sectionHeight);
     auto content1 = section1.reduced(10);
-
-    content1.removeFromTop(30);
+    content1.removeFromTop(titleReservedHeight);
 
     {
         auto row = content1.removeFromTop(22);
-        int width = static_cast<int>(row.getWidth() * widthRatio);
-        int x = row.getX() + 10; // léger décalage à gauche
-        text.setBounds(x, row.getY(), width, row.getHeight());
-    }
+        // CONDITION : On ne montre le texte que si la ligne tient dans la section
+        bool canShowText = row.getBottom() <= section1.getBottom() && sectionHeight > 50;
+        text.setVisible(canShowText);
 
-    area.removeFromTop(spacing);
-
-    int dynamicRows = speciesLabels.size();
-    int rowHeight = 18 + 2 + 22 + 2 + 22 + 4; // label + species + type
-
-    int dynamicHeight = dynamicRows * rowHeight;
-    int baseHeight = 80; // voix combobox + marges
-
-    int section2Height = baseHeight + dynamicHeight;
-
-    // =========================
-    // SECTION 2 : Number of voices
-    // =========================
-    auto section2 = area.removeFromTop(section2Height);
-    auto content2 = section2.reduced(10);
-
-    content2.removeFromTop(20);
-
-    int dynamicIndent = 20;
-    int dynamicLabelHeight = 18;
-    int boxHeight = 22;
-    int dynamicGap = 2;
-
-    {
-        auto row = content2.removeFromTop(22);
-        int width = static_cast<int>(row.getWidth() * widthRatio);
-        int x = row.getX() + 10; // un peu sur la gauche
-        voices.setBounds(x, row.getY(), width, row.getHeight());
-    }
-
-    content2.removeFromTop(12); // espace sous la combobox "Number of voices"
-
-    {
-        int width = content2.getWidth() * 0.35f;
-        int x = content2.getX() + dynamicIndent;
-        int y = content2.getY();
-
-        for (int i = 0; i < speciesLabels.size(); ++i)
-        {
-            int y = content2.getY();
-
-            const int labelHeight = 18;
-            const int boxHeight = 22;
-
-            // 🔥 colonnes
-            int leftX = content2.getX() + 10;
-            int colSpacing = 10;
-
-            int labelWidth = 80;
-            int boxWidth = 60;
-
-            // =========================
-            // HEADER (Espèce / Type)
-            // =========================
-            int headerY = y;
-
-            int speciesX = leftX + labelWidth + colSpacing;
-            int typeX    = speciesX + boxWidth + colSpacing;
-
-            speciesHeader.setBounds(speciesX, headerY, boxWidth, labelHeight);
-            typeHeader.setBounds(typeX, headerY, boxWidth, labelHeight);
-
-            y += labelHeight + 5;
-
-            // =========================
-            // LIGNES
-            // =========================
-            for (int i = 0; i < speciesLabels.size(); ++i)
-            {
-                // 🔽 label "Voix X"
-                speciesLabels[i]->setBounds(leftX, y, labelWidth, labelHeight);
-
-                // 🔽 species
-                speciesBoxes[i]->setBounds(speciesX, y, boxWidth, boxHeight);
-
-                // 🔽 type
-                typeBoxes[i]->setBounds(typeX, y, boxWidth, boxHeight);
-
-                y += boxHeight + 8;
-            }
+        if (canShowText) {
+            int width = static_cast<int>(row.getWidth() * widthRatio);
+            int x = row.getX() + 10;
+            text.setBounds(x, row.getY(), width, row.getHeight());
         }
     }
 
     area.removeFromTop(spacing);
 
-    // =========================
-    // SECTION 3 : Buttons
-    // =========================
-    int section3Height = 170; // taille fixe pour les boutons
-    auto section3 = getLocalBounds().removeFromBottom(section3Height);
-    auto content3 = section3.reduced(15);
+    // ===== SECTION 3 : BOUTONS =====
+    auto section3 = area.removeFromBottom(sectionHeight);
 
-    int buttonWidth = static_cast<int>(content3.getWidth() * widthRatio);
-    int buttonX = content3.getX() + (content3.getWidth() - buttonWidth) / 2;
-    int y = content3.getY() + 35;
+    // ===== SECTION 2 : VOICES + PARAMÈTRES =====
+    auto section2 = area; // C'est le reste (le milieu)
+    auto content2 = section2.reduced(10);
+    content2.removeFromTop(titleReservedHeight);
 
-    moreOptions.setBounds(buttonX, y, buttonWidth, boxHeight);
-    y += boxHeight + 5;
+    // COMBOBOX : Number of voices
+    {
+        auto row = content2.removeFromTop(22);
+        // CONDITION : On cache si ça dépasse de la section 2
+        bool canShowVoices = row.getBottom() <= section2.getBottom() && sectionHeight > 50;
+        voices.setVisible(canShowVoices);
 
-    generateButton.setBounds(buttonX, y, buttonWidth, boxHeight);
+        if (canShowVoices) {
+            int width = static_cast<int>(row.getWidth() * widthRatio);
+            int x = row.getX() + 10;
+            voices.setBounds(x, row.getY(), width, row.getHeight());
+        }
+    }
+
+    content2.removeFromTop(10);
+
+    // ZONE DYNAMIQUE (Espèces / Types)
+    auto dynamicArea = content2;
+    int numRows = speciesLabels.size();
+
+    int labelHeight = 18;
+    int boxHeight = 22;
+    int rowGap = 6;
+    int y = dynamicArea.getY();
+
+    if (numRows > 0) {
+        // On vérifie d'abord si le Header tient
+        bool canShowHeader = (y + labelHeight <= section2.getBottom()) && voices.isVisible();
+        speciesHeader.setVisible(canShowHeader);
+        typeHeader.setVisible(canShowHeader);
+
+        if (canShowHeader) {
+            float labelRatio = 0.4f;
+            float boxRatio = 0.2f;
+            int labelWidth = static_cast<int>(dynamicArea.getWidth() * labelRatio);
+            int boxWidth = static_cast<int>(dynamicArea.getWidth() * boxRatio);
+            int leftX = dynamicArea.getX() + 10;
+            int speciesX = leftX + labelWidth + 10;
+            int typeX = speciesX + boxWidth + 10;
+
+            speciesHeader.setBounds(speciesX, y, boxWidth, labelHeight);
+            typeHeader.setBounds(typeX, y, boxWidth, labelHeight);
+            y += labelHeight + rowGap;
+
+            for (int i = 0; i < numRows; ++i) {
+
+                bool rowVisible = (y + boxHeight <= section2.getBottom());
+                speciesLabels[i]->setVisible(rowVisible);
+                speciesBoxes[i]->setVisible(rowVisible);
+                typeBoxes[i]->setVisible(rowVisible);
+
+                if (rowVisible) {
+                    speciesLabels[i]->setBounds(leftX, y, labelWidth, labelHeight);
+                    speciesBoxes[i]->setBounds(speciesX, y, boxWidth, boxHeight);
+                    typeBoxes[i]->setBounds(typeX, y, boxWidth, boxHeight);
+                }
+                y += boxHeight + rowGap;
+            }
+        } else {
+            // Cacher les lignes si le header ne passe pas
+            for (int i = 0; i < numRows; ++i) {
+                speciesLabels[i]->setVisible(false);
+                speciesBoxes[i]->setVisible(false);
+                typeBoxes[i]->setVisible(false);
+            }
+        }
+    }
+
+    // ===== SECTION 3 : LOGIQUE DES BOUTONS =====
+    auto content3 = section3.reduced(10, 15);
+    int bHeight = 22;
+    int gap = 5;
+    int totalReq = (bHeight * 2) + gap;
+
+    bool showButtons = (content3.getHeight() >= totalReq) && (sectionHeight > 60);
+
+    moreOptions.setVisible(showButtons);
+    generateButton.setVisible(showButtons);
+
+    if (showButtons) {
+        int bWidth = static_cast<int>(content3.getWidth() * widthRatio);
+        int startY = content3.getY() + (content3.getHeight() - totalReq) / 2;
+        int bX = content3.getX() + (content3.getWidth() - bWidth) / 2;
+
+        moreOptions.setBounds(bX, startY, bWidth, bHeight);
+        generateButton.setBounds(bX, startY + bHeight + gap, bWidth, bHeight);
+    }
 }
 
+// =============================
+// Parsing du Cantus Firmus
+// =============================
 static std::vector<int> parseCantusFirmus(const juce::String& text)
 {
     std::vector<int> result;
@@ -410,6 +426,15 @@ void LeftPanel::updateVoiceSpeciesUI(int numVoices)
 
     typeBoxes.clear();
 
+    auto& settings = appController.getVoiceSettings();
+    settings.resize(numVoices);
+
+    for (int i = 0; i < numVoices; ++i)
+    {
+        settings[i].species = 1;
+        settings[i].type = -3;
+    }
+
     for (int i = 0; i < numVoices; ++i)
     {
         auto* rowLabel = new juce::Label();
@@ -430,10 +455,18 @@ void LeftPanel::updateVoiceSpeciesUI(int numVoices)
         speciesBox->addItem("3", 3);
         speciesBox->addItem("4", 4);
         speciesBox->addItem("5", 5);
-        speciesBox->setSelectedId(1);
+
+        speciesBox->setSelectedId(settings[i].species);
 
         addAndMakeVisible(speciesBox);
         speciesBoxes.add(speciesBox);
+
+        //  liaison modèle -> UI
+        speciesBox->onChange = [this, i, speciesBox]()
+        {
+            auto& settings = appController.getVoiceSettings();
+            settings[i].species = speciesBox->getSelectedId();
+        };
 
         auto* typeBox = new juce::ComboBox();
 
@@ -447,12 +480,17 @@ void LeftPanel::updateVoiceSpeciesUI(int numVoices)
         typeBox->addItem("3", 7);
 
 
-        typeBox->setSelectedId(1);
+        typeBox->setSelectedId(settings[i].type + 4);
 
         addAndMakeVisible(typeBox);
         typeBoxes.add(typeBox);
 
-
+        //  liaison modèle -> UI
+        typeBox->onChange = [this, i, typeBox]()
+        {
+            auto& settings = appController.getVoiceSettings();
+            settings[i].type = typeBox->getSelectedId() - 4;
+        };
     }
 
 

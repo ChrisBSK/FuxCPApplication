@@ -37,11 +37,24 @@ public:
     std::vector<int> species;
     std::vector<int> types;
 
+    struct VoiceSettings
+    {
+        int species = 1;
+        int type = 0;
+    };
+
+    std::vector<VoiceSettings>& getVoiceSettings()
+    {
+        return voiceSettings;
+    }
+
 
 
 private:
     CantusProblem problem;
     GenerationService generationService;
+
+    std::vector<VoiceSettings> voiceSettings;
 
     /** Callback après génération (thread → message thread) */
     void handleAsyncUpdate() override;

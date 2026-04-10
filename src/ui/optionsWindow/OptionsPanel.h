@@ -1,6 +1,25 @@
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
+#include "../../controller/AppController.h"
+
+/**
+ * @brief Panneau d’options avancées pour la configuration des voix (Vue).
+ *
+ * Rôle :
+ * - Affiche et permet de modifier les paramètres de chaque voix
+ *   (espèce et type)
+ * - Synchronise les contrôles UI avec le modèle partagé (VoiceSettings)
+ * - Visualise les voix actives selon le nombre de voix sélectionné
+ *
+ * Responsabilités :
+ * - Gérer l’affichage et l’organisation des VoiceBox
+ * - Connecter les ComboBox au modèle (binding UI ↔ données)
+ *
+ * Ne contient PAS :
+ * - de logique métier (règles musicales, génération)
+ * - de traitement audio
+ */
 
 // =============================
 // VoiceBox
@@ -15,6 +34,8 @@ public:
     bool isActive = false;
     juce::ComboBox speciesBox;
     juce::ComboBox typeBox;
+
+    AppController::VoiceSettings* settings = nullptr;
 
 
 private:
@@ -34,7 +55,11 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
     void setNumVoices(int numVoices);
+
+    void setVoiceSettings(std::vector<AppController::VoiceSettings> &settings);
+
     void updateVoice(int index, int species, int type);
+
 
 private:
     juce::Component column1, column2, column3, column4;

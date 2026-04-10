@@ -32,7 +32,7 @@ private:
     float tailOff = 0.0f;
 };
 
-// 🔥 wrapper propre
+// wrapper propre
 class SimpleSynth
 {
 public:
