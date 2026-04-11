@@ -45,6 +45,7 @@ void VoiceBox::paint(juce::Graphics& g)
     //  Highlight actif
     if (isActive)
         g.setColour(juce::Colour(0xff2f4f4f));
+
     else
         g.setColour(juce::Colours::darkgrey.brighter());
 
@@ -176,25 +177,62 @@ OptionsPanel::OptionsPanel()
     title3.onClick = [this]() { updateActiveColumn(3); };
     title4.onClick = [this]() { updateActiveColumn(4); };
 
+    // Gestion du Hover Titre et colonne
+    title1.onEnter = [this]() { hoveredColumn = 1; repaint(); };
+    title2.onEnter = [this]() { hoveredColumn = 2; repaint(); };
+    title3.onEnter = [this]() { hoveredColumn = 3; repaint(); };
+    title4.onEnter = [this]() { hoveredColumn = 4; repaint(); };
+
+    title1.onExit = [this]() { hoveredColumn = 0; repaint(); };
+    title2.onExit = [this]() { hoveredColumn = 0; repaint(); };
+    title3.onExit = [this]() { hoveredColumn = 0; repaint(); };
+    title4.onExit = [this]() { hoveredColumn = 0; repaint(); };
+
+    // ===== Hover colonnes =====
+    column1.onEnter = [this]() { hoveredColumn = 1; column1.isHovered = true; repaint(); };
+    column2.onEnter = [this]() { hoveredColumn = 2; column2.isHovered = true; repaint(); };
+    column3.onEnter = [this]() { hoveredColumn = 3; column3.isHovered = true; repaint(); };
+    column4.onEnter = [this]() { hoveredColumn = 4; column4.isHovered = true; repaint(); };
+
+    column1.onExit = [this]() { column1.isHovered = false; repaint(); };
+    column2.onExit = [this]() { column2.isHovered = false; repaint(); };
+    column3.onExit = [this]() { column3.isHovered = false; repaint(); };
+    column4.onExit = [this]() { column4.isHovered = false; repaint(); };
+
+    // ===== Click colonnes =====
+    column1.onClick = [this]() { updateActiveColumn(1); };
+    column2.onClick = [this]() { updateActiveColumn(2); };
+    column3.onClick = [this]() { updateActiveColumn(3); };
+    column4.onClick = [this]() { updateActiveColumn(4); };
+
 }
 
 void OptionsPanel::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colours::darkgrey);
 
-    auto drawActiveTitle = [&](juce::Label& title, int index)
+    auto drawTitle = [&](juce::Label& title, int index)
     {
+        auto bounds = title.getBounds().toFloat().reduced(2);
+
         if (activeColumn == index)
         {
+            // colonne active
             g.setColour(juce::Colour(0xff2f4f4f));
-            g.fillRoundedRectangle(title.getBounds().toFloat().reduced(2), 6.0f);
+            g.fillRoundedRectangle(bounds, 6.0f);
+        }
+        else if (hoveredColumn == index)
+        {
+            // hover sur une autre colonne
+            g.setColour(juce::Colour(0xff2f4f4f).withAlpha(0.8f));
+            g.fillRoundedRectangle(bounds, 6.0f);
         }
     };
 
-    drawActiveTitle(title1, 1);
-    drawActiveTitle(title2, 2);
-    drawActiveTitle(title3, 3);
-    drawActiveTitle(title4, 4);
+    drawTitle(title1, 1);
+    drawTitle(title2, 2);
+    drawTitle(title3, 3);
+    drawTitle(title4, 4);
 }
 
 void OptionsPanel::resized()
