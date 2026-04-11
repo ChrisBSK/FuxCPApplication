@@ -41,6 +41,9 @@ public:
 
 
     void paint(juce::Graphics&) override;
+
+    void paintOverChildren(juce::Graphics &g);
+
     void resized() override;
 
     void getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill);
@@ -50,7 +53,7 @@ public:
 
 private:
 
-
+    OptionsPanel optionsPanel;
     HeaderPanel header;
     LeftPanel leftPanel { appController };
     WorkAreaPanel workArea;

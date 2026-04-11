@@ -178,15 +178,61 @@ OptionsPanel::OptionsPanel()
     title4.onClick = [this]() { updateActiveColumn(4); };
 
     // Gestion du Hover Titre et colonne
-    title1.onEnter = [this]() { hoveredColumn = 1; repaint(); };
-    title2.onEnter = [this]() { hoveredColumn = 2; repaint(); };
-    title3.onEnter = [this]() { hoveredColumn = 3; repaint(); };
-    title4.onEnter = [this]() { hoveredColumn = 4; repaint(); };
+    title1.onEnter = [this]()
+    {
+        hoveredColumn = 1;
+        column1.isHovered = true;
+        repaint();
+    };
 
-    title1.onExit = [this]() { hoveredColumn = 0; repaint(); };
-    title2.onExit = [this]() { hoveredColumn = 0; repaint(); };
-    title3.onExit = [this]() { hoveredColumn = 0; repaint(); };
-    title4.onExit = [this]() { hoveredColumn = 0; repaint(); };
+    title2.onEnter = [this]()
+    {
+        hoveredColumn = 2;
+        column2.isHovered = true;
+        repaint();
+    };
+
+    title3.onEnter = [this]()
+    {
+        hoveredColumn = 3;
+        column3.isHovered = true;
+        repaint();
+    };
+
+    title4.onEnter = [this]()
+    {
+        hoveredColumn = 4;
+        column4.isHovered = true;
+        repaint();
+    };
+
+    title1.onExit = [this]()
+    {
+        hoveredColumn = 0;
+        column1.isHovered = false;
+        repaint();
+    };
+
+    title2.onExit = [this]()
+    {
+        hoveredColumn = 0;
+        column2.isHovered = false;
+        repaint();
+    };
+
+    title3.onExit = [this]()
+    {
+        hoveredColumn = 0;
+        column3.isHovered = false;
+        repaint();
+    };
+
+    title4.onExit = [this]()
+    {
+        hoveredColumn = 0;
+        column4.isHovered = false;
+        repaint();
+    };
 
     // ===== Hover colonnes =====
     column1.onEnter = [this]() { hoveredColumn = 1; column1.isHovered = true; repaint(); };
@@ -242,22 +288,41 @@ void OptionsPanel::resized()
     // zone boutons en bas
     auto bottomArea = fullArea.removeFromBottom(80);
 
-    auto area = fullArea;
+    // =============================
+    // zone centrale volontairement plus petite
+    // pour que les colonnes soient moins larges et moins hautes
+    // =============================
+    auto area = fullArea.reduced(40, 30);
 
-    const int gap = 10;
+    const int gap = 14;
     const int titleHeight = 28;
-    const int width = (area.getWidth() - 3 * gap) / 4;
+
+    // colonnes un peu moins larges que toute la zone dispo
+    const int columnWidth = 240;
+
+    // =============================
+    // calcul pour centrer les 4 colonnes
+    // =============================
+    const int totalColumnsWidth = 4 * columnWidth + 3 * gap;
+    int startX = area.getX() + (area.getWidth() - totalColumnsWidth) / 2;
+
+    // hauteur volontairement réduite
+    const int columnHeight = juce::jmin(500, area.getHeight() - 30);
+
+    // Y de départ commun
+    int titleY = area.getY();
+    int columnY = titleY + titleHeight + 6;
 
     // =============================
     // Colonne 1 : Basic Constraints
     // =============================
-    auto col1Area = area.removeFromLeft(width);
-    title1.setBounds(col1Area.removeFromTop(titleHeight));
-    column1.setBounds(col1Area);
+    juce::Rectangle<int> col1Bounds(startX, columnY, columnWidth, columnHeight);
+    title1.setBounds(startX, titleY, columnWidth, titleHeight);
+    column1.setBounds(col1Bounds);
 
-    auto inner = col1Area.reduced(10);
+    auto inner = col1Bounds.reduced(10);
 
-    const int boxHeight = 60;   // 🔥 plus compact
+    const int boxHeight = 60;
     const int gapY = 8;
 
     box1.setBounds(inner.removeFromTop(boxHeight));
@@ -272,20 +337,19 @@ void OptionsPanel::resized()
     box4.setBounds(inner.removeFromTop(boxHeight));
 
     // =============================
-    // Colonne 2 (Melodic)
+    // Colonne 2 : Melodic
     // =============================
-    area.removeFromLeft(gap);
+    int col2X = startX + columnWidth + gap;
+    juce::Rectangle<int> col2Bounds(col2X, columnY, columnWidth, columnHeight);
+    title2.setBounds(col2X, titleY, columnWidth, titleHeight);
+    column2.setBounds(col2Bounds);
 
-    auto col2Area = area.removeFromLeft(width);
-    title2.setBounds(col2Area.removeFromTop(titleHeight));
-    column2.setBounds(col2Area);
+    auto inner2 = col2Bounds.reduced(12);
 
-    auto inner2 = col2Area.reduced(12);
-
-    const int rowHeight = 26;     // hauteur des lignes
+    const int rowHeight = 26;
     const int spacingY = 10;
-    const int labelWidth = 95;    // taille des labels
-    const int gapX = 12;          //  ESPACE entre label et contenu
+    const int labelWidth = 95;
+    const int gapX = 12;
 
     // ===== 1. Max Leap =====
     auto row1 = inner2.removeFromTop(rowHeight);
@@ -293,7 +357,7 @@ void OptionsPanel::resized()
     row1.removeFromLeft(gapX);
 
     melodicMaxLeapLabel.setBounds(left1);
-    melodicMaxLeapSlider.setBounds(row1.reduced(0, 6)); // slider plus fin
+    melodicMaxLeapSlider.setBounds(row1.reduced(0, 6));
     inner2.removeFromTop(spacingY);
 
     // ===== 2. Step =====
@@ -305,7 +369,7 @@ void OptionsPanel::resized()
     melodicStepBiasSlider.setBounds(row2.reduced(0, 6));
     inner2.removeFromTop(spacingY);
 
-    // ===== 3. Repetion allowed =====
+    // ===== 3. Repetition allowed =====
     auto row3 = inner2.removeFromTop(rowHeight);
     auto left3 = row3.removeFromLeft(labelWidth);
     row3.removeFromLeft(gapX);
@@ -325,35 +389,33 @@ void OptionsPanel::resized()
     // =============================
     // Colonne 3
     // =============================
-    area.removeFromLeft(gap);
-
-    auto col3Area = area.removeFromLeft(width);
-    title3.setBounds(col3Area.removeFromTop(titleHeight));
-    column3.setBounds(col3Area);
+    int col3X = col2X + columnWidth + gap;
+    juce::Rectangle<int> col3Bounds(col3X, columnY, columnWidth, columnHeight);
+    title3.setBounds(col3X, titleY, columnWidth, titleHeight);
+    column3.setBounds(col3Bounds);
 
     // =============================
     // Colonne 4
     // =============================
-    area.removeFromLeft(gap);
-
-    auto col4Area = area.removeFromLeft(width);
-    title4.setBounds(col4Area.removeFromTop(titleHeight));
-    column4.setBounds(col4Area);
+    int col4X = col3X + columnWidth + gap;
+    juce::Rectangle<int> col4Bounds(col4X, columnY, columnWidth, columnHeight);
+    title4.setBounds(col4X, titleY, columnWidth, titleHeight);
+    column4.setBounds(col4Bounds);
 
     // =============================
     // Bottom buttons
+    // on garde leur taille actuelle
     // =============================
-    const int buttonWidth = 110;   //
+    const int buttonWidth = 110;
     const int buttonHeight = 28;
     const int spacing = 12;
 
     int totalWidth = 2 * buttonWidth + spacing;
-    int startX = (getWidth() - totalWidth) / 2;
+    int startButtonsX = (getWidth() - totalWidth) / 2;
     int y = bottomArea.getY() + (bottomArea.getHeight() - buttonHeight) / 2;
 
-    cancel.setBounds(startX, y, buttonWidth, buttonHeight);
-    generate.setBounds(startX + buttonWidth + spacing, y, buttonWidth, buttonHeight);
-
+    cancel.setBounds(startButtonsX, y, buttonWidth, buttonHeight);
+    generate.setBounds(startButtonsX + buttonWidth + spacing, y, buttonWidth, buttonHeight);
 }
 
 // =============================
