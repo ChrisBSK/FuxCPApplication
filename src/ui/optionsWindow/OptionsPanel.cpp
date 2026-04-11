@@ -63,6 +63,8 @@ void VoiceBox::resized()
 
     speciesBox.setBounds(left.reduced(2));
     typeBox.setBounds(row.reduced(2));
+
+
 }
 
 // =============================
@@ -70,10 +72,12 @@ void VoiceBox::resized()
 // =============================
 OptionsPanel::OptionsPanel()
 {
+    //====== Affichage des colonnes =========
     addAndMakeVisible(column1);
     addAndMakeVisible(column2);
     addAndMakeVisible(column3);
     addAndMakeVisible(column4);
+
 
     addAndMakeVisible(title1);
     addAndMakeVisible(title2);
@@ -81,7 +85,7 @@ OptionsPanel::OptionsPanel()
     addAndMakeVisible(title4);
 
     title1.setText("Basic Constraints", juce::dontSendNotification);
-    title2.setText("Feature 2", juce::dontSendNotification);
+    title2.setText("Melodic", juce::dontSendNotification);
     title3.setText("Feature 3", juce::dontSendNotification);
     title4.setText("Feature 4", juce::dontSendNotification);
 
@@ -97,10 +101,76 @@ OptionsPanel::OptionsPanel()
     setupLabel(title3);
     setupLabel(title4);
 
+    //Affichage des voix colonnne 1
     addAndMakeVisible(box1);
     addAndMakeVisible(box2);
     addAndMakeVisible(box3);
     addAndMakeVisible(box4);
+
+    //===== Melodic Constraints ==========
+
+    // 1. ===== Max Leap ======
+    addAndMakeVisible(melodicMaxLeapLabel);
+    addAndMakeVisible(melodicMaxLeapSlider);
+
+    melodicMaxLeapLabel.setText("Max Leap", juce::dontSendNotification);
+    melodicMaxLeapLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    melodicMaxLeapLabel.setJustificationType(juce::Justification::centredLeft);
+
+    melodicMaxLeapSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+    melodicMaxLeapSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 50, 20);
+    melodicMaxLeapSlider.setRange(2, 12, 1); // intervalle max
+    melodicMaxLeapSlider.setValue(5); // valeur par défaut
+
+    // 2. ===== Step bias ======
+    addAndMakeVisible((melodicStepBiasLabel));
+    addAndMakeVisible((melodicStepBiasSlider));
+
+    melodicStepBiasLabel.setText("Step bias", juce::dontSendNotification);
+    melodicStepBiasLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    melodicStepBiasLabel.setJustificationType(juce::Justification::centredLeft);
+
+    melodicStepBiasSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+    melodicStepBiasSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 50, 20);
+    melodicStepBiasSlider.setRange(-1, 1, 1);
+    melodicStepBiasSlider.setValue(0);
+
+    // 3. ====== Repetition allowed ======
+    addAndMakeVisible(melodicRepetitionLabel);
+    addAndMakeVisible(melodicRepetitionToggle);
+
+    melodicRepetitionLabel.setText("Repetition", juce::dontSendNotification);
+    melodicRepetitionLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    melodicRepetitionLabel.setJustificationType(juce::Justification::centredLeft);
+
+    melodicRepetitionToggle.setButtonText("Allow");
+    melodicRepetitionToggle.setToggleState(false, juce::dontSendNotification);
+
+    // 4. ====== Direction prefered =====
+    addAndMakeVisible(melodicDirectionLabel);
+    addAndMakeVisible(melodicDirectionBox);
+
+    melodicDirectionLabel.setText("Direction", juce::dontSendNotification);
+    melodicDirectionLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    melodicDirectionLabel.setJustificationType(juce::Justification::centredLeft);
+
+    melodicDirectionBox.addItem("Neutral", 1);
+    melodicDirectionBox.addItem("Ascending", 2);
+    melodicDirectionBox.addItem("Descending", 3);
+
+    melodicDirectionBox.setSelectedId(1);
+
+
+
+
+
+//Affichage des boutons Generate/Cancel
+    generate.setButtonText("Generate");
+    cancel.setButtonText("Cancel");
+    addAndMakeVisible(generate);
+    addAndMakeVisible(cancel);
+
+
 }
 
 void OptionsPanel::paint(juce::Graphics& g)
@@ -110,20 +180,28 @@ void OptionsPanel::paint(juce::Graphics& g)
 
 void OptionsPanel::resized()
 {
-    auto area = getLocalBounds().reduced(20);
+    auto fullArea = getLocalBounds().reduced(20);
+
+    // zone boutons en bas
+    auto bottomArea = fullArea.removeFromBottom(80);
+
+    auto area = fullArea;
 
     const int gap = 10;
-    const int titleHeight = 30;
+    const int titleHeight = 28;
     const int width = (area.getWidth() - 3 * gap) / 4;
 
-    // ===== Column 1 =====
+    // =============================
+    // Colonne 1 : Basic Constraints
+    // =============================
     auto col1Area = area.removeFromLeft(width);
     title1.setBounds(col1Area.removeFromTop(titleHeight));
     column1.setBounds(col1Area);
 
     auto inner = col1Area.reduced(10);
-    const int boxHeight = 70;
-    const int gapY = 10;
+
+    const int boxHeight = 60;   // 🔥 plus compact
+    const int gapY = 8;
 
     box1.setBounds(inner.removeFromTop(boxHeight));
     inner.removeFromTop(gapY);
@@ -136,24 +214,88 @@ void OptionsPanel::resized()
 
     box4.setBounds(inner.removeFromTop(boxHeight));
 
-    // ===== Other columns =====
+    // =============================
+    // Colonne 2 (Melodic)
+    // =============================
     area.removeFromLeft(gap);
 
     auto col2Area = area.removeFromLeft(width);
     title2.setBounds(col2Area.removeFromTop(titleHeight));
     column2.setBounds(col2Area);
 
+    auto inner2 = col2Area.reduced(12);
+
+    const int rowHeight = 26;     // hauteur des lignes
+    const int spacingY = 10;
+    const int labelWidth = 95;    // taille des labels
+    const int gapX = 12;          //  ESPACE entre label et contenu
+
+    // ===== 1. Max Leap =====
+    auto row1 = inner2.removeFromTop(rowHeight);
+    auto left1 = row1.removeFromLeft(labelWidth);
+    row1.removeFromLeft(gapX);
+
+    melodicMaxLeapLabel.setBounds(left1);
+    melodicMaxLeapSlider.setBounds(row1.reduced(0, 6)); // slider plus fin
+    inner2.removeFromTop(spacingY);
+
+    // ===== 2. Step =====
+    auto row2 = inner2.removeFromTop(rowHeight);
+    auto left2 = row2.removeFromLeft(labelWidth);
+    row2.removeFromLeft(gapX);
+
+    melodicStepBiasLabel.setBounds(left2);
+    melodicStepBiasSlider.setBounds(row2.reduced(0, 6));
+    inner2.removeFromTop(spacingY);
+
+    // ===== 3. Repetion allowed =====
+    auto row3 = inner2.removeFromTop(rowHeight);
+    auto left3 = row3.removeFromLeft(labelWidth);
+    row3.removeFromLeft(gapX);
+
+    melodicRepetitionLabel.setBounds(left3);
+    melodicRepetitionToggle.setBounds(row3.reduced(0, 3));
+    inner2.removeFromTop(spacingY);
+
+    // ===== 4. Direction =====
+    auto row4 = inner2.removeFromTop(rowHeight);
+    auto left4 = row4.removeFromLeft(labelWidth);
+    row4.removeFromLeft(gapX);
+
+    melodicDirectionLabel.setBounds(left4);
+    melodicDirectionBox.setBounds(row4.reduced(0, 3));
+
+    // =============================
+    // Colonne 3
+    // =============================
     area.removeFromLeft(gap);
 
     auto col3Area = area.removeFromLeft(width);
     title3.setBounds(col3Area.removeFromTop(titleHeight));
     column3.setBounds(col3Area);
 
+    // =============================
+    // Colonne 4
+    // =============================
     area.removeFromLeft(gap);
 
     auto col4Area = area.removeFromLeft(width);
     title4.setBounds(col4Area.removeFromTop(titleHeight));
     column4.setBounds(col4Area);
+
+    // =============================
+    // Bottom buttons
+    // =============================
+    const int buttonWidth = 110;   //
+    const int buttonHeight = 28;
+    const int spacing = 12;
+
+    int totalWidth = 2 * buttonWidth + spacing;
+    int startX = (getWidth() - totalWidth) / 2;
+    int y = bottomArea.getY() + (bottomArea.getHeight() - buttonHeight) / 2;
+
+    cancel.setBounds(startX, y, buttonWidth, buttonHeight);
+    generate.setBounds(startX + buttonWidth + spacing, y, buttonWidth, buttonHeight);
 }
 
 // =============================

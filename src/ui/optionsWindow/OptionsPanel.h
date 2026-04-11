@@ -21,6 +21,29 @@
  * - de traitement audio
  */
 
+// ========= display composantes =====
+class StyledLabel : public juce::Label
+{
+public:
+    void paint(juce::Graphics& g) override
+    {
+        auto bounds = getLocalBounds().toFloat();
+
+        // fond vert
+        g.setColour(juce::Colour(0xff2f4f4f));
+        g.fillRect(bounds);
+
+        // texte
+        g.setColour(juce::Colours::white);
+        g.setFont(getFont());
+
+        g.drawText(getText(),
+                   getLocalBounds(),
+                   getJustificationType(),
+                   true);
+    }
+};
+
 // =============================
 // VoiceBox
 // =============================
@@ -62,7 +85,24 @@ public:
 
 
 private:
-    juce::Component column1, column2, column3, column4;
+    class ColumnBox : public juce::Component
+{
+public:
+    void paint(juce::Graphics& g) override
+    {
+        auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+
+        // fond légèrement différent
+        g.setColour(juce::Colours::darkgrey.darker(0.3f));
+        g.fillRoundedRectangle(bounds, 10.0f);
+
+        // contour
+        g.setColour(juce::Colours::white.withAlpha(0.2f));
+        g.drawRoundedRectangle(bounds, 10.0f, 1.5f);
+    }
+};
+
+ColumnBox column1, column2, column3, column4;
 
     juce::Label title1, title2, title3, title4;
 
@@ -70,6 +110,25 @@ private:
     VoiceBox box2 { "Voix 2" };
     VoiceBox box3 { "Voix 3" };
     VoiceBox box4 { "Voix 4" };
+
+    juce::TextButton generate;
+    juce::TextButton cancel;
+
+    // Composantes UI (widgets) - Melodic Constraints (2e colonne)
+
+    StyledLabel melodicMaxLeapLabel;
+    StyledLabel melodicStepBiasLabel;
+    StyledLabel melodicRepetitionLabel;
+    StyledLabel melodicDirectionLabel;
+
+    juce::Slider melodicMaxLeapSlider;
+    juce::Slider melodicStepBiasSlider;
+    juce::ToggleButton melodicRepetitionToggle;
+    juce::ComboBox melodicDirectionBox;
+
+
+
+
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OptionsPanel)
 };
