@@ -164,18 +164,37 @@ OptionsPanel::OptionsPanel()
 
 
 
-//Affichage des boutons Generate/Cancel
+    //Affichage des boutons Generate/Cancel
     generate.setButtonText("Generate");
     cancel.setButtonText("Cancel");
     addAndMakeVisible(generate);
     addAndMakeVisible(cancel);
 
+    // Display colonne active
+    title1.onClick = [this]() { updateActiveColumn(1); };
+    title2.onClick = [this]() { updateActiveColumn(2); };
+    title3.onClick = [this]() { updateActiveColumn(3); };
+    title4.onClick = [this]() { updateActiveColumn(4); };
 
 }
 
 void OptionsPanel::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colours::darkgrey);
+
+    auto drawActiveTitle = [&](juce::Label& title, int index)
+    {
+        if (activeColumn == index)
+        {
+            g.setColour(juce::Colour(0xff2f4f4f));
+            g.fillRoundedRectangle(title.getBounds().toFloat().reduced(2), 6.0f);
+        }
+    };
+
+    drawActiveTitle(title1, 1);
+    drawActiveTitle(title2, 2);
+    drawActiveTitle(title3, 3);
+    drawActiveTitle(title4, 4);
 }
 
 void OptionsPanel::resized()
@@ -296,6 +315,7 @@ void OptionsPanel::resized()
 
     cancel.setBounds(startX, y, buttonWidth, buttonHeight);
     generate.setBounds(startX + buttonWidth + spacing, y, buttonWidth, buttonHeight);
+
 }
 
 // =============================
@@ -326,5 +346,17 @@ void OptionsPanel::setVoiceSettings(std::vector<AppController::VoiceSettings>& s
             boxes[i]->typeBox.setSelectedId(settings[i].type + 4);
         }
     }
+}
+
+void OptionsPanel::updateActiveColumn(int columnIndex)
+{
+    activeColumn = columnIndex;
+
+    column1.isActive = (activeColumn == 1);
+    column2.isActive = (activeColumn == 2);
+    column3.isActive = (activeColumn == 3);
+    column4.isActive = (activeColumn == 4);
+
+    repaint();
 }
 

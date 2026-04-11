@@ -86,25 +86,43 @@ public:
 
 private:
     class ColumnBox : public juce::Component
-{
-public:
-    void paint(juce::Graphics& g) override
     {
-        auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+    public:
+        bool isActive = false;
 
-        // fond légèrement différent
-        g.setColour(juce::Colours::darkgrey.darker(0.3f));
-        g.fillRoundedRectangle(bounds, 10.0f);
+        void paint(juce::Graphics& g) override
+        {
+            auto bounds = getLocalBounds().toFloat().reduced(2.0f);
 
-        // contour
-        g.setColour(juce::Colours::white.withAlpha(0.2f));
-        g.drawRoundedRectangle(bounds, 10.0f, 1.5f);
-    }
-};
+            // fond
+            g.setColour(juce::Colours::darkgrey.darker(0.3f));
+            g.fillRoundedRectangle(bounds, 10.0f);
+
+            // contour
+            if (isActive)
+                g.setColour(juce::Colour(0xff2f4f4f)); // couleur colonne actives
+            else
+                g.setColour(juce::Colours::white.withAlpha(0.2f));
+
+            g.drawRoundedRectangle(bounds, 10.0f, 2.0f);
+        }
+    };
 
 ColumnBox column1, column2, column3, column4;
 
-    juce::Label title1, title2, title3, title4;
+    class ClickableTitle : public juce::Label
+    {
+    public:
+        std::function<void()> onClick;
+
+        void mouseDown(const juce::MouseEvent&) override
+        {
+            if (onClick)
+                onClick();
+        }
+    };
+
+    ClickableTitle title1, title2, title3, title4;
 
     VoiceBox box1 { "Voix 1" };
     VoiceBox box2 { "Voix 2" };
@@ -126,6 +144,11 @@ ColumnBox column1, column2, column3, column4;
     juce::ToggleButton melodicRepetitionToggle;
     juce::ComboBox melodicDirectionBox;
 
+    // ===== Display column active =======
+    int activeColumn = 0;
+    void updateActiveColumn(int columnIndex);
+
+    int hoveredColumn = 0; //posibilité d'extension
 
 
 
