@@ -32,6 +32,8 @@ audioPlayer(keyboardState)
 
         leftPanel.setCantusText(newText); // à adapter
     };
+
+    leftPanel.setOptionsPanel(&optionsPanel);
 }
 
 MainComponent::~MainComponent()
@@ -51,10 +53,9 @@ void MainComponent::paintOverChildren(juce::Graphics& g)
     // =============================
     int separatorX = leftPanel.getRight();
 
-    int separatorTop = header.getBottom();
+    int separatorTop = 0;
     int separatorBottom = keyboard.getBottom();
 
-    // ligne principale
     g.setColour(juce::Colours::black.withAlpha(0.5f));
     g.drawLine((float)separatorX,
                (float)separatorTop,
@@ -62,7 +63,6 @@ void MainComponent::paintOverChildren(juce::Graphics& g)
                (float)separatorBottom,
                1.0f);
 
-    // highlight léger
     g.setColour(juce::Colours::white.withAlpha(0.1f));
     g.drawLine((float)separatorX + 1,
                (float)separatorTop,
@@ -72,9 +72,9 @@ void MainComponent::paintOverChildren(juce::Graphics& g)
 
 
     // =============================
-    // Ligne horizontale (SOUS leftPanel uniquement)
+    // Ligne horizontale (AU-DESSUS DU HISTORY)
     // =============================
-    int bottomY = keyboard.getY();
+    int bottomY = history.getY();
 
     int bottomLeft = leftPanel.getX();
     int bottomRight = leftPanel.getRight();
@@ -95,11 +95,11 @@ void MainComponent::paintOverChildren(juce::Graphics& g)
 
 
     // =============================
-    // Ligne horizontale (HAUT - toute la partie droite)
+    // Ligne horizontale (HAUT PARTIE DROITE UNIQUEMENT)
     // =============================
     int topY = header.getBottom();
 
-    int topLeft = 0;
+    int topLeft = leftPanel.getRight();
     int topRight = getWidth();
 
     g.setColour(juce::Colours::black.withAlpha(0.5f));
@@ -121,22 +121,32 @@ void MainComponent::resized()
 {
     auto area = getLocalBounds();
 
+    // =============================
+    // Partie gauche (LeftPanel + History)
+    // =============================
+    auto leftArea = area.removeFromLeft(280);
+
+    // History
+    auto historyArea = leftArea.removeFromBottom(120);
+    history.setBounds(historyArea);
+
+    // Le reste du LeftPanel
+    leftPanel.setBounds(leftArea);
+
+    // =============================
+    // Partie droite
+    // =============================
+    auto rightArea = area;
+
     // Header
-    header.setBounds(area.removeFromTop(60));
+    header.setBounds(rightArea.removeFromTop(60));
 
-    // Bottom area (history + keyboard)
-    auto bottomArea = area.removeFromBottom(80);
-
-    history.setBounds(bottomArea.removeFromLeft(280));
+    // Bas (keyboard)
+    auto bottomArea = rightArea.removeFromBottom(100);
     keyboard.setBounds(bottomArea);
 
-    // Left panel
-    leftPanel.setBounds(area.removeFromLeft(280));
-
-    // OptionPanel area
-    optionsPanel.setBounds(area);
-
-
+    // Centre (OptionsPanel)
+    optionsPanel.setBounds(rightArea);
 }
 
 void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)

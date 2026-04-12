@@ -2,7 +2,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include "../../service/GenerationService.h"
-
+#include "../optionsWindow/OptionsPanel.h"
 /**
  * @brief Panneau principal d’entrée utilisateur (Vue MVC).
  *
@@ -40,6 +40,11 @@ public:
 
     void setCantusText(const juce::String& newText);
 
+    void setOptionsPanel(OptionsPanel* panel)
+    {
+        optionsPanel = panel;
+    }
+
 private:
     juce::TextEditor text;
     juce::Label label;
@@ -64,6 +69,7 @@ private:
     juce::Label typeHeader;
 
     AppController& appController;
+    OptionsPanel* optionsPanel = nullptr;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LeftPanel)
 };

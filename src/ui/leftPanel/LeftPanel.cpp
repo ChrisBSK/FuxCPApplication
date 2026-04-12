@@ -466,6 +466,11 @@ void LeftPanel::updateVoiceSpeciesUI(int numVoices)
         {
             auto& settings = appController.getVoiceSettings();
             settings[i].species = speciesBox->getSelectedId();
+
+            if (optionsPanel)
+            {
+                optionsPanel->setVoiceSettings(settings);
+            }
         };
 
         auto* typeBox = new juce::ComboBox();
@@ -490,9 +495,19 @@ void LeftPanel::updateVoiceSpeciesUI(int numVoices)
         {
             auto& settings = appController.getVoiceSettings();
             settings[i].type = typeBox->getSelectedId() - 4;
+
+            if (optionsPanel)
+            {
+                optionsPanel->setVoiceSettings(settings);
+            }
         };
     }
 
+    if (optionsPanel)
+    {
+        optionsPanel->setNumVoices(numVoices);
+        optionsPanel->setVoiceSettings(appController.getVoiceSettings());
+    }
 
     resized();
 }
