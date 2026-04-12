@@ -97,7 +97,7 @@ namespace
         const int ticksPerNote = 960; // noire = 1 temps
 
         // =========================
-        // 🎵 Track 1 : Cantus Firmus
+        //  Track 1 : Cantus Firmus
         // =========================
         juce::MidiMessageSequence cfTrack;
 
@@ -113,7 +113,7 @@ namespace
         midi.addTrack(cfTrack);
 
         // =========================
-        // 🎵 Tracks suivantes : voix générées
+        //  Tracks suivantes : voix générées
         // =========================
         int channel = 2;
 
@@ -141,7 +141,7 @@ namespace
         }
 
         // =========================
-        // 💾 Écriture fichier
+        //  Écriture fichier
         // =========================
         if (auto stream = file.createOutputStream())
         {
@@ -223,6 +223,7 @@ void GenerationService::run()
 
     if (controllerToNotify != nullptr)
         controllerToNotify->triggerAsyncUpdate();
+
 }
 
 bool GenerationService::isGenerating() const { return isThreadRunning(); }
@@ -301,12 +302,16 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem, con
                 if (!voices.empty())
                     voices.erase(voices.begin());
 
-                juce::File desktop = juce::File::getSpecialLocation(
-                    juce::File::userDesktopDirectory);
+                juce::File midiFile(outputPath);
 
-                juce::File midiFile = desktop.getChildFile("fux_solution.mid");
-
-                writeMidiFile(problem.getCantusFirmus(), voices, midiFile);
+                if (writeMidiFile(problem.getCantusFirmus(), voices, midiFile))
+                {
+                    lastGeneratedMidiPath = midiFile.getFullPathName(); // ✅ BON ENDROIT
+                }
+                else
+                {
+                    DBG("Erreur écriture MIDI !");
+                }
             }
             else
             {

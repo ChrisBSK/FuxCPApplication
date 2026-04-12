@@ -1,5 +1,6 @@
 #include "OptionsPanel.h"
 #include "../../controller/AppController.h"
+#include "../leftPanel/LeftPanel.h"
 // =============================
 // VoiceBox : UI d'une voix
 // =============================
@@ -166,9 +167,9 @@ OptionsPanel::OptionsPanel()
 
 
     //Affichage des boutons Generate/Cancel
-    generate.setButtonText("Generate");
+    generateButton.setButtonText("Generate");
     cancel.setButtonText("Cancel");
-    addAndMakeVisible(generate);
+    addAndMakeVisible(generateButton);
     addAndMakeVisible(cancel);
 
     // Display colonne active
@@ -250,6 +251,12 @@ OptionsPanel::OptionsPanel()
     column2.onClick = [this]() { updateActiveColumn(2); };
     column3.onClick = [this]() { updateActiveColumn(3); };
     column4.onClick = [this]() { updateActiveColumn(4); };
+
+    generateButton.onClick = [this]()
+    {
+        if (leftPanel != nullptr)
+            leftPanel->triggerGeneration();
+    };
 
 }
 
@@ -415,7 +422,7 @@ void OptionsPanel::resized()
     int y = bottomArea.getY() + (bottomArea.getHeight() - buttonHeight) / 2;
 
     cancel.setBounds(startButtonsX, y, buttonWidth, buttonHeight);
-    generate.setBounds(startButtonsX + buttonWidth + spacing, y, buttonWidth, buttonHeight);
+    generateButton.setBounds(startButtonsX + buttonWidth + spacing, y, buttonWidth, buttonHeight);
 }
 
 // =============================

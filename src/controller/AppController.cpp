@@ -1,9 +1,12 @@
 #include "AppController.h"
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_events/juce_events.h>
+
+#include "../ui/leftPanel/leftPanel.h"
 // =========================
 // Constructeurs
 // =========================
+
 
 AppController::AppController()
 {
@@ -62,23 +65,26 @@ const CantusProblem& AppController::getProblem() const
 
 void AppController::handleAsyncUpdate()
 {
-    bool success = generationService.getLastGenerationSuccess();
-
-    if (success)
+    if (generationService.getLastGenerationSuccess())
     {
-        // AU MOINS UNE SOLUTION TROUVÉE
+        juce::File file(generationService.getLastGeneratedMidiPath());
+
+        if (file.existsAsFile() && leftPanel != nullptr)
+        {
+            leftPanel->onGenerationFinished(file);
+        }
+
         juce::AlertWindow::showMessageBoxAsync(
             juce::AlertWindow::InfoIcon,
             "Résultat",
-            " Une solution existe !");
+            "Une solution existe !");
     }
     else
     {
-        //  AUCUNE SOLUTION OU ERREUR
         juce::String errorMsg = generationService.getLastError();
 
         if (errorMsg.isEmpty())
-            errorMsg = " Aucune solution trouvée.";
+            errorMsg = "Aucune solution trouvée.";
 
         juce::AlertWindow::showMessageBoxAsync(
             juce::AlertWindow::WarningIcon,

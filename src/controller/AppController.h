@@ -15,10 +15,12 @@
  *
  * Ne duplique PAS les getters/setters du modèle.
  */
+class LeftPanel;
 class AppController : public juce::AsyncUpdater, juce::Component
 {
 public:
     AppController();
+
     explicit AppController(const juce::String& title);
 
     // =========================
@@ -48,6 +50,12 @@ public:
         return voiceSettings;
     }
 
+    void setLeftPanel(LeftPanel* panel)
+    {
+        leftPanel = panel;
+    }
+
+
 
 
 private:
@@ -55,6 +63,8 @@ private:
     GenerationService generationService;
 
     std::vector<VoiceSettings> voiceSettings;
+
+    LeftPanel* leftPanel = nullptr;
 
     /** Callback après génération (thread → message thread) */
     void handleAsyncUpdate() override;

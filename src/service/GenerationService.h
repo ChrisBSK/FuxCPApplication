@@ -39,6 +39,10 @@ public:
     bool getLastGenerationSuccess() const;
     juce::String getLastGeneratedMidiPath() const;
 
+    std::function<void()> onFinished;
+
+
+
 
 
 

@@ -33,7 +33,14 @@ audioPlayer(keyboardState)
         leftPanel.setCantusText(newText); // à adapter
     };
 
+    //sync UI
     leftPanel.setOptionsPanel(&optionsPanel);
+
+    //boutoun Generate
+    optionsPanel.setLeftPanel(&leftPanel);
+
+    //callback generation
+    appController.setLeftPanel(&leftPanel);
 }
 
 MainComponent::~MainComponent()

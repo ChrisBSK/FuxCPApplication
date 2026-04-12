@@ -30,7 +30,7 @@
  * - de logique de génération musicale
  */
 
-class MainComponent : public juce::Component
+class MainComponent : public juce::Component, public juce::DragAndDropContainer
 {
 public:
     MainComponent();

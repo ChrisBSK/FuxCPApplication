@@ -67,6 +67,8 @@ private:
 
 };
 
+class LeftPanel;
+
 // =============================
 // OptionsPanel
 // =============================
@@ -82,6 +84,11 @@ public:
     void setVoiceSettings(std::vector<AppController::VoiceSettings> &settings);
 
     void updateVoice(int index, int species, int type);
+
+    void setLeftPanel(LeftPanel* panel)
+    {
+        leftPanel = panel;
+    }
 
 
 private:
@@ -142,6 +149,8 @@ private:
         bool isHovered = false;
     };
 
+    LeftPanel* leftPanel = nullptr;
+
 
 ColumnBox column1, column2, column3, column4;
 
@@ -175,7 +184,7 @@ ColumnBox column1, column2, column3, column4;
     VoiceBox box3 { "Voix 3" };
     VoiceBox box4 { "Voix 4" };
 
-    juce::TextButton generate;
+    juce::TextButton generateButton;
     juce::TextButton cancel;
 
     // Composantes UI (widgets) - Melodic Constraints (2e colonne)

@@ -45,113 +45,7 @@ LeftPanel::LeftPanel(AppController& controller)
     //addAndMakeVisible(labelVoices);
 
 
-    moreOptions.setButtonText("More Options");
-    addAndMakeVisible(moreOptions);
 
-
-    moreOptions.onClick = [this]()
-    {
-
-        auto* content  = new OptionsPanel();
-
-        content->setVoiceSettings(appController.getVoiceSettings());
-
-        int numVoices = voices.getSelectedId();
-
-        content->setNumVoices(numVoices);
-
-        content->setVoiceSettings(appController.getVoiceSettings());
-
-        juce::DialogWindow::LaunchOptions dialog;
-
-        dialog.content.setOwned(content);
-        dialog.dialogTitle = "More Options";
-        dialog.dialogBackgroundColour = juce::Colours::darkgrey;
-
-        dialog.escapeKeyTriggersCloseButton = true;
-        dialog.useNativeTitleBar = true;
-        dialog.resizable = true;
-
-        dialog.launchAsync();
-    };
-
-    generateButton.setButtonText("Generate");
-    addAndMakeVisible(generateButton);
-
-    generateButton.onClick = [this]()
-    {
-        juce::String error;
-
-        auto rawText = text.getText().trim();
-
-        if (rawText.isEmpty())
-        {
-            showAlert(juce::AlertWindow::WarningIcon, Messages::titleError, Messages::cfEmpty);
-            return;
-        }
-
-        if (!rawText.containsOnly("0123456789 ,;"))
-        {
-            showAlert(juce::AlertWindow::WarningIcon, Messages::titleError, Messages::cfNotNumbers);
-            return;
-        }
-
-        auto cf = parseCantusFirmus(rawText);
-
-        if (cf.empty())
-        {
-            showAlert(juce::AlertWindow::WarningIcon, Messages::titleError, Messages::cfInvalid);
-            return;
-        }
-
-        if (voices.getSelectedItemIndex() == -1)
-        {
-            showAlert(juce::AlertWindow::WarningIcon, Messages::titleError, Messages::noVoices);
-            return;
-        }
-
-        int numVoices = voices.getSelectedId();
-
-        // =========================
-        // MISE À JOUR DU MODÈLE
-        // =========================
-
-        auto& problem = appController.getProblem();
-
-        problem.setCantusFirmus(cf);
-
-        std::vector<CantusProblem::Voice> voicesVec;
-
-
-        int numGeneratedVoices = numVoices - 1;
-
-        for (int i = 0; i < speciesBoxes.size(); ++i)
-        {
-            CantusProblem::Voice v;
-            v.id = i;
-
-
-            v.species = speciesBoxes[i]->getSelectedId();
-
-            if (i < typeBoxes.size()) {
-                int id = typeBoxes[i]->getSelectedId();
-                v.type = id - 4;
-            }
-            else
-                v.type = 1;
-
-            DBG("Voice " << i
-                << " species=" << v.species
-                << " type=" << v.type);
-
-            voicesVec.push_back(v);
-        }
-
-        problem.setVoices(voicesVec);
-
-
-        appController.startGeneration("dummy.mid");
-    };
 
     // Réaction au changement du nombre de voix
     voices.onChange = [this]()
@@ -170,6 +64,7 @@ LeftPanel::LeftPanel(AppController& controller)
 
     addAndMakeVisible(speciesHeader);
     addAndMakeVisible(typeHeader);
+
 }
 
 
@@ -180,24 +75,28 @@ LeftPanel::LeftPanel(AppController& controller)
 
 void LeftPanel::prepareOutputFile()
 {
-    auto desktop = juce::File::getSpecialLocation(
+    /*auto desktop = juce::File::getSpecialLocation(
         juce::File::userDesktopDirectory);
 
-    midiOutFileToGenerate = desktop.getChildFile(
+        midiOutFileToGenerate = desktop.getChildFile(
         "FuxCP_Solution_" +
         juce::Time::getCurrentTime().formatted("%Y%m%d_%H%M%S") +
         ".mid");
+    */
+
+    auto tempDir = juce::File::getSpecialLocation(
+    juce::File::tempDirectory);
+
+    midiOutFileToGenerate = tempDir.getChildFile(
+        "FuxCP_Solution.mid");
+
 }
 
 
 
 LeftPanel::~LeftPanel()
 {
-    //le thread solver est terminé avant destruction
-    //generationService.stopThread(-1);
-    generationService.stopThread(2000);
-
-
+    generationService.stopThread(2000); // thread destructeur qui assure la generation (IMPORTANT)
 }
 
 void LeftPanel::paint(juce::Graphics& g)
@@ -220,7 +119,7 @@ void LeftPanel::paint(juce::Graphics& g)
     {
         "Cantus Firmus",
         "Number of voices",
-        "Buttons"
+        "Drag Zone"
     };
 
     for (int i = 0; i < numSections; ++i)
@@ -257,7 +156,7 @@ void LeftPanel::resized()
 
     const int spacing = 40;
     const float widthRatio = 0.6f;
-    const int titleReservedHeight = 30; // L'espace qu'on laisse pour le titre
+    const int titleReservedHeight = 30;
 
     int totalSpacing = spacing * 2;
     int sectionHeight = (area.getHeight() - totalSpacing) / 3;
@@ -269,11 +168,11 @@ void LeftPanel::resized()
 
     {
         auto row = content1.removeFromTop(22);
-        // CONDITION : On ne montre le texte que si la ligne tient dans la section
         bool canShowText = row.getBottom() <= section1.getBottom() && sectionHeight > 50;
         text.setVisible(canShowText);
 
-        if (canShowText) {
+        if (canShowText)
+        {
             int width = static_cast<int>(row.getWidth() * widthRatio);
             int x = row.getX() + 10;
             text.setBounds(x, row.getY(), width, row.getHeight());
@@ -282,22 +181,21 @@ void LeftPanel::resized()
 
     area.removeFromTop(spacing);
 
-    // ===== SECTION 3 : BOUTONS =====
+    // ===== SECTION 3 : DRAG ZONE =====
     auto section3 = area.removeFromBottom(sectionHeight);
 
-    // ===== SECTION 2 : VOICES + PARAMÈTRES =====
-    auto section2 = area; // C'est le reste (le milieu)
+    // ===== SECTION 2 : VOICES =====
+    auto section2 = area;
     auto content2 = section2.reduced(10);
     content2.removeFromTop(titleReservedHeight);
 
-    // COMBOBOX : Number of voices
     {
         auto row = content2.removeFromTop(22);
-        // CONDITION : On cache si ça dépasse de la section 2
         bool canShowVoices = row.getBottom() <= section2.getBottom() && sectionHeight > 50;
         voices.setVisible(canShowVoices);
 
-        if (canShowVoices) {
+        if (canShowVoices)
+        {
             int width = static_cast<int>(row.getWidth() * widthRatio);
             int x = row.getX() + 10;
             voices.setBounds(x, row.getY(), width, row.getHeight());
@@ -306,7 +204,7 @@ void LeftPanel::resized()
 
     content2.removeFromTop(10);
 
-    // ZONE DYNAMIQUE (Espèces / Types)
+    // ===== ZONE DYNAMIQUE =====
     auto dynamicArea = content2;
     int numRows = speciesLabels.size();
 
@@ -315,42 +213,51 @@ void LeftPanel::resized()
     int rowGap = 6;
     int y = dynamicArea.getY();
 
-    if (numRows > 0) {
-        // On vérifie d'abord si le Header tient
+    if (numRows > 0)
+    {
         bool canShowHeader = (y + labelHeight <= section2.getBottom()) && voices.isVisible();
         speciesHeader.setVisible(canShowHeader);
         typeHeader.setVisible(canShowHeader);
 
-        if (canShowHeader) {
+        if (canShowHeader)
+        {
             float labelRatio = 0.4f;
             float boxRatio = 0.2f;
+
             int labelWidth = static_cast<int>(dynamicArea.getWidth() * labelRatio);
             int boxWidth = static_cast<int>(dynamicArea.getWidth() * boxRatio);
+
             int leftX = dynamicArea.getX() + 10;
             int speciesX = leftX + labelWidth + 10;
             int typeX = speciesX + boxWidth + 10;
 
             speciesHeader.setBounds(speciesX, y, boxWidth, labelHeight);
             typeHeader.setBounds(typeX, y, boxWidth, labelHeight);
+
             y += labelHeight + rowGap;
 
-            for (int i = 0; i < numRows; ++i) {
-
+            for (int i = 0; i < numRows; ++i)
+            {
                 bool rowVisible = (y + boxHeight <= section2.getBottom());
+
                 speciesLabels[i]->setVisible(rowVisible);
                 speciesBoxes[i]->setVisible(rowVisible);
                 typeBoxes[i]->setVisible(rowVisible);
 
-                if (rowVisible) {
+                if (rowVisible)
+                {
                     speciesLabels[i]->setBounds(leftX, y, labelWidth, labelHeight);
                     speciesBoxes[i]->setBounds(speciesX, y, boxWidth, boxHeight);
                     typeBoxes[i]->setBounds(typeX, y, boxWidth, boxHeight);
                 }
+
                 y += boxHeight + rowGap;
             }
-        } else {
-            // Cacher les lignes si le header ne passe pas
-            for (int i = 0; i < numRows; ++i) {
+        }
+        else
+        {
+            for (int i = 0; i < numRows; ++i)
+            {
                 speciesLabels[i]->setVisible(false);
                 speciesBoxes[i]->setVisible(false);
                 typeBoxes[i]->setVisible(false);
@@ -358,24 +265,18 @@ void LeftPanel::resized()
         }
     }
 
-    // ===== SECTION 3 : LOGIQUE DES BOUTONS =====
+    // ===== SECTION 3 : DRAG ZONE CONTENT =====
     auto content3 = section3.reduced(10, 15);
-    int bHeight = 22;
-    int gap = 5;
-    int totalReq = (bHeight * 2) + gap;
 
-    bool showButtons = (content3.getHeight() >= totalReq) && (sectionHeight > 60);
-
-    moreOptions.setVisible(showButtons);
-    generateButton.setVisible(showButtons);
-
-    if (showButtons) {
-        int bWidth = static_cast<int>(content3.getWidth() * widthRatio);
-        int startY = content3.getY() + (content3.getHeight() - totalReq) / 2;
-        int bX = content3.getX() + (content3.getWidth() - bWidth) / 2;
-
-        moreOptions.setBounds(bX, startY, bWidth, bHeight);
-        generateButton.setBounds(bX, startY + bHeight + gap, bWidth, bHeight);
+    // ===== DRAG ZONE (MIDI ITEM) =====
+    if (midiItem != nullptr)
+    {
+        midiItem->setBounds(
+            content3.getCentreX() - 40,
+            content3.getCentreY() - 25,
+            80,
+            50
+        );
     }
 }
 
@@ -529,4 +430,81 @@ juce::String LeftPanel::getCantusText() const
 void LeftPanel::setCantusText(const juce::String& newText)
 {
     text.setText(newText, juce::dontSendNotification);
+}
+
+void LeftPanel::triggerGeneration()
+{
+    juce::String error;
+
+    auto rawText = text.getText().trim();
+
+    if (rawText.isEmpty())
+    {
+        showAlert(juce::AlertWindow::WarningIcon, Messages::titleError, Messages::cfEmpty);
+        return;
+    }
+
+    if (!rawText.containsOnly("0123456789 ,;"))
+    {
+        showAlert(juce::AlertWindow::WarningIcon, Messages::titleError, Messages::cfNotNumbers);
+        return;
+    }
+
+    auto cf = parseCantusFirmus(rawText);
+
+    if (cf.empty())
+    {
+        showAlert(juce::AlertWindow::WarningIcon, Messages::titleError, Messages::cfInvalid);
+        return;
+    }
+
+    if (voices.getSelectedItemIndex() == -1)
+    {
+        showAlert(juce::AlertWindow::WarningIcon, Messages::titleError, Messages::noVoices);
+        return;
+    }
+
+    int numVoices = voices.getSelectedId();
+
+    auto& problem = appController.getProblem();
+    problem.setCantusFirmus(cf);
+
+    std::vector<CantusProblem::Voice> voicesVec;
+
+    for (int i = 0; i < speciesBoxes.size(); ++i)
+    {
+        CantusProblem::Voice v;
+        v.id = i;
+
+        v.species = speciesBoxes[i]->getSelectedId();
+
+        if (i < typeBoxes.size())
+            v.type = typeBoxes[i]->getSelectedId() - 4;
+        else
+            v.type = 1;
+
+        voicesVec.push_back(v);
+    }
+
+    problem.setVoices(voicesVec);
+
+    // =========================
+    // AVANT génération : préparer le fichier
+    // =========================
+    prepareOutputFile();
+
+    // =========================
+    // Lancer génération
+    // =========================
+    appController.startGeneration(midiOutFileToGenerate.getFullPathName());
+
+}
+
+void LeftPanel::onGenerationFinished(const juce::File& file)
+{
+    midiItem = std::make_unique<MidiFileItem>();
+    midiItem->file = file;
+
+    addAndMakeVisible(midiItem.get());
+    resized();
 }
