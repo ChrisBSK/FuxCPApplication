@@ -30,14 +30,29 @@ VoiceBox::VoiceBox(const juce::String& name)
     // =========================
     speciesBox.onChange = [this]()
     {
+        // update leftpanel -> optionpanel
         if (settings)
             settings->species = speciesBox.getSelectedId();
+        //update optionpanel -> leftpanel
+        if (auto* parent = findParentComponentOfClass<OptionsPanel>())
+        {
+            if (auto* lp = parent->getLeftPanel())
+                lp->refreshFromModel();
+        }
     };
 
+    //Connexion type entre leftpanel et OptionPanel
     typeBox.onChange = [this]()
     {
+        // update leftpanel -> optionpanel
         if (settings)
             settings->type = typeBox.getSelectedId() - 4;
+        //update optionpanel -> leftpanel
+        if (auto* parent = findParentComponentOfClass<OptionsPanel>())
+        {
+            if (auto* lp = parent->getLeftPanel())
+                lp->refreshFromModel();
+        }
     };
 }
 

@@ -508,3 +508,17 @@ void LeftPanel::onGenerationFinished(const juce::File& file)
     addAndMakeVisible(midiItem.get());
     resized();
 }
+
+void LeftPanel::refreshFromModel()
+{
+    auto& settings = appController.getVoiceSettings();
+
+    for (int i = 0; i < speciesBoxes.size(); ++i)
+    {
+        if (i < settings.size())
+        {
+            speciesBoxes[i]->setSelectedId(settings[i].species, juce::dontSendNotification);
+            typeBoxes[i]->setSelectedId(settings[i].type + 4, juce::dontSendNotification);
+        }
+    }
+}

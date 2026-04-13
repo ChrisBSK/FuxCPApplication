@@ -84,6 +84,8 @@ public:
         optionsPanel = panel;
     }
 
+    void refreshFromModel();
+
     void triggerGeneration();
 
     void onGenerationFinished(const juce::File &file);

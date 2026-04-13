@@ -90,6 +90,11 @@ public:
         leftPanel = panel;
     }
 
+    LeftPanel* getLeftPanel() const
+    {
+        return leftPanel;
+    }
+
 
 private:
     class ColumnBox : public juce::Component
