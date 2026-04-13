@@ -194,7 +194,7 @@ ColumnBox column1, column2, column3, column4;
 
     // Composantes UI (widgets) - Melodic Constraints (2e colonne)
 
-    StyledLabel melodicMaxLeapLabel;
+     StyledLabel melodicMaxLeapLabel;
     StyledLabel melodicStepBiasLabel;
     StyledLabel melodicRepetitionLabel;
     StyledLabel melodicDirectionLabel;

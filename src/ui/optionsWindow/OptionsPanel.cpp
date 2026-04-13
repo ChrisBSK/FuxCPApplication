@@ -1,6 +1,7 @@
 #include "OptionsPanel.h"
 #include "../../controller/AppController.h"
 #include "../leftPanel/LeftPanel.h"
+#include "../../model/ConstraintsDefinition.h"
 // =============================
 // VoiceBox : UI d'une voix
 // =============================
@@ -131,6 +132,14 @@ OptionsPanel::OptionsPanel()
     addAndMakeVisible(melodicMaxLeapSlider);
 
     melodicMaxLeapLabel.setText("Max Leap", juce::dontSendNotification);
+    //affichage du tooltip (text) quand on passe la souris dessus de Max Leap
+    auto info = constraintDB["MaxLeap"];
+     melodicMaxLeapLabel.setTooltip(
+        info.name + "\n\n" +
+        info.description + "\n\n" +
+        info.theory
+    );
+
     melodicMaxLeapLabel.setColour(juce::Label::textColourId, juce::Colours::white);
     melodicMaxLeapLabel.setJustificationType(juce::Justification::centredLeft);
 
@@ -144,6 +153,14 @@ OptionsPanel::OptionsPanel()
     addAndMakeVisible((melodicStepBiasSlider));
 
     melodicStepBiasLabel.setText("Step bias", juce::dontSendNotification);
+    //affichage du tooltip (text) quand on passe la souris dessus de Step bias
+    auto info2 = constraintDB["StepBias"];
+    melodicStepBiasLabel.setTooltip(
+       info2.name + "\n\n" +
+       info2.description + "\n\n" +
+       info2.theory
+   );
+
     melodicStepBiasLabel.setColour(juce::Label::textColourId, juce::Colours::white);
     melodicStepBiasLabel.setJustificationType(juce::Justification::centredLeft);
 
@@ -157,6 +174,13 @@ OptionsPanel::OptionsPanel()
     addAndMakeVisible(melodicRepetitionToggle);
 
     melodicRepetitionLabel.setText("Repetition", juce::dontSendNotification);
+    //affichage du tooltip (text) quand on passe la souris dessus de Repetition
+    auto info3 = constraintDB["Repetition"];
+    melodicRepetitionLabel.setTooltip(
+       info3.name + "\n\n" +
+       info3.description + "\n\n" +
+       info3.theory
+   );
     melodicRepetitionLabel.setColour(juce::Label::textColourId, juce::Colours::white);
     melodicRepetitionLabel.setJustificationType(juce::Justification::centredLeft);
 
@@ -168,6 +192,12 @@ OptionsPanel::OptionsPanel()
     addAndMakeVisible(melodicDirectionBox);
 
     melodicDirectionLabel.setText("Direction", juce::dontSendNotification);
+    auto info4 = constraintDB["Direction"];
+    melodicDirectionLabel.setTooltip(
+       info4.name + "\n\n" +
+       info4.description + "\n\n" +
+       info4.theory
+   );
     melodicDirectionLabel.setColour(juce::Label::textColourId, juce::Colours::white);
     melodicDirectionLabel.setJustificationType(juce::Justification::centredLeft);
 

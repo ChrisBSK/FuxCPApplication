@@ -41,6 +41,9 @@ audioPlayer(keyboardState)
 
     //callback generation
     appController.setLeftPanel(&leftPanel);
+
+    //fenêtre epxplicative pour les contraintes dans OptionPanel
+    tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 500);
 }
 
 MainComponent::~MainComponent()

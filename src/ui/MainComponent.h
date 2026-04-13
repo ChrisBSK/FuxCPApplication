@@ -73,5 +73,8 @@ private:
     juce::AudioSourcePlayer player;
 
     AudioPlayer audioPlayer;
+
+   // fenêtre explicative pour les contraintes dans OptionPanel
+    std::unique_ptr<juce::TooltipWindow> tooltipWindow;
 };
 
