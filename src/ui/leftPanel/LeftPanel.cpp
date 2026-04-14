@@ -75,21 +75,13 @@ LeftPanel::LeftPanel(AppController& controller)
 
 void LeftPanel::prepareOutputFile()
 {
-    /*auto desktop = juce::File::getSpecialLocation(
-        juce::File::userDesktopDirectory);
-
-        midiOutFileToGenerate = desktop.getChildFile(
-        "FuxCP_Solution_" +
-        juce::Time::getCurrentTime().formatted("%Y%m%d_%H%M%S") +
-        ".mid");
-    */
-
     auto tempDir = juce::File::getSpecialLocation(
-    juce::File::tempDirectory);
+        juce::File::tempDirectory);
+
+    auto timestamp = juce::Time::getCurrentTime().toMilliseconds();
 
     midiOutFileToGenerate = tempDir.getChildFile(
-        "FuxCP_Solution.mid");
-
+        "FuxCP_Solution_" + juce::String(timestamp) + ".mid");
 }
 
 

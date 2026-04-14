@@ -90,6 +90,11 @@ public:
 
     void onGenerationFinished(const juce::File &file);
 
+    GenerationService& getGenerationService()
+    {
+        return generationService;
+    }
+
 private:
     juce::TextEditor text;
     juce::Label label;

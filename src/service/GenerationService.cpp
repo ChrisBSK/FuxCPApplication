@@ -12,6 +12,8 @@
 
 #include "../controller/AppController.h"
 
+#include "../model/ConstraintChecker.h"
+
 
 #include <cstdlib>
 #include <memory>
@@ -188,7 +190,8 @@ bool GenerationService::startGeneration(const CantusProblem& cantusProblem, cons
         return false;
     }
 
-    cantusProblemToGenerate = &cantusProblem;
+    //cantusProblemToGenerate = &cantusProblem;
+    cantusProblemToGenerate = cantusProblem;
     outputPathToGenerate = outputPath;
 
     {
@@ -206,13 +209,13 @@ bool GenerationService::startGeneration(const CantusProblem& cantusProblem, cons
 void GenerationService::run()
 {
 
-    if (cantusProblemToGenerate == nullptr) {
+    /*if (cantusProblemToGenerate == nullptr) {
         generationSuccess.store(false);
         lastError = "Problème invalide (nullptr)";
         return;
-    }
+    }*/
 
-    bool success = generateMidiFromInputs(*cantusProblemToGenerate, outputPathToGenerate);
+    bool success = generateMidiFromInputs(cantusProblemToGenerate, outputPathToGenerate);
     generationSuccess.store(success);
 
     AppController* controllerToNotify = nullptr;
@@ -230,15 +233,6 @@ bool GenerationService::isGenerating() const { return isThreadRunning(); }
 bool GenerationService::getLastGenerationSuccess() const { return generationSuccess.load(); }
 juce::String GenerationService::getLastGeneratedMidiPath() const { return lastGeneratedMidiPath; }
 
-static CantusProblem::CostParameters createDefaultCosts()
-{
-    return {
-            {0, 1, 1, 576, 2, 2, 2, 1},                 // melodic
-            {4, 1, 1, 2, 2, 2, 8, 1},                   // general
-            {8, 4, 0, 2, 1, 8, 50},                     // specific
-            {8, 7, 5, 2, 9, 3, 14, 12, 6, 11, 4, 10, 1, 13} // importance
-    };
-}
 
 bool GenerationService::generateMidiFromInputs(const CantusProblem& problem, const juce::String& outputPath)
 {
@@ -288,8 +282,15 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem, con
             std::string solutionStr = pb->to_string();
             DBG(solutionStr);
 
-            // 🔥 extraction
+            //  extraction
             auto solution = extractSolution(solutionStr);
+
+            /*if (!ConstraintChecker::isSolutionValid(solution, problem))
+            {
+                DBG("Solution rejetée (contraintes non respectées)");
+                delete pb;
+                continue;
+            }*/
 
             int cfSize = problem.getCantusFirmus().size();
             int numVoices = problem.getVoiceCount();
@@ -306,7 +307,8 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem, con
 
                 if (writeMidiFile(problem.getCantusFirmus(), voices, midiFile))
                 {
-                    lastGeneratedMidiPath = midiFile.getFullPathName(); // ✅ BON ENDROIT
+                    lastGeneratedMidiPath = midiFile.getFullPathName(); //
+                    DBG("Fichier MIDI généré : " + midiFile.getFullPathName());
                 }
                 else
                 {
@@ -359,6 +361,13 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
     auto costs = problem.getCostParameters();
 
     // =========================
+    // Contraintes
+    // =========================
+    // 1. Mélodiques
+    DBG("MaxLeap utilisé : " + juce::String(problem.getSettings().rules.maxLeap));
+
+
+    // =========================
     // CONVERSION (si nécessaire)
     // =========================
 
@@ -383,6 +392,8 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
         costs.importance,
         problem.getBorrowMode()
     );
+
+
 
     return pb;
 }

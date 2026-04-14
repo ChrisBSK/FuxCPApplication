@@ -140,29 +140,22 @@ int CantusProblem::getVoiceType(int voiceIndex) const
 
 void CantusProblem::setCostParameters(const CostParameters& params)
 {
-    // Stocke les paramètres de coût utilisés par le solveur
-    // Ces paramètres influencent la qualité des solutions générées
-    costs = params;
+    settings.costs = params;
 }
 
-const CantusProblem::CostParameters& CantusProblem::getCostParameters() const
+const CostParameters& CantusProblem::getCostParameters() const
 {
-    // Retourne les paramètres du solveur
-    return costs;
+    return settings.costs;
 }
 
 void CantusProblem::setBorrowMode(int mode)
 {
-    // Définit le mode d'emprunt modal (paramètre du solveur)
-    // Exemple :
-    // 0 → strict
-    // 1 → autorise certaines altérations
-    borrowMode = mode;
+    settings.borrowMode = mode;
 }
 
 int CantusProblem::getBorrowMode() const
 {
-    return borrowMode;
+    return settings.borrowMode;
 }
 
 // =========================

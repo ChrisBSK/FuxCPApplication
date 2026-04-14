@@ -3,6 +3,8 @@
 #include <juce_core/juce_core.h>
 #include <juce_data_structures/juce_data_structures.h>
 
+#include "ConstraintsSettings.h"
+
 class CantusProblem {
 
 public:
@@ -58,13 +60,7 @@ public:
     //  Paramètres du solveur
     // =========================
 
-    struct CostParameters //Paramètre à fixer avant de créer le problème
-    {
-        std::vector<int> melodic;
-        std::vector<int> general;
-        std::vector<int> specific;
-        std::vector<int> importance;
-    };
+
 
     void setCostParameters(const CostParameters& params);
     const CostParameters& getCostParameters() const;
@@ -82,6 +78,12 @@ public:
     bool isEmpty() const;
 
 
+    //============ Contraintes ============
+    //Colonne 1: Melodic Constraints
+    ConstraintSettings& getSettings() { return settings; }
+    const ConstraintSettings& getSettings() const { return settings; }
+
+
 
 
 
@@ -90,12 +92,14 @@ private:
     std::vector<int> cantusFirmus;
     std::vector<Voice> voices;
 
-    // Paramètres solveur
-    CostParameters costs;
-    int borrowMode = 0;
+    ConstraintSettings settings;
+
 
     // Métadonnées
     juce::String title;
+
+
+
 
 
 };

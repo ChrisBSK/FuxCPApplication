@@ -20,7 +20,7 @@
  * - de logique métier (règles musicales, génération)
  * - de traitement audio
  */
-
+class AppController;
 // ========= display composantes =====
 class StyledLabel : public juce::Label
 {
@@ -95,6 +95,10 @@ public:
         return leftPanel;
     }
 
+    void setAppController(AppController* controller)
+    {
+        appController = controller;
+    }
 
 private:
     class ColumnBox : public juce::Component
@@ -192,9 +196,12 @@ ColumnBox column1, column2, column3, column4;
     juce::TextButton generateButton;
     juce::TextButton cancel;
 
+    //référence à AppController pour pouvoir modifier les valeurs des widgets des contraintes
+    AppController* appController = nullptr;
+
     // Composantes UI (widgets) - Melodic Constraints (2e colonne)
 
-     StyledLabel melodicMaxLeapLabel;
+    StyledLabel melodicMaxLeapLabel;
     StyledLabel melodicStepBiasLabel;
     StyledLabel melodicRepetitionLabel;
     StyledLabel melodicDirectionLabel;

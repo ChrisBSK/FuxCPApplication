@@ -3,6 +3,7 @@
 #include <juce_events/juce_events.h>
 
 #include "../ui/leftPanel/leftPanel.h"
+#include "../model/ConstraintsSettings.h"
 // =========================
 // Constructeurs
 // =========================
@@ -23,7 +24,7 @@ AppController::AppController(const juce::String& title)
 
 void AppController::startGeneration(const juce::String& outputPath)
 {
-    CantusProblem::CostParameters costs;
+    CostParameters costs;
 
     costs.melodic   = {0, 1, 1, 576, 2, 2, 2, 1};
     costs.general   = {4, 1, 1, 2, 2, 2, 8, 1};
@@ -33,8 +34,9 @@ void AppController::startGeneration(const juce::String& outputPath)
     problem.setCostParameters(costs);
     problem.setBorrowMode(1);
 
+    CantusProblem copyProblem = problem;
     // Lance la génération dans le thread worker
-    bool started = generationService.startGeneration(problem, outputPath, this);
+    bool started = generationService->startGeneration(copyProblem, outputPath, this);
 
     if (!started)
     {
@@ -65,9 +67,9 @@ const CantusProblem& AppController::getProblem() const
 
 void AppController::handleAsyncUpdate()
 {
-    if (generationService.getLastGenerationSuccess())
+    if (generationService->getLastGenerationSuccess())
     {
-        juce::File file(generationService.getLastGeneratedMidiPath());
+        juce::File file(generationService->getLastGeneratedMidiPath());
 
         if (file.existsAsFile() && leftPanel != nullptr)
         {
@@ -81,7 +83,7 @@ void AppController::handleAsyncUpdate()
     }
     else
     {
-        juce::String errorMsg = generationService.getLastError();
+        juce::String errorMsg = generationService->getLastError();
 
         if (errorMsg.isEmpty())
             errorMsg = "Aucune solution trouvée.";

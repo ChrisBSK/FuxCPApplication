@@ -55,12 +55,17 @@ public:
         leftPanel = panel;
     }
 
+    void setGenerationService(GenerationService* service)
+    {
+        generationService = service;
+    }
+
 
 
 
 private:
     CantusProblem problem;
-    GenerationService generationService;
+    GenerationService* generationService = nullptr;
 
     std::vector<VoiceSettings> voiceSettings;
 

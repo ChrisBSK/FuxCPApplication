@@ -46,6 +46,8 @@ public:
 
 
 
+
+
 protected:
     void run() override;
 
@@ -78,7 +80,9 @@ private:
 
 
     AppController* appController = nullptr;
-    const CantusProblem* cantusProblemToGenerate = nullptr;
+    //const CantusProblem* cantusProblemToGenerate = nullptr;
+    CantusProblem cantusProblemToGenerate;
+
     juce::String outputPathToGenerate;
 
     std::atomic<bool> generationSuccess { false };

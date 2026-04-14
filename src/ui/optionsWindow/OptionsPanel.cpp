@@ -148,6 +148,16 @@ OptionsPanel::OptionsPanel()
     melodicMaxLeapSlider.setRange(2, 12, 1); // intervalle max
     melodicMaxLeapSlider.setValue(5); // valeur par défaut
 
+    melodicMaxLeapSlider.onValueChange = [this]()
+    {
+        int value = (int) melodicMaxLeapSlider.getValue();
+
+        if (appController != nullptr)
+        {
+            appController->getProblem().getSettings().rules.maxLeap = value;
+        }
+    };
+
     // 2. ===== Step bias ======
     addAndMakeVisible((melodicStepBiasLabel));
     addAndMakeVisible((melodicStepBiasSlider));
@@ -168,6 +178,7 @@ OptionsPanel::OptionsPanel()
     melodicStepBiasSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 50, 20);
     melodicStepBiasSlider.setRange(-1, 1, 1);
     melodicStepBiasSlider.setValue(0);
+
 
     // 3. ====== Repetition allowed ======
     addAndMakeVisible(melodicRepetitionLabel);
