@@ -42,8 +42,8 @@ void AppController::startGeneration(const juce::String& outputPath)
     {
         juce::AlertWindow::showMessageBoxAsync(
             juce::AlertWindow::WarningIcon,
-            "Erreur",
-            "Impossible de lancer la génération.\nPeut-être déjà en cours ?");
+            juce::String::fromUTF8("Erreur"),
+            juce::String::fromUTF8("Impossible de lancer la génération.\nPeut-être déjà en cours ?"));
     }
 }
 
