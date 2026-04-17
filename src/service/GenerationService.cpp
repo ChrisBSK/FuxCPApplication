@@ -12,8 +12,6 @@
 
 #include "../controller/AppController.h"
 
-#include "../model/ConstraintChecker.h"
-#include "../model/ConstraintsApplier.h"
 
 #include <cstdlib>
 #include <memory>

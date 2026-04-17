@@ -78,19 +78,19 @@ void AppController::handleAsyncUpdate()
 
         juce::AlertWindow::showMessageBoxAsync(
             juce::AlertWindow::InfoIcon,
-            "Résultat",
-            "Une solution existe !");
+            juce::String::fromUTF8("Résultat"),
+            juce::String::fromUTF8("Une solution existe !"));
     }
     else
     {
         juce::String errorMsg = generationService->getLastError();
 
         if (errorMsg.isEmpty())
-            errorMsg = "Aucune solution trouvée.";
+            errorMsg = juce::String::fromUTF8("Aucune solution trouvée.");
 
         juce::AlertWindow::showMessageBoxAsync(
             juce::AlertWindow::WarningIcon,
-            "Résultat",
+            juce::String::fromUTF8("Résultat"),
             errorMsg);
     }
 }
