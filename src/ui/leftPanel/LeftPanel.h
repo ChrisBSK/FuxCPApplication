@@ -95,6 +95,10 @@ public:
         return generationService;
     }
 
+
+    void addNoteFromKeyboard(int midiNote);
+    void updateCantusDisplay();
+
 private:
     juce::TextEditor text;
     juce::Label label;

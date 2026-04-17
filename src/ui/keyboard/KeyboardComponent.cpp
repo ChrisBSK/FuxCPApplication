@@ -7,6 +7,7 @@ KeyboardComponent::KeyboardComponent(juce::MidiKeyboardState& state)
     addAndMakeVisible(midiKeyboard);
 
     midiKeyboard.setAvailableRange(24, 108); //piano standard en général
+    //midiKeyboard.setAvailableRange(0, 127); // plusieurs notes inutilisables muscialement don inutile
     midiKeyboard.setKeyWidth(30.0f);
 
     midiKeyboard.setScrollButtonsVisible(true);

@@ -24,13 +24,17 @@ audioPlayer(keyboardState)
     deviceManager.addAudioCallback(&player);
     //setAudioChannels(0, 2); // 0 input, 2 output
 
-    keyboard.onNotePressed = [this](int midiNote)
+    /*keyboard.onNotePressed = [this](int midiNote)
     {
         auto currentText = leftPanel.getCantusText(); // à adapter
 
         juce::String newText = currentText + " " + juce::String(midiNote);
 
         leftPanel.setCantusText(newText); // à adapter
+    };*/
+    keyboard.onNotePressed = [this](int midiNote)
+    {
+        leftPanel.addNoteFromKeyboard(midiNote);
     };
 
     //sync UI

@@ -13,7 +13,7 @@
 #include "../controller/AppController.h"
 
 #include "../model/ConstraintChecker.h"
-
+#include "../model/ConstraintsApplier.h"
 
 #include <cstdlib>
 #include <memory>
@@ -303,6 +303,7 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem, con
                 if (!voices.empty())
                     voices.erase(voices.begin());
 
+
                 juce::File midiFile(outputPath);
 
                 if (writeMidiFile(problem.getCantusFirmus(), voices, midiFile))
@@ -358,13 +359,13 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
     auto spList = problem.getSpeciesList();
     auto v_type = problem.getVoiceTypes();
 
-    auto costs = problem.getCostParameters();
+    //Tentative pour appliquer les contraintes
+    // applique contraintes UI sur les coûts
+    /*auto settings = problem.getSettings();
+    ConstraintApplier::applyConstraints(settings);
+    auto costs = settings.costs;*/
 
-    // =========================
-    // Contraintes
-    // =========================
-    // 1. Mélodiques
-    DBG("MaxLeap utilisé : " + juce::String(problem.getSettings().rules.maxLeap));
+    auto costs = problem.getCostParameters();
 
 
     // =========================
@@ -376,7 +377,7 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
     spListFux.reserve(spList.size());
 
     for (int s : spList)
-        spListFux.push_back(mapSpeciesIntToFux(s)); // déjà dans ton cpp 👍
+        spListFux.push_back(mapSpeciesIntToFux(s));
 
     // =========================
     // CREATION PROBLEME FUX

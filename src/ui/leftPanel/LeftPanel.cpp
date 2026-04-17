@@ -1,6 +1,7 @@
 #include "LeftPanel.h"
 #include "../optionsWindow/OptionsPanel.h"
 #include "../../controller/AppController.h"
+#include "../../model/NoteConverter.h"
 
 // =============================
 //  parsing du CF
@@ -289,15 +290,26 @@ static std::vector<int> parseCantusFirmus(const juce::String& text)
         if (t.isEmpty())
             return {}; // évite cas "60,,64"
 
-        if (!t.containsOnly("0123456789"))
-            return {}; // invalide → on rejette tout
+        if (t.containsOnly("0123456789"))
+        {
+            // notes musicales (chiffres)
+            int value = t.getIntValue();
 
-        int value = t.getIntValue();
+            if (value < 0 || value > 127)
+                return {};
 
-        if (value < 0 || value > 127)
-            return {}; // hors MIDI
+            result.push_back(value);
+        }
+        else
+        {
+            // notes musicales (lettres)
+            int midi = NoteConverter::noteNameToMidi(t);
 
-        result.push_back(value);
+            if (midi == -1)
+                return {};
+
+            result.push_back(midi);
+        }
     }
 
     return result;
@@ -481,7 +493,7 @@ void LeftPanel::triggerGeneration()
     problem.setVoices(voicesVec);
 
     // =========================
-    // AVANT génération : préparer le fichier
+    // Préparer le fichier (avant la génération)
     // =========================
     prepareOutputFile();
 
@@ -513,4 +525,35 @@ void LeftPanel::refreshFromModel()
             typeBoxes[i]->setSelectedId(settings[i].type + 4, juce::dontSendNotification);
         }
     }
+}
+
+void LeftPanel::addNoteFromKeyboard(int midiNote)
+{
+    auto noteStr = NoteConverter::midiToNoteName(midiNote);
+
+    auto current = text.getText();
+
+    if (!current.isEmpty())
+        current += " ";
+
+    current += noteStr;
+
+    text.setText(current, juce::dontSendNotification);
+}
+
+void LeftPanel::updateCantusDisplay()
+{
+    const auto& cf = appController.getProblem().getCantusFirmus();
+
+    juce::String display;
+
+    for (size_t i = 0; i < cf.size(); ++i)
+    {
+        display += NoteConverter::midiToNoteName(cf[i]);
+
+        if (i + 1 < cf.size())
+            display += " ";
+    }
+
+    text.setText(display, juce::dontSendNotification);
 }

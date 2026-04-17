@@ -26,7 +26,10 @@ target_sources(myproject PRIVATE
         src/model/FuxTypes.h
         src/model/CantusProblem.cpp
         src/model/CantusProblem.h
-
+        src/model/ConstraintChecker.h
+        src/model/ConstraintsApplier.h
+        src/model/ConstraintsSettings.h
+        src/model/ConstraintsDefinition.h
 
 
 
