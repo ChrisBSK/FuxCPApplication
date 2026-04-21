@@ -110,9 +110,9 @@ void LeftPanel::paint(juce::Graphics& g)
 
     juce::String titles[3] =
     {
-        "Cantus Firmus",
-        "Number of voices",
-        "Drag Zone"
+        juce::String::fromUTF8("Cantus Firmus"),
+        juce::String::fromUTF8("Number of voices"),
+        juce::String::fromUTF8("Drag Zone")
     };
 
     for (int i = 0; i < numSections; ++i)
@@ -387,7 +387,7 @@ void LeftPanel::updateVoiceSpeciesUI(int numVoices)
         typeBox->addItem("0", 4);
         typeBox->addItem("1", 5);
         typeBox->addItem("2", 6);
-        typeBox->addItem("3", 7);
+
 
 
         typeBox->setSelectedId(settings[i].type + 4);

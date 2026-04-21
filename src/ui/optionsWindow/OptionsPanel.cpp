@@ -22,8 +22,10 @@ VoiceBox::VoiceBox(const juce::String& name)
     //  choix du type
     addAndMakeVisible(typeBox);
     int id = 1;
+
     for (int i = -3; i <= 2; ++i)
         typeBox.addItem("Type " + juce::String(i), id++);
+
     typeBox.setSelectedId(1);
 
     // =========================
