@@ -183,3 +183,17 @@ bool CantusProblem::isEmpty() const
     return cantusFirmus.empty() || voices.empty();
 }
 
+ConstraintSettings& CantusProblem::getSettings()
+{
+    return settings;
+}
+
+const ConstraintSettings& CantusProblem::getSettings() const
+{
+    return settings;
+}
+
+void CantusProblem::setSettings(const ConstraintSettings& s)
+{
+    settings = s;
+}

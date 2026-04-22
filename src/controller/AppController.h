@@ -27,6 +27,7 @@ public:
     // Génération
     // =========================
 
+
     void startGeneration(const juce::String& outputPath);
 
     // =========================

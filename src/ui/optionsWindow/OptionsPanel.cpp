@@ -147,7 +147,7 @@ OptionsPanel::OptionsPanel()
 
     melodicMaxLeapSlider.setSliderStyle(juce::Slider::LinearHorizontal);
     melodicMaxLeapSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 50, 20);
-    melodicMaxLeapSlider.setRange(2, 12, 1); // intervalle max
+    melodicMaxLeapSlider.setRange(1, 6, 1); // intervalle max
     melodicMaxLeapSlider.setValue(5); // valeur par défaut
 
     melodicMaxLeapSlider.onValueChange = [this]()
@@ -157,6 +157,7 @@ OptionsPanel::OptionsPanel()
         if (appController != nullptr)
         {
             appController->getProblem().getSettings().rules.maxLeap = value;
+            DBG("UI maxLeap = " << value);
         }
     };
 

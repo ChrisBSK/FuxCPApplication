@@ -448,11 +448,11 @@ void LeftPanel::triggerGeneration()
         return;
     }
 
-    if (!rawText.containsOnly("0123456789 ,;"))
+    /*if (!rawText.containsOnly("0123456789 ,;"))
     {
         showAlert(juce::AlertWindow::WarningIcon, Messages::titleError, Messages::cfNotNumbers);
         return;
-    }
+    }*/
 
     auto cf = parseCantusFirmus(rawText);
 

@@ -62,6 +62,7 @@ public:
 
 
 
+
     void setCostParameters(const CostParameters& params);
     const CostParameters& getCostParameters() const;
 
@@ -80,8 +81,11 @@ public:
 
     //============ Contraintes ============
     //Colonne 1: Melodic Constraints
-    ConstraintSettings& getSettings() { return settings; }
-    const ConstraintSettings& getSettings() const { return settings; }
+    ConstraintSettings& getSettings();
+
+    const ConstraintSettings& getSettings() const;
+
+    void setSettings(const ConstraintSettings& s);
 
 
 
