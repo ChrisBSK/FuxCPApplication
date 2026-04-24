@@ -61,8 +61,8 @@ public:
         generationService = service;
     }
 
-
-
+    juce::ValueTree& getGenerationState();
+    const juce::ValueTree& getGenerationState() const;
 
 private:
     CantusProblem problem;
@@ -71,6 +71,8 @@ private:
     std::vector<VoiceSettings> voiceSettings;
 
     LeftPanel* leftPanel = nullptr;
+
+    juce::ValueTree generationState { "GENERATION_STATE" };
 
     /** Callback après génération (thread → message thread) */
     void handleAsyncUpdate() override;

@@ -28,6 +28,7 @@ target_sources(myproject PRIVATE
         src/model/CantusProblem.h
         src/model/ConstraintsSettings.h
         src/model/ConstraintsDefinition.h
+        src/model/ConstraintsApplier.h
 
 
 

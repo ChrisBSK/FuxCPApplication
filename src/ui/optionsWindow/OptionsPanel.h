@@ -188,10 +188,10 @@ ColumnBox column1, column2, column3, column4;
 
     ClickableTitle title1, title2, title3, title4;
 
-    VoiceBox box1 { "Voix 1" };
-    VoiceBox box2 { "Voix 2" };
-    VoiceBox box3 { "Voix 3" };
-    VoiceBox box4 { "Voix 4" };
+    VoiceBox box1 { "Cantus Firmus" };
+    VoiceBox box2 { "Contrepoint 1" };
+    VoiceBox box3 { "Contrepoint 2" };
+    VoiceBox box4 { "Contrepoint 3" };
 
     juce::TextButton generateButton;
     juce::TextButton cancel;

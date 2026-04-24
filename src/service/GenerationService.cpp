@@ -121,7 +121,7 @@ namespace
         {
             juce::MidiMessageSequence track;
 
-            for (size_t i = 0; i < voice.size(); ++i)
+            for (size_t i = 1; i < voice.size(); ++i)
             {
                 double start = i * ticksPerNote;
                 double end   = (i + 1) * ticksPerNote;
@@ -178,13 +178,13 @@ bool GenerationService::startGeneration(const CantusProblem& cantusProblem, cons
 
     if (isThreadRunning())
     {
-        lastError = "Une géneration est déjà en cours";
+        lastError = juce::String::fromUTF8("Une génération est déjà en cours");
         return false;
     }
 
     if (!isReady())
     {
-        lastError = "Le service n'est pas prêt";
+        lastError = juce::String::fromUTF8("Le service n'est pas prêt");
         return false;
     }
 
@@ -207,13 +207,7 @@ bool GenerationService::startGeneration(const CantusProblem& cantusProblem, cons
 void GenerationService::run()
 {
 
-    /*if (cantusProblemToGenerate == nullptr) {
-        generationSuccess.store(false);
-        lastError = "Problème invalide (nullptr)";
-        return;
-    }*/
-
-    bool success = generateMidiFromInputs(cantusProblemToGenerate, outputPathToGenerate);
+  bool success = generateMidiFromInputs(cantusProblemToGenerate, outputPathToGenerate);
     generationSuccess.store(success);
 
     AppController* controllerToNotify = nullptr;
@@ -237,13 +231,13 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem, con
     inputValidationError = false;
 
     if (!ready) {
-        lastError = "Le service n\'est pas prêt";
+        lastError = juce::String::fromUTF8("Le service n\'est pas prêt");
         return false;
     }
 
     if (problem.isEmpty()) {
         inputValidationError = true;
-        lastError = "Le problème est vide. \n \n Entrez un problème complet ";
+        lastError = juce::String::fromUTF8("Le problème est vide. \n \n Entrez un problème complet ");
         return false;
     }
 
@@ -261,7 +255,7 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem, con
 
     if (fuxProblem == nullptr)
     {
-        lastError = "Erreur création problème Fux";
+        lastError = juce::String::fromUTF8("Erreur création problème Fux");
         return false;
     }
 

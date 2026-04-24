@@ -199,7 +199,7 @@ void LeftPanel::resized()
 
     // ===== ZONE DYNAMIQUE =====
     auto dynamicArea = content2;
-    int numRows = speciesLabels.size();
+    int numRows = speciesLabels.size() - 1;
 
     int labelHeight = 18;
     int boxHeight = 22;
@@ -229,7 +229,7 @@ void LeftPanel::resized()
 
             y += labelHeight + rowGap;
 
-            for (int i = 0; i < numRows; ++i)
+            for (int i = 1; i < speciesLabels.size(); ++i)
             {
                 bool rowVisible = (y + boxHeight <= section2.getBottom());
 
@@ -239,6 +239,8 @@ void LeftPanel::resized()
 
                 if (rowVisible)
                 {
+                    int displayIndex = i - 1;
+
                     speciesLabels[i]->setBounds(leftX, y, labelWidth, labelHeight);
                     speciesBoxes[i]->setBounds(speciesX, y, boxWidth, boxHeight);
                     typeBoxes[i]->setBounds(typeX, y, boxWidth, boxHeight);
@@ -345,15 +347,14 @@ void LeftPanel::updateVoiceSpeciesUI(int numVoices)
         auto* rowLabel = new juce::Label();
 
         if (i == 0)
-            rowLabel->setText(juce::String::fromUTF8(u8"Cantus Firmus"),
-                              juce::dontSendNotification);
+            rowLabel->setText("Cantus Firmus", juce::dontSendNotification);
         else
-            rowLabel->setText("Contrepoint " + juce::String(i) + "",
-                              juce::dontSendNotification);
+            rowLabel->setText("Contrepoint " + juce::String(i), juce::dontSendNotification);
 
         addAndMakeVisible(rowLabel);
         speciesLabels.add(rowLabel);
 
+        // ===== Species =====
         auto* speciesBox = new juce::ComboBox();
         speciesBox->addItem("1", 1);
         speciesBox->addItem("2", 2);
@@ -366,21 +367,9 @@ void LeftPanel::updateVoiceSpeciesUI(int numVoices)
         addAndMakeVisible(speciesBox);
         speciesBoxes.add(speciesBox);
 
-        //  liaison modèle -> UI
-        speciesBox->onChange = [this, i, speciesBox]()
-        {
-            auto& settings = appController.getVoiceSettings();
-            settings[i].species = speciesBox->getSelectedId();
-
-            if (optionsPanel)
-            {
-                optionsPanel->setVoiceSettings(settings);
-            }
-        };
-
+        // ===== Type =====
         auto* typeBox = new juce::ComboBox();
 
-        // Exemple simple (à adapter selon ton modèle)
         typeBox->addItem("-3", 1);
         typeBox->addItem("-2", 2);
         typeBox->addItem("-1", 3);
@@ -388,23 +377,42 @@ void LeftPanel::updateVoiceSpeciesUI(int numVoices)
         typeBox->addItem("1", 5);
         typeBox->addItem("2", 6);
 
-
-
         typeBox->setSelectedId(settings[i].type + 4);
 
         addAndMakeVisible(typeBox);
         typeBoxes.add(typeBox);
 
-        //  liaison modèle -> UI
+        // =========================
+        // Cacher le cantus firmus (temporaire)
+        // =========================
+        if (i == 0)
+        {
+            speciesBox->setEnabled(false);
+            typeBox->setEnabled(false);
+
+            speciesBox->setVisible(false);
+            typeBox->setVisible(false);
+
+            continue;
+        }
+
+        // ===== callbacks seulement pour contrepoints =====
+        speciesBox->onChange = [this, i, speciesBox]()
+        {
+            auto& settings = appController.getVoiceSettings();
+            settings[i].species = speciesBox->getSelectedId();
+
+            if (optionsPanel)
+                optionsPanel->setVoiceSettings(settings);
+        };
+
         typeBox->onChange = [this, i, typeBox]()
         {
             auto& settings = appController.getVoiceSettings();
             settings[i].type = typeBox->getSelectedId() - 4;
 
             if (optionsPanel)
-            {
                 optionsPanel->setVoiceSettings(settings);
-            }
         };
     }
 
@@ -448,12 +456,6 @@ void LeftPanel::triggerGeneration()
         return;
     }
 
-    /*if (!rawText.containsOnly("0123456789 ,;"))
-    {
-        showAlert(juce::AlertWindow::WarningIcon, Messages::titleError, Messages::cfNotNumbers);
-        return;
-    }*/
-
     auto cf = parseCantusFirmus(rawText);
 
     if (cf.empty())
@@ -475,17 +477,26 @@ void LeftPanel::triggerGeneration()
 
     std::vector<CantusProblem::Voice> voicesVec;
 
-    for (int i = 0; i < speciesBoxes.size(); ++i)
+    // ===== CF (index 0) =====
+    {
+        CantusProblem::Voice v;
+        v.id = 0;
+
+        // valeurs "dummy" mais obligatoires pour le solver
+        v.species = 1;
+        v.type = 0;
+
+        voicesVec.push_back(v);
+    }
+
+    // ===== CONTREPOINTS =====
+    for (int i = 1; i < speciesBoxes.size(); ++i)
     {
         CantusProblem::Voice v;
         v.id = i;
 
         v.species = speciesBoxes[i]->getSelectedId();
-
-        if (i < typeBoxes.size())
-            v.type = typeBoxes[i]->getSelectedId() - 4;
-        else
-            v.type = 1;
+        v.type = typeBoxes[i]->getSelectedId() - 4;
 
         voicesVec.push_back(v);
     }

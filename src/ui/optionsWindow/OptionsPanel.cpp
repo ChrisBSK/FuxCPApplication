@@ -78,11 +78,14 @@ void VoiceBox::resized()
     title.setBounds(area.removeFromTop(20));
     area.removeFromTop(5);
 
-    auto row = area.removeFromTop(25);
-    auto left = row.removeFromLeft(row.getWidth() / 2);
+    if (speciesBox.isVisible())
+    {
+        auto row = area.removeFromTop(25);
+        auto left = row.removeFromLeft(row.getWidth() / 2);
 
-    speciesBox.setBounds(left.reduced(2));
-    typeBox.setBounds(row.reduced(2));
+        speciesBox.setBounds(left.reduced(2));
+        typeBox.setBounds(row.reduced(2));
+    }
 
 
 }
@@ -127,6 +130,10 @@ OptionsPanel::OptionsPanel()
     addAndMakeVisible(box3);
     addAndMakeVisible(box4);
 
+    //On cache espèce et type pour cantus firmus
+    box1.speciesBox.setVisible(false);
+    box1.typeBox.setVisible(false);
+
     //===== Melodic Constraints ==========
 
     // 1. ===== Max Leap ======
@@ -150,16 +157,27 @@ OptionsPanel::OptionsPanel()
     melodicMaxLeapSlider.setRange(1, 6, 1); // intervalle max
     melodicMaxLeapSlider.setValue(5); // valeur par défaut
 
+    if (appController != nullptr)
+    {
+        melodicMaxLeapSlider.setValue(
+            (int) appController->getGenerationState().getProperty("maxLeap", 5)
+        );
+    }
+
     melodicMaxLeapSlider.onValueChange = [this]()
     {
-        int value = (int) melodicMaxLeapSlider.getValue();
-
         if (appController != nullptr)
         {
-            appController->getProblem().getSettings().rules.maxLeap = value;
-            DBG("UI maxLeap = " << value);
+            int value = (int) melodicMaxLeapSlider.getValue();
+
+            appController->getGenerationState()
+                .setProperty("maxLeap", value, nullptr);
+
+            DBG("maxLeap = " + juce::String(value));
         }
     };
+
+
 
     // 2. ===== Step bias ======
     addAndMakeVisible((melodicStepBiasLabel));

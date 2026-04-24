@@ -4,6 +4,7 @@
 
 #include "../ui/leftPanel/leftPanel.h"
 #include "../model/ConstraintsSettings.h"
+#include "../model/ConstraintsApplier.h"
 // =========================
 // Constructeurs
 // =========================
@@ -16,20 +17,30 @@ AppController::AppController()
 AppController::AppController(const juce::String& title)
     : problem(title)
 {
+    generationState.setProperty("maxLeap", 5, nullptr);
+}
+juce::ValueTree& AppController::getGenerationState()
+{
+    return generationState;
 }
 
+const juce::ValueTree& AppController::getGenerationState() const
+{
+    return generationState;
+}
 // =========================
 // Génération
 // =========================
 
 void AppController::startGeneration(const juce::String& outputPath)
 {
-    CostParameters costs;
 
-    costs.melodic   = {0, 1, 1, 576, 2, 2, 2, 1};
-    costs.general   = {4, 1, 1, 2, 2, 2, 8, 1};
-    costs.specific  = {8, 4, 0, 2, 1, 8, 50};
-    costs.importance= {8,7,5,2,9,3,14,12,6,11,4,10,1,13};
+    int maxLeap = (int) generationState.getProperty("maxLeap", 5);
+
+    problem.getSettings().rules.maxLeap = maxLeap;
+
+    auto costs = ConstraintApplier::apply(problem.getSettings());
+
 
     problem.setCostParameters(costs);
     problem.setBorrowMode(1);
