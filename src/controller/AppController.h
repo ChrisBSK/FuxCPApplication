@@ -1,77 +1,113 @@
 #pragma once
 
 #include <juce_core/juce_core.h>
+#include <juce_events/juce_events.h>
+
 #include "../model/CantusProblem.h"
 #include "../service/GenerationService.h"
-#include <juce_gui_basics/juce_gui_basics.h>
 
-/**
- * @brief Contrôleur principal MVC (version Fux).
- *
- * Rôle :
- * - Possède le modèle CantusProblem
- * - Lance la génération
- * - Gère les callbacks du GenerationService
- *
- * Ne duplique PAS les getters/setters du modèle.
- */
+// Forward declaration
 class LeftPanel;
-class AppController : public juce::AsyncUpdater, juce::Component
+
+/*
+==============================================================================
+    AppController
+
+    Rôle :
+    - Point central entre UI (LeftPanel / OptionsPanel) et logique métier
+    - Possède le modèle CantusProblem
+    - Lance la génération via GenerationService
+    - Reçoit le résultat (callback async)
+
+
+    Flux :
+    UI → AppController → GenerationService → AppController → UI
+==============================================================================
+*/
+
+class AppController : public juce::AsyncUpdater
 {
 public:
     AppController();
-
-    explicit AppController(const juce::String& title);
+    //explicit AppController(const juce::String& title);
 
     // =========================
     // Génération
     // =========================
 
-
+    /**
+     * Lance la génération d'un problème
+     * - prend le modèle courant
+     * - déclenche le GenerationService (thread)
+     */
     void startGeneration(const juce::String& outputPath);
+
 
     // =========================
     // Accès modèle
     // =========================
 
+    /**
+     * Accès en écriture au problème
+     * utilisé par le LeftPanel pour construire le problème
+     */
     CantusProblem& getProblem();
+
+    /**
+     * Accès en lecture seule
+     */
     const CantusProblem& getProblem() const;
 
-    std::vector<int> species;
-    std::vector<int> types;
 
+    // =========================
+    // Synchronisation UI
+    // =========================
+
+    /**
+     * Structure intermédiaire utilisée UNIQUEMENT pour synchroniser
+     * LeftPanel <-> OptionsPanel
+     */
     struct VoiceSettings
     {
         int species = 1;
-        int type = 0;
+        int type    = 0;
     };
 
-    std::vector<VoiceSettings>& getVoiceSettings()
-    {
-        return voiceSettings;
-    }
-
-    void setLeftPanel(LeftPanel* panel)
-    {
-        leftPanel = panel;
-    }
-
-    void setGenerationService(GenerationService* service)
-    {
-        generationService = service;
-    }
+    std::vector<VoiceSettings>& getVoiceSettings();
+    const std::vector<VoiceSettings>& getVoiceSettings() const;
 
 
+    // =========================
+    // Connexions UI
+    // =========================
+
+    void setLeftPanel(LeftPanel* panel);
+    void setGenerationService(GenerationService* service);
 
 
 private:
+    // =========================
+    // Modèle principal
+    // =========================
     CantusProblem problem;
-    GenerationService* generationService = nullptr;
 
+    // =========================
+    // Synchronisation UI
+    // =========================
     std::vector<VoiceSettings> voiceSettings;
 
+    // =========================
+    // Services externes
+    // =========================
+    GenerationService* generationService = nullptr;
+
+    // =========================
+    // UI callbacks
+    // =========================
     LeftPanel* leftPanel = nullptr;
 
-    /** Callback après génération (thread → message thread) */
+    /**
+     * Callback appelé après la génération (thread → UI)
+     */
     void handleAsyncUpdate() override;
 };

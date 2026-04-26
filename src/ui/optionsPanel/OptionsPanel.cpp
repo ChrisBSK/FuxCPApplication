@@ -1,103 +1,20 @@
 #include "OptionsPanel.h"
-#include "../../controller/AppController.h"
 #include "../leftPanel/LeftPanel.h"
-#include "../../model/ConstraintsDefinition.h"
-// =============================
-// VoiceBox : UI d'une voix
-// =============================
-VoiceBox::VoiceBox(const juce::String& name)
-{
-    //  titre de la voix
-    addAndMakeVisible(title);
-    title.setText(name, juce::dontSendNotification);
-    title.setJustificationType(juce::Justification::centred);
-    title.setColour(juce::Label::textColourId, juce::Colours::white);
+#include "../../controller/AppController.h"
 
-    //  choix de l'espèce
-    addAndMakeVisible(speciesBox);
-    for (int i = 1; i <= 5; ++i)
-        speciesBox.addItem("Species " + juce::String(i), i);
-    speciesBox.setSelectedId(1);
+//==============================================================================
+// Constructor
+//==============================================================================
 
-    //  choix du type
-    addAndMakeVisible(typeBox);
-    int id = 1;
-
-    for (int i = -3; i <= 2; ++i)
-        typeBox.addItem("Type " + juce::String(i), id++);
-
-    typeBox.setSelectedId(1);
-
-    // =========================
-    // Connexion bouton UI → MODÈLE
-    // =========================
-    speciesBox.onChange = [this]()
-    {
-        // update leftpanel -> optionpanel
-        if (settings)
-            settings->species = speciesBox.getSelectedId();
-        //update optionpanel -> leftpanel
-        if (auto* parent = findParentComponentOfClass<OptionsPanel>())
-        {
-            if (auto* lp = parent->getLeftPanel())
-                lp->refreshFromModel();
-        }
-    };
-
-    //Connexion type entre leftpanel et OptionPanel
-    typeBox.onChange = [this]()
-    {
-        // update leftpanel -> optionpanel
-        if (settings)
-            settings->type = typeBox.getSelectedId() - 4;
-        //update optionpanel -> leftpanel
-        if (auto* parent = findParentComponentOfClass<OptionsPanel>())
-        {
-            if (auto* lp = parent->getLeftPanel())
-                lp->refreshFromModel();
-        }
-    };
-}
-
-void VoiceBox::paint(juce::Graphics& g)
-{
-    //  Highlight actif
-    if (isActive)
-        g.setColour(juce::Colour(0xff2f4f4f));
-
-    else
-        g.setColour(juce::Colours::darkgrey.brighter());
-
-    g.fillRoundedRectangle(getLocalBounds().toFloat(), 6.0f);
-}
-
-void VoiceBox::resized()
-{
-    auto area = getLocalBounds().reduced(8);
-
-    title.setBounds(area.removeFromTop(20));
-    area.removeFromTop(5);
-
-    auto row = area.removeFromTop(25);
-    auto left = row.removeFromLeft(row.getWidth() / 2);
-
-    speciesBox.setBounds(left.reduced(2));
-    typeBox.setBounds(row.reduced(2));
-
-
-}
-
-// =============================
-// OptionsPanel : panneau global
-// =============================
 OptionsPanel::OptionsPanel()
 {
-    //====== Affichage des colonnes =========
+    // =========================
+    // Colonnes
+    // =========================
     addAndMakeVisible(column1);
     addAndMakeVisible(column2);
     addAndMakeVisible(column3);
     addAndMakeVisible(column4);
-
 
     addAndMakeVisible(title1);
     addAndMakeVisible(title2);
@@ -109,7 +26,7 @@ OptionsPanel::OptionsPanel()
     title3.setText("Feature 3", juce::dontSendNotification);
     title4.setText("Feature 4", juce::dontSendNotification);
 
-    auto setupLabel = [](juce::Label& l)
+    auto setupLabel = [](juce::Label& l)// Centrer les titres des colonnes
     {
         l.setJustificationType(juce::Justification::centred);
         l.setColour(juce::Label::textColourId, juce::Colours::white);
@@ -121,115 +38,24 @@ OptionsPanel::OptionsPanel()
     setupLabel(title3);
     setupLabel(title4);
 
-    //Affichage des voix colonnne 1
+    // =========================
+    // Voice boxes
+    // =========================
     addAndMakeVisible(box1);
     addAndMakeVisible(box2);
     addAndMakeVisible(box3);
     addAndMakeVisible(box4);
 
-    //===== Melodic Constraints ==========
-
-    // 1. ===== Max Leap ======
-    addAndMakeVisible(melodicMaxLeapLabel);
-    addAndMakeVisible(melodicMaxLeapSlider);
-
-    melodicMaxLeapLabel.setText("Max Leap", juce::dontSendNotification);
-    //affichage du tooltip (text) quand on passe la souris dessus de Max Leap
-    auto info = constraintDB["MaxLeap"];
-     melodicMaxLeapLabel.setTooltip(
-        info.name + "\n\n" +
-        info.description + "\n\n" +
-        info.theory
-    );
-
-    melodicMaxLeapLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-    melodicMaxLeapLabel.setJustificationType(juce::Justification::centredLeft);
-
-    melodicMaxLeapSlider.setSliderStyle(juce::Slider::LinearHorizontal);
-    melodicMaxLeapSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 50, 20);
-    melodicMaxLeapSlider.setRange(1, 6, 1); // intervalle max
-    melodicMaxLeapSlider.setValue(5); // valeur par défaut
-
-    melodicMaxLeapSlider.onValueChange = [this]()
-    {
-        int value = (int) melodicMaxLeapSlider.getValue();
-
-        if (appController != nullptr)
-        {
-            appController->getProblem().getSettings().rules.maxLeap = value;
-            DBG("UI maxLeap = " << value);
-        }
-    };
-
-    // 2. ===== Step bias ======
-    addAndMakeVisible((melodicStepBiasLabel));
-    addAndMakeVisible((melodicStepBiasSlider));
-
-    melodicStepBiasLabel.setText("Step bias", juce::dontSendNotification);
-    //affichage du tooltip (text) quand on passe la souris dessus de Step bias
-    auto info2 = constraintDB["StepBias"];
-    melodicStepBiasLabel.setTooltip(
-       info2.name + "\n\n" +
-       info2.description + "\n\n" +
-       info2.theory
-   );
-
-    melodicStepBiasLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-    melodicStepBiasLabel.setJustificationType(juce::Justification::centredLeft);
-
-    melodicStepBiasSlider.setSliderStyle(juce::Slider::LinearHorizontal);
-    melodicStepBiasSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 50, 20);
-    melodicStepBiasSlider.setRange(-1, 1, 1);
-    melodicStepBiasSlider.setValue(0);
 
 
-    // 3. ====== Repetition allowed ======
-    addAndMakeVisible(melodicRepetitionLabel);
-    addAndMakeVisible(melodicRepetitionToggle);
-
-    melodicRepetitionLabel.setText("Repetition", juce::dontSendNotification);
-    //affichage du tooltip (text) quand on passe la souris dessus de Repetition
-    auto info3 = constraintDB["Repetition"];
-    melodicRepetitionLabel.setTooltip(
-       info3.name + "\n\n" +
-       info3.description + "\n\n" +
-       info3.theory
-   );
-    melodicRepetitionLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-    melodicRepetitionLabel.setJustificationType(juce::Justification::centredLeft);
-
-    melodicRepetitionToggle.setButtonText("Allow");
-    melodicRepetitionToggle.setToggleState(false, juce::dontSendNotification);
-
-    // 4. ====== Direction prefered =====
-    addAndMakeVisible(melodicDirectionLabel);
-    addAndMakeVisible(melodicDirectionBox);
-
-    melodicDirectionLabel.setText("Direction", juce::dontSendNotification);
-    auto info4 = constraintDB["Direction"];
-    melodicDirectionLabel.setTooltip(
-       info4.name + "\n\n" +
-       info4.description + "\n\n" +
-       info4.theory
-   );
-    melodicDirectionLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-    melodicDirectionLabel.setJustificationType(juce::Justification::centredLeft);
-
-    melodicDirectionBox.addItem("Neutral", 1);
-    melodicDirectionBox.addItem("Ascending", 2);
-    melodicDirectionBox.addItem("Descending", 3);
-
-    melodicDirectionBox.setSelectedId(1);
-
-
-
-
-
-    //Affichage des boutons Generate/Cancel
-    generateButton.setButtonText("Generate");
-    cancel.setButtonText("Cancel");
+    // =========================
+    // Boutons
+    // =========================
     addAndMakeVisible(generateButton);
     addAndMakeVisible(cancel);
+
+    generateButton.setButtonText("Generate");
+    cancel.setButtonText("Cancel");
 
     // Display colonne active
     title1.onClick = [this]() { updateActiveColumn(1); };
@@ -311,13 +137,30 @@ OptionsPanel::OptionsPanel()
     column3.onClick = [this]() { updateActiveColumn(3); };
     column4.onClick = [this]() { updateActiveColumn(4); };
 
+
     generateButton.onClick = [this]()
     {
-        if (leftPanel != nullptr)
+        if (leftPanel)
             leftPanel->triggerGeneration();
     };
 
+    // =========================
+    // Gestion colonnes actives
+    // =========================
+    title1.onClick = [this]() { updateActiveColumn(1); };
+    title2.onClick = [this]() { updateActiveColumn(2); };
+    title3.onClick = [this]() { updateActiveColumn(3); };
+    title4.onClick = [this]() { updateActiveColumn(4); };
+
+    column1.onClick = [this]() { updateActiveColumn(1); };
+    column2.onClick = [this]() { updateActiveColumn(2); };
+    column3.onClick = [this]() { updateActiveColumn(3); };
+    column4.onClick = [this]() { updateActiveColumn(4); };
 }
+
+//==============================================================================
+// Paint
+//==============================================================================
 
 void OptionsPanel::paint(juce::Graphics& g)
 {
@@ -346,6 +189,9 @@ void OptionsPanel::paint(juce::Graphics& g)
     drawTitle(title3, 3);
     drawTitle(title4, 4);
 }
+//==============================================================================
+// Layout
+//==============================================================================
 
 void OptionsPanel::resized()
 {
@@ -484,45 +330,68 @@ void OptionsPanel::resized()
     generateButton.setBounds(startButtonsX + buttonWidth + spacing, y, buttonWidth, buttonHeight);
 }
 
-// =============================
-//  Set active voices
-// =============================
+
+//==============================================================================
+// Synchronisation : nombre de voix
+//==============================================================================
+
 void OptionsPanel::setNumVoices(int numVoices)
 {
     std::vector<VoiceBox*> boxes = { &box1, &box2, &box3, &box4 };
 
-    for (int i = 0; i < boxes.size(); ++i)
+    for (size_t i = 0; i < boxes.size(); ++i)
     {
-        boxes[i]->isActive = (i < numVoices);
+        boxes[i]->isActive = (i < static_cast<size_t>(numVoices));
         boxes[i]->repaint();
     }
 }
+
+//==============================================================================
+// Synchronisation : settings (species / type)
+//==============================================================================
 
 void OptionsPanel::setVoiceSettings(std::vector<AppController::VoiceSettings>& settings)
 {
     std::vector<VoiceBox*> boxes = { &box1, &box2, &box3, &box4 };
 
-    for (int i = 0; i < boxes.size(); ++i)
+    for (size_t i = 0; i < boxes.size() && i < settings.size(); ++i)
     {
-        if (i < settings.size())
-        {
-            boxes[i]->settings = &settings[i];
+        // liaison UI ↔ modèle
+        boxes[i]->settings = &settings[i];
 
-            boxes[i]->speciesBox.setSelectedId(settings[i].species);
-            boxes[i]->typeBox.setSelectedId(settings[i].type + 4);
-        }
+        // mise à jour affichage
+        boxes[i]->speciesBox.setSelectedId(settings[i].species);
+        boxes[i]->typeBox.setSelectedId(settings[i].type + 4);
     }
 }
 
-void OptionsPanel::updateActiveColumn(int columnIndex)
-{
-    activeColumn = columnIndex;
+//==============================================================================
+// Colonne active (UI only)
+//==============================================================================
 
-    column1.isActive = (activeColumn == 1);
-    column2.isActive = (activeColumn == 2);
-    column3.isActive = (activeColumn == 3);
-    column4.isActive = (activeColumn == 4);
+void OptionsPanel::updateActiveColumn(int index)
+{
+    activeColumn = index;
+
+    column1.isActive = (index == 1);
+    column2.isActive = (index == 2);
+    column3.isActive = (index == 3);
+    column4.isActive = (index == 4);
 
     repaint();
 }
 
+void OptionsPanel::setAppController(AppController* app_controller)
+{
+    appController = app_controller;
+}
+
+/*void setLeftPanel(LeftPanel* panel)
+{
+    leftPanel = panel;
+}
+
+LeftPanel* getLeftPanel() const
+{
+    return leftPanel;
+}*/

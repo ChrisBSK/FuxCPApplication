@@ -2,28 +2,37 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include "../../service/GenerationService.h"
-#include "../optionsWindow/OptionsPanel.h"
-/**
- * @brief Panneau principal d’entrée utilisateur (Vue MVC).
- *
- * Rôle :
- * - Permet de saisir le Cantus Firmus (texte MIDI)
- * - Permet de configurer le nombre de voix, espèces et types
- * - Lance la génération via le AppController
- * - Ouvre le panneau d’options avancées (OptionsPanel)
- *
- * Responsabilités :
- * - Gérer l’interface utilisateur (UI)
- * - Synchroniser les choix utilisateur avec le modèle (via AppController)
- *
- * Ne contient PAS :
- * - de logique métier (calcul, génération)
- * - de traitement audio
- */
+#include "../optionsPanel/OptionsPanel.h"
+
+/*
+==============================================================================
+    LeftPanel
+
+    Rôle :
+    Ce composant représente l’interface principale d’entrée utilisateur.
+
+    Responsabilités :
+    - Saisir le Cantus Firmus (suite de notes MIDI ou noms de notes)
+    - Choisir le nombre de voix (cantus firmus inclus)
+    - Configurer les contrepoints (espèce et type) via des ComboBox
+    - Construire un problème musical à partir des entrées utilisateur
+    - Déclencher la génération via le AppController
+    - Afficher le fichier MIDI généré et permettre son drag & drop
+
+    IMPORTANT :
+    - Le Cantus Firmus n’est PAS une voix
+    - Les espèces et types ne concernent QUE les contrepoints
+    - Aucune logique de génération ou de résolution ici (UI uniquement)
+
+==============================================================================
+*/
 
 class AppController;
+class OptionsPanel;
 
-// ============= Class pour le Drag and Drop ==========
+// ======================================================
+// Composant Drag & Drop pour fichier MIDI
+// ======================================================
 class MidiFileItem : public juce::Component
 {
 public:
@@ -46,84 +55,110 @@ public:
     {
         if (file.existsAsFile())
         {
-            if (auto* container = juce::DragAndDropContainer::findParentDragContainerFor(this))
-            {
-                juce::StringArray files;
-                files.add(file.getFullPathName());
-
-                container->performExternalDragDropOfFiles(files, true); // Permet de drag la solution
-            }
+            juce::DragAndDropContainer::performExternalDragDropOfFiles(
+                { file.getFullPathName() }, true);
         }
     }
 
     void mouseDown(const juce::MouseEvent&) override
     {
-        // obligatoire pour initier le drag
+        // nécessaire pour initier le drag
     }
 };
 
+// ======================================================
+// LeftPanel : UI principale (entrée utilisateur)
+// ======================================================
 class LeftPanel : public juce::Component
 {
 public:
-    LeftPanel(AppController& controller);
-    ~LeftPanel() override;
+    explicit LeftPanel(AppController& controller);
 
-    void paint(juce::Graphics&) override;
+    void paint(juce::Graphics &g) override;
+
+    ~LeftPanel() override = default;
+
+    // =========================
+    // JUCE
+    // =========================
+    //void paint(juce::Graphics&) override;
     void resized() override;
+
+    // =========================
+    // Interaction utilisateur
+    // =========================
+    void triggerGeneration();
 
     void showAlert(juce::AlertWindow::AlertIconType icon,
                    const juce::String& title,
                    const juce::String& message);
 
-    juce::String getCantusText() const;
+    // =========================
+    // Cantus Firmus
+    // =========================
+    /*juce::String getCantusText() const;
+    void setCantusText(const juce::String& newText);*/
 
-    void setCantusText(const juce::String& newText);
-
+    // =========================
+    // Liaison avec OptionsPanel
+    // =========================
     void setOptionsPanel(OptionsPanel* panel)
     {
         optionsPanel = panel;
     }
 
-    void refreshFromModel();
 
-    void triggerGeneration();
+    // =========================
+    // Callback après génération
+    // =========================
+    void onGenerationFinished(const juce::File& file);
 
-    void onGenerationFinished(const juce::File &file);
-
-    GenerationService& getGenerationService()
-    {
-        return generationService;
-    }
-
+    void prepareOutputFile();
 
     void addNoteFromKeyboard(int midiNote);
     void updateCantusDisplay();
 
+
+
 private:
-    juce::TextEditor text;
-    juce::Label label;
+    // =========================
+    // Références
+    // =========================
+    AppController& appController;
+    OptionsPanel* optionsPanel = nullptr;
 
-    juce::ComboBox voices;
-    juce::Label labelVoices;
+    // =========================
+    // UI - Cantus Firmus
+    // =========================
+    juce::TextEditor cfInput;
+    juce::Label cfInputLabel;
 
-    GenerationService generationService;
+    // =========================
+    // UI - Nombre de voix
+    // =========================
+    juce::ComboBox numVoicesCB;
+    juce::Label numVoicesCBLabel;
 
-
-    juce::File midiOutFileToGenerate;
-
+    // =========================
+    // UI - Paramètres des voix
+    // =========================
     juce::OwnedArray<juce::ComboBox> speciesBoxes;
+    juce::OwnedArray<juce::ComboBox> typeBoxes;
     juce::OwnedArray<juce::Label> speciesLabels;
 
-    juce::OwnedArray<juce::ComboBox> typeBoxes;
-
-    void updateVoiceSpeciesUI(int numVoices);
-    void prepareOutputFile();
     juce::Label speciesHeader;
     juce::Label typeHeader;
 
-    AppController& appController;
-    OptionsPanel* optionsPanel = nullptr;
+    // =========================
+    // Drag & Drop MIDI
+    // =========================
+    juce::File midiOutFileToGenerate;
     std::unique_ptr<MidiFileItem> midiItem;
+
+    // =========================
+    // Helpers UI
+    // =========================
+    void updateVoiceSpeciesUI(int numVoices);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LeftPanel)
 };

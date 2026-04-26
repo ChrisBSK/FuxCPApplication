@@ -49,11 +49,13 @@ target_sources(myproject PRIVATE
         src/ui/WorkArea/WorkAreaPanel.cpp
         src/ui/WorkArea/WorkAreaPanel.h
 
-        src/ui/optionsWindow/OptionsPanel.cpp
-        src/ui/optionsWindow/OptionsPanel.h
-
-        src/ui/optionsWindow/OptionsPanel.cpp
-        src/ui/optionsWindow/OptionsPanel.h
+        src/ui/optionsPanel/OptionsPanel.cpp
+        src/ui/optionsPanel/OptionsPanel.h
+        src/ui/optionsPanel/components/ClickableTitle.h
+        src/ui/optionsPanel/components/ColumnBox.h
+        src/ui/optionsPanel/components/StyledLabel.h
+        src/ui/optionsPanel/components/VoiceBox.h
+        src/ui/optionsPanel/components/VoiceBox.cpp
 
         src/audio/synth/SimpleSynth.cpp
         src/audio/synth/SimpleSynth.h

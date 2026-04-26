@@ -1,80 +1,85 @@
 #pragma once
+
 #include <juce_gui_basics/juce_gui_basics.h>
+
+// ===== UI =====
 #include "footer/FooterPanel.h"
 #include "header/HeaderPanel.h"
 #include "history/HistoryPanel.h"
 #include "keyboard/KeyboardComponent.h"
 #include "leftPanel/LeftPanel.h"
 #include "WorkArea/WorkAreaPanel.h"
-#include "optionsWindow/OptionsPanel.h"
+#include "optionsPanel/OptionsPanel.h"
 
+// ===== Core =====
 #include "../controller/AppController.h"
+
+// ===== Audio =====
 #include "../audio/synth/SimpleSynth.h"
 #include "../audio/AudioPlayer.h"
 
 /**
- * @brief Composant principal de l’application (Vue globale + orchestration).
+ * MainComponent = racine de l’application
  *
  * Rôle :
- * - Assemble tous les sous-composants UI (header, leftPanel, workArea, etc.)
- * - Gère l’audio (synthé + lecture MIDI)
- * - Fait le lien entre interface utilisateur et moteur audio
+ * - assemble toute l’UI
+ * - connecte les composants entre eux
+ * - gère l’audio (synth + MIDI)
  *
- * Responsabilités :
- * - Organiser le layout global de l’application
- * - Initialiser et connecter les composants (UI, contrôleur, audio)
- * - Router les événements MIDI vers le synthé
  *
- * Ne contient PAS :
- * - de logique métier (gérée par AppController / modèle)
- * - de logique de génération musicale
  */
-
-class MainComponent : public juce::Component, public juce::DragAndDropContainer
+class MainComponent : public juce::Component,
+                      public juce::DragAndDropContainer
 {
 public:
     MainComponent();
+    ~MainComponent() override;
 
-    ~MainComponent();
-    /*
-    ~MainComponent() override = default;*/
-
-
+    // ===== UI =====
     void paint(juce::Graphics&) override;
-
-    void paintOverChildren(juce::Graphics &g);
-
+    void paintOverChildren(juce::Graphics& g) override;
     void resized() override;
 
-    void getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill);
-
+    // ===== Audio =====
+    void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill);
     void prepareToPlay(int, double sampleRate);
 
-
 private:
+    // =========================
+    // CONTROLLER
+    // =========================
+    AppController appController;
 
-    OptionsPanel optionsPanel;
+    // =========================
+    // UI
+    // =========================
     HeaderPanel header;
     LeftPanel leftPanel { appController };
     WorkAreaPanel workArea;
+    OptionsPanel optionsPanel;
 
     HistoryPanel history;
     FooterPanel footer;
 
+    // =========================
+    // MIDI / KEYBOARD
+    // =========================
     juce::MidiKeyboardState keyboardState;
-    KeyboardComponent keyboard;
+    KeyboardComponent keyboard { keyboardState };
 
-
+    // =========================
+    // AUDIO
+    // =========================
     SimpleSynth synth;
-    AppController appController;
-
+    AudioPlayer audioPlayer { keyboardState };
 
     juce::AudioDeviceManager deviceManager;
     juce::AudioSourcePlayer player;
 
-    AudioPlayer audioPlayer;
-
-   // fenêtre explicative pour les contraintes dans OptionPanel
+    // =========================
+    // UI Helpers
+    // =========================
     std::unique_ptr<juce::TooltipWindow> tooltipWindow;
-};
 
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
+};

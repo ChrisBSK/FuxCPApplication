@@ -4,85 +4,81 @@
 
 /*
 ==============================================================================
-    ConstraintSettings.h --> Fichier le plus important
+    ConstraintSettings.h
 
-    Ce fichier définit l’ensemble des paramètres de contrôle du solveur FuxCP.
+    Ce fichier définit les paramètres du solveur de contrepoint.
 
-    On distingue DEUX types de paramètres :
+    On distingue clairement deux niveaux :
 
-    1. RULE PARAMETERS  (contraintes dures) --> CONTRAINTES
-       → définissent ce qui est autorisé ou interdit dans la solution
+    1. HARD CONSTRAINTS  (règles strictes)
+       → définissent ce qui est autorisé / interdit
 
-    2. COST PARAMETERS  (pondérations) --> PREFERENCES
-       → influencent la qualité de la solution
+    2. SOFT CONSTRAINTS  (coûts / préférences)
+       → influencent le choix de la meilleure solution
 
-    Cette séparation est essentielle pour éviter toute ambiguïté.
 ==============================================================================
 */
 
 
 //==============================================================================
-// RULE PARAMETERS (Contraintes structurelles)
+// HARD CONSTRAINTS (règles structurelles)
 //==============================================================================
 //
 // Ces paramètres modifient directement les règles du contrepoint.
-// Ils sont utilisés pour construire les contraintes dans FuxCP.
+// Ils doivent être respectés pour qu'une solution soit valide.
 //
-struct RuleParameters
+struct HardConstraints
 {
     // Intervalle maximal autorisé entre deux notes consécutives
-    //  influence directement la structure mélodique
     int maxLeap = 5;
 
-    // Biais en faveur des mouvements conjoints (préférence)
-    //  utilisé plus tard comme coût (optionnel)
-    int stepBias = 0;
-
-    // Autorise ou non la répétition de notes consécutives
+    // Autorise ou non la répétition de notes
     bool allowRepetition = true;
 
-    // Contrôle la direction globale de la mélodie
-    // (0 = neutre, >0 = ascendant, <0 = descendant)
-    int direction = 0;
+    // Direction globale de la ligne mélodique
+    // -1 = descendante, 0 = neutre, +1 = ascendante
+    int preferredDirection = 0;
 };
 
 
 //==============================================================================
-// COST PARAMETERS (Pondérations des contraintes) --> PREFERENCES
+// SOFT CONSTRAINTS (coûts / préférences)
 //==============================================================================
 //
-// Ces paramètres ne modifient PAS les règles,
-// mais influencent le solveur dans le choix de la meilleure solution.
+// Ces paramètres n'interdisent rien,
+// mais guident le solveur vers de meilleures solutions.
 //
-struct CostParameters
+struct SoftConstraints
 {
     // Coûts liés aux règles mélodiques
     std::vector<int> melodic;
 
-    // Coûts généraux du système
+    // Coûts globaux
     std::vector<int> general;
 
-    // Coûts spécifiques à certaines espèces
+    // Coûts spécifiques aux espèces
     std::vector<int> specific;
 
-    // Importance relative des contraintes
+    // Pondération relative des contraintes
     std::vector<int> importance;
 };
 
 
 //==============================================================================
-// GLOBAL SETTINGS (Regroupement complet)
+// GLOBAL SETTINGS
 //==============================================================================
 //
-// Cette structure regroupe tous les paramètres du solveur.
+// Regroupe tous les paramètres du solveur.
 //
-// Elle permet de passer UN SEUL objet à FuxCP,
-// ce qui simplifie énormément l’architecture.
+// → utilisé comme point unique de configuration
 //
 struct ConstraintSettings
 {
-    RuleParameters rules;
-    CostParameters costs;
+    HardConstraints hard;
+    SoftConstraints soft;
 
-    int borrowMode = 0; //0 = strict, 1 = autorise certaines altérations
+    // Mode d'emprunt (altérations)
+    // 0 = strict
+    // 1 = autorisé
+    int borrowMode = 0;
 };

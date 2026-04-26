@@ -1,57 +1,75 @@
 #include "LeftPanel.h"
-#include "../optionsWindow/OptionsPanel.h"
+#include "../optionsPanel/OptionsPanel.h"
 #include "../../controller/AppController.h"
 #include "../../model/NoteConverter.h"
 
-// =============================
-//  parsing du CF
-// =============================
 
+//==============================================================================
+// PARSING : Cantus Firmus (texte → MIDI)
+//==============================================================================
 
-static std::vector<int> parseCantusFirmus(const juce::String& text);
-
-// =============================
-// Messages UI
-// =============================
-
-namespace Messages
+static std::vector<int> parseCantusFirmus(const juce::String& text)
 {
-    static const juce::String titleError   = juce::String::fromUTF8(u8"Erreur");
-    static const juce::String titleSuccess = juce::String::fromUTF8(u8"Succès");
+    std::vector<int> result;
 
-    static const juce::String cfEmpty      = juce::String::fromUTF8(u8"Le Cantus Firmus est vide.");
-    static const juce::String cfNotNumbers = juce::String::fromUTF8(u8"Le Cantus Firmus ne doit contenir que des nombres (0-127).");
-    static const juce::String cfInvalid    = juce::String::fromUTF8(u8"Le Cantus Firmus est invalide (0-127).");
+    if (text.isEmpty())
+        return result;
 
-    static const juce::String noVoices     = juce::String::fromUTF8(u8"Veuillez sélectionner un nombre de voix.");
-    static const juce::String noSpecies    = juce::String::fromUTF8(u8"Veuillez sélectionner une espèce.");
+    auto tokens = juce::StringArray::fromTokens(text, " ,;", "\"");
 
-    static const juce::String noSolution   = juce::String::fromUTF8(u8"Aucune solution trouvée");
+    for (const auto& t : tokens)
+    {
+        if (t.isEmpty())
+            return {};
+
+        if (t.containsOnly("0123456789"))
+        {
+            int value = t.getIntValue();
+
+            if (value < 0 || value > 127)
+                return {};
+
+            result.push_back(value);
+        }
+        else
+        {
+            int midi = NoteConverter::noteNameToMidi(t);
+
+            if (midi == -1)
+                return {};
+
+            result.push_back(midi);
+        }
+    }
+
+    return result;
 }
 
 
+//==============================================================================
+// CONSTRUCTION UI
+//==============================================================================
+
 LeftPanel::LeftPanel(AppController& controller)
-    : appController(controller)  {
-    label.setText("Cantus Firmus (MIDI)",juce::sendNotification);
-    addAndMakeVisible(text);
-    //addAndMakeVisible(label);
+    : appController(controller)
+{
+    addAndMakeVisible(cfInput);
+
+    // =========================
+    // Nombre de voix (CF inclus)
+    // =========================
+    numVoicesCB.addItem("2", 2);
+    numVoicesCB.addItem("3", 3);
+    numVoicesCB.addItem("4", 4);
 
 
-    voices.addItem(("2"), 2);
-    voices.addItem(("3"), 3);
-    voices.addItem(("4"), 4);
-
-    labelVoices.setText("Number of voices",juce::sendNotification);
-    addAndMakeVisible(voices);
-    //addAndMakeVisible(labelVoices);
-
-
-
+    numVoicesCBLabel.setText("Number of voices",juce::sendNotification);
+    addAndMakeVisible(numVoicesCB);
 
     // Réaction au changement du nombre de voix
-    voices.onChange = [this]()
+    numVoicesCB.onChange = [this]()
     {
-        int numVoices = voices.getSelectedId();
+        int numVoices = numVoicesCB.getSelectedId();
         updateVoiceSpeciesUI(numVoices);
     };
 
@@ -65,31 +83,6 @@ LeftPanel::LeftPanel(AppController& controller)
 
     addAndMakeVisible(speciesHeader);
     addAndMakeVisible(typeHeader);
-
-}
-
-
-
-// =============================
-// Fichier MIDI de sortie
-// =============================
-
-void LeftPanel::prepareOutputFile()
-{
-    auto tempDir = juce::File::getSpecialLocation(
-        juce::File::tempDirectory);
-
-    auto timestamp = juce::Time::getCurrentTime().toMilliseconds();
-
-    midiOutFileToGenerate = tempDir.getChildFile(
-        "FuxCP_Solution_" + juce::String(timestamp) + ".mid");
-}
-
-
-
-LeftPanel::~LeftPanel()
-{
-    generationService.stopThread(2000); // thread destructeur qui assure la generation (IMPORTANT)
 }
 
 void LeftPanel::paint(juce::Graphics& g)
@@ -143,6 +136,209 @@ void LeftPanel::paint(juce::Graphics& g)
     }
 }
 
+
+
+//==============================================================================
+// SYNCHRONISATION UI → MODELE
+//==============================================================================
+
+void LeftPanel::updateVoiceSpeciesUI(int totalVoices)
+{
+
+    // =========================
+    // Sécurité (évite crash vector)
+    // =========================
+    if (totalVoices <= 0)
+    {
+        auto& settings = appController.getVoiceSettings();
+        settings.clear();
+
+        if (optionsPanel)
+            optionsPanel->setNumVoices(0);
+
+        return;
+    }
+    // =========================
+    // Nettoyage UI existante
+    // =========================
+    speciesBoxes.clear();
+    typeBoxes.clear();
+
+    // =========================
+    // On ne crée QUE les contrepoints
+    // CF = index 0 → ignoré ici
+    // =========================
+    int numCounterpoints = totalVoices - 1;
+
+    auto& settings = appController.getVoiceSettings();
+    settings.resize(static_cast<size_t>(numCounterpoints));
+
+    for (int i = 0; i < numCounterpoints; ++i)
+    {
+        // ===== Species =====
+        auto* speciesBox = new juce::ComboBox();
+
+        for (int s = 1; s <= 5; ++s)
+            speciesBox->addItem(juce::String(s), s);
+
+        speciesBox->setSelectedId(1);
+
+        addAndMakeVisible(speciesBox);
+        speciesBoxes.add(speciesBox);
+
+        speciesBox->onChange = [this, i, speciesBox]()
+        {
+            auto& voiceSettings = appController.getVoiceSettings();
+            voiceSettings[i].species = speciesBox->getSelectedId();
+
+            if (optionsPanel)
+                optionsPanel->setVoiceSettings(voiceSettings);
+        };
+
+        // ===== Type =====
+        auto* typeBox = new juce::ComboBox();
+
+        int id = 1;
+        for (int t = -3; t <= 2; ++t)
+            typeBox->addItem(juce::String(t), id++);
+
+        typeBox->setSelectedId(4);
+
+        addAndMakeVisible(typeBox);
+        typeBoxes.add(typeBox);
+
+        typeBox->onChange = [this, i, typeBox]()
+        {
+            auto& voiceSettings = appController.getVoiceSettings();
+            voiceSettings[i].type = typeBox->getSelectedId() - 4;
+
+            if (optionsPanel)
+                optionsPanel->setVoiceSettings(voiceSettings);
+        };
+    }
+
+    if (optionsPanel)
+    {
+        optionsPanel->setNumVoices(totalVoices);
+        optionsPanel->setVoiceSettings(settings);
+    }
+
+    resized();
+}
+
+
+//==============================================================================
+// LOGIQUE PRINCIPALE : GENERATION
+//==============================================================================
+
+void LeftPanel::triggerGeneration()
+{
+    // =========================
+    //  VALIDATION INPUT
+    // =========================
+
+    auto rawText = cfInput.getText().trim();
+
+    if (rawText.isEmpty())
+    {
+        showAlert(juce::AlertWindow::WarningIcon,
+                  juce::String::fromUTF8("Erreur"),
+                  juce::String::fromUTF8("Le Cantus Firmus est vide."));
+        return;
+    }
+
+    auto cf = parseCantusFirmus(rawText);
+
+    if (cf.empty())
+    {
+        showAlert(juce::AlertWindow::WarningIcon,
+                  juce::String::fromUTF8("Erreur"),
+                  juce::String::fromUTF8("Cantus Firmus invalide."));
+        return;
+    }
+
+    if (numVoicesCB.getSelectedItemIndex() == -1)
+    {
+        showAlert(juce::AlertWindow::WarningIcon,
+                  juce::String::fromUTF8("Erreur"),
+                  juce::String::fromUTF8("Veuillez sélectionner un nombre de voix."));
+        return;
+    }
+
+    // =========================
+    //  CONSTRUCTION DU PROBLEME
+    // =========================
+
+    int numVoices = numVoicesCB.getSelectedId();
+    int numCounterpoints = numVoices - 1;
+
+    CantusProblem::Voices v;
+
+    // CF
+    v.cf = cf;
+
+    // Contrepoints
+    for (int i = 0; i < numCounterpoints; ++i)
+    {
+        CantusProblem::Counterpoint cp;
+
+        cp.species = speciesBoxes[i]->getSelectedId();
+        cp.type    = typeBoxes[i]->getSelectedId() - 4;
+
+        v.counterpoints.push_back(cp);
+    }
+
+    auto& problem = appController.getProblem();
+    problem.setVoices(v);
+
+    // =========================
+    //  PREPARATION FICHIER
+    // =========================
+    prepareOutputFile();
+
+    // =========================
+    //  LANCEMENT GENERATION
+    // =========================
+    appController.startGeneration(midiOutFileToGenerate.getFullPathName());
+}
+
+
+//==============================================================================
+// RESULTAT : MIDI
+//==============================================================================
+
+void LeftPanel::onGenerationFinished(const juce::File& file)
+{
+    midiItem = std::make_unique<MidiFileItem>();
+    midiItem->file = file;
+
+    addAndMakeVisible(midiItem.get());
+    resized();
+}
+
+
+//==============================================================================
+// OUTILS UI
+//==============================================================================
+
+void LeftPanel::prepareOutputFile()
+{
+    auto tempDir = juce::File::getSpecialLocation(
+        juce::File::tempDirectory);
+
+    auto timestamp = juce::Time::getCurrentTime().toMilliseconds();
+
+    midiOutFileToGenerate = tempDir.getChildFile(
+        "FuxCP_Solution_" + juce::String(timestamp) + ".mid");
+}
+
+void LeftPanel::showAlert(juce::AlertWindow::AlertIconType icon,
+                         const juce::String& title,
+                         const juce::String& message)
+{
+    juce::AlertWindow::showMessageBoxAsync(icon, title, message);
+}
+
 void LeftPanel::resized()
 {
     auto area = getLocalBounds();
@@ -162,13 +358,13 @@ void LeftPanel::resized()
     {
         auto row = content1.removeFromTop(22);
         bool canShowText = row.getBottom() <= section1.getBottom() && sectionHeight > 50;
-        text.setVisible(canShowText);
+        cfInput.setVisible(canShowText);
 
         if (canShowText)
         {
             int width = static_cast<int>(row.getWidth() * widthRatio);
             int x = row.getX() + 10;
-            text.setBounds(x, row.getY(), width, row.getHeight());
+            cfInput.setBounds(x, row.getY(), width, row.getHeight());
         }
     }
 
@@ -185,13 +381,13 @@ void LeftPanel::resized()
     {
         auto row = content2.removeFromTop(22);
         bool canShowVoices = row.getBottom() <= section2.getBottom() && sectionHeight > 50;
-        voices.setVisible(canShowVoices);
+        numVoicesCB.setVisible(canShowVoices);
 
         if (canShowVoices)
         {
             int width = static_cast<int>(row.getWidth() * widthRatio);
             int x = row.getX() + 10;
-            voices.setBounds(x, row.getY(), width, row.getHeight());
+            numVoicesCB.setBounds(x, row.getY(), width, row.getHeight());
         }
     }
 
@@ -208,7 +404,7 @@ void LeftPanel::resized()
 
     if (numRows > 0)
     {
-        bool canShowHeader = (y + labelHeight <= section2.getBottom()) && voices.isVisible();
+        bool canShowHeader = (y + labelHeight <= section2.getBottom()) && numVoicesCB.isVisible();
         speciesHeader.setVisible(canShowHeader);
         typeHeader.setVisible(canShowHeader);
 
@@ -273,272 +469,18 @@ void LeftPanel::resized()
     }
 }
 
-// =============================
-// Parsing du Cantus Firmus
-// =============================
-static std::vector<int> parseCantusFirmus(const juce::String& text)
-{
-    std::vector<int> result;
-
-    if (text.isEmpty())
-        return result;
-
-    auto tokens = juce::StringArray::fromTokens(text, " ,;", "\"");
-
-    for (const auto& t : tokens)
-    {
-        if (t.isEmpty())
-            return {}; // évite cas "60,,64"
-
-        if (t.containsOnly("0123456789"))
-        {
-            // notes musicales (chiffres)
-            int value = t.getIntValue();
-
-            if (value < 0 || value > 127)
-                return {};
-
-            result.push_back(value);
-        }
-        else
-        {
-            // notes musicales (lettres)
-            int midi = NoteConverter::noteNameToMidi(t);
-
-            if (midi == -1)
-                return {};
-
-            result.push_back(midi);
-        }
-    }
-
-    return result;
-}
-
-void LeftPanel::updateVoiceSpeciesUI(int numVoices)
-{
-    for (auto* box : speciesBoxes)
-        removeChildComponent(box);
-
-    for (auto* label : speciesLabels)
-        removeChildComponent(label);
-
-    speciesBoxes.clear();
-    speciesLabels.clear();
-
-    for (auto* box : typeBoxes)
-        removeChildComponent(box);
-
-    typeBoxes.clear();
-
-    auto& settings = appController.getVoiceSettings();
-    settings.resize(numVoices);
-
-    for (int i = 0; i < numVoices; ++i)
-    {
-        settings[i].species = 1;
-        settings[i].type = -3;
-    }
-
-    for (int i = 0; i < numVoices; ++i)
-    {
-        auto* rowLabel = new juce::Label();
-
-        if (i == 0)
-            rowLabel->setText(juce::String::fromUTF8(u8"Cantus Firmus"),
-                              juce::dontSendNotification);
-        else
-            rowLabel->setText("Contrepoint " + juce::String(i) + "",
-                              juce::dontSendNotification);
-
-        addAndMakeVisible(rowLabel);
-        speciesLabels.add(rowLabel);
-
-        auto* speciesBox = new juce::ComboBox();
-        speciesBox->addItem("1", 1);
-        speciesBox->addItem("2", 2);
-        speciesBox->addItem("3", 3);
-        speciesBox->addItem("4", 4);
-        speciesBox->addItem("5", 5);
-
-        speciesBox->setSelectedId(settings[i].species);
-
-        addAndMakeVisible(speciesBox);
-        speciesBoxes.add(speciesBox);
-
-        //  liaison modèle -> UI
-        speciesBox->onChange = [this, i, speciesBox]()
-        {
-            auto& settings = appController.getVoiceSettings();
-            settings[i].species = speciesBox->getSelectedId();
-
-            if (optionsPanel)
-            {
-                optionsPanel->setVoiceSettings(settings);
-            }
-        };
-
-        auto* typeBox = new juce::ComboBox();
-
-        // Exemple simple (à adapter selon ton modèle)
-        typeBox->addItem("-3", 1);
-        typeBox->addItem("-2", 2);
-        typeBox->addItem("-1", 3);
-        typeBox->addItem("0", 4);
-        typeBox->addItem("1", 5);
-        typeBox->addItem("2", 6);
-
-
-
-        typeBox->setSelectedId(settings[i].type + 4);
-
-        addAndMakeVisible(typeBox);
-        typeBoxes.add(typeBox);
-
-        //  liaison modèle -> UI
-        typeBox->onChange = [this, i, typeBox]()
-        {
-            auto& settings = appController.getVoiceSettings();
-            settings[i].type = typeBox->getSelectedId() - 4;
-
-            if (optionsPanel)
-            {
-                optionsPanel->setVoiceSettings(settings);
-            }
-        };
-    }
-
-    if (optionsPanel)
-    {
-        optionsPanel->setNumVoices(numVoices);
-        optionsPanel->setVoiceSettings(appController.getVoiceSettings());
-    }
-
-    resized();
-}
-
-
-
-void LeftPanel::showAlert(juce::AlertWindow::AlertIconType icon,
-                         const juce::String& title,
-                         const juce::String& message)
-{
-    juce::AlertWindow::showMessageBoxAsync(icon, title, message);
-}
-
-juce::String LeftPanel::getCantusText() const
-{
-    return text.getText();
-}
-
-void LeftPanel::setCantusText(const juce::String& newText)
-{
-    text.setText(newText, juce::dontSendNotification);
-}
-
-void LeftPanel::triggerGeneration()
-{
-    juce::String error;
-
-    auto rawText = text.getText().trim();
-
-    if (rawText.isEmpty())
-    {
-        showAlert(juce::AlertWindow::WarningIcon, Messages::titleError, Messages::cfEmpty);
-        return;
-    }
-
-    /*if (!rawText.containsOnly("0123456789 ,;"))
-    {
-        showAlert(juce::AlertWindow::WarningIcon, Messages::titleError, Messages::cfNotNumbers);
-        return;
-    }*/
-
-    auto cf = parseCantusFirmus(rawText);
-
-    if (cf.empty())
-    {
-        showAlert(juce::AlertWindow::WarningIcon, Messages::titleError, Messages::cfInvalid);
-        return;
-    }
-
-    if (voices.getSelectedItemIndex() == -1)
-    {
-        showAlert(juce::AlertWindow::WarningIcon, Messages::titleError, Messages::noVoices);
-        return;
-    }
-
-    int numVoices = voices.getSelectedId();
-
-    auto& problem = appController.getProblem();
-    problem.setCantusFirmus(cf);
-
-    std::vector<CantusProblem::Voice> voicesVec;
-
-    for (int i = 0; i < speciesBoxes.size(); ++i)
-    {
-        CantusProblem::Voice v;
-        v.id = i;
-
-        v.species = speciesBoxes[i]->getSelectedId();
-
-        if (i < typeBoxes.size())
-            v.type = typeBoxes[i]->getSelectedId() - 4;
-        else
-            v.type = 1;
-
-        voicesVec.push_back(v);
-    }
-
-    problem.setVoices(voicesVec);
-
-    // =========================
-    // Préparer le fichier (avant la génération)
-    // =========================
-    prepareOutputFile();
-
-    // =========================
-    // Lancer génération
-    // =========================
-    appController.startGeneration(midiOutFileToGenerate.getFullPathName());
-
-}
-
-void LeftPanel::onGenerationFinished(const juce::File& file)
-{
-    midiItem = std::make_unique<MidiFileItem>();
-    midiItem->file = file;
-
-    addAndMakeVisible(midiItem.get());
-    resized();
-}
-
-void LeftPanel::refreshFromModel()
-{
-    auto& settings = appController.getVoiceSettings();
-
-    for (int i = 0; i < speciesBoxes.size(); ++i)
-    {
-        if (i < settings.size())
-        {
-            speciesBoxes[i]->setSelectedId(settings[i].species, juce::dontSendNotification);
-            typeBoxes[i]->setSelectedId(settings[i].type + 4, juce::dontSendNotification);
-        }
-    }
-}
-
 void LeftPanel::addNoteFromKeyboard(int midiNote)
 {
     auto noteStr = NoteConverter::midiToNoteName(midiNote);
 
-    auto current = text.getText();
+    auto current = cfInput.getText();
 
     if (!current.isEmpty())
         current += " ";
 
     current += noteStr;
 
-    text.setText(current, juce::dontSendNotification);
+    cfInput.setText(current, juce::dontSendNotification);
 }
 
 void LeftPanel::updateCantusDisplay()
@@ -555,5 +497,5 @@ void LeftPanel::updateCantusDisplay()
             display += " ";
     }
 
-    text.setText(display, juce::dontSendNotification);
+    cfInput.setText(display, juce::dontSendNotification);
 }
