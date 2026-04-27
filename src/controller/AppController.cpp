@@ -156,3 +156,15 @@ void AppController::handleAsyncUpdate()
             errorMsg);
     }
 }
+
+void AppController::updateVoice(int index, int species, int type)
+{
+    if (index < 0)
+        return;
+
+    if (index >= (int)voiceSettings.size())
+        return;
+    // Override les valeurs par défaut des voix
+    voiceSettings[index].species = species; // 1 par défaut
+    voiceSettings[index].type    = type; // 0 par défaut
+}

@@ -81,5 +81,7 @@ private:
     // =========================
     std::unique_ptr<juce::TooltipWindow> tooltipWindow;
 
+    int defaultVoiceCount = 0;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

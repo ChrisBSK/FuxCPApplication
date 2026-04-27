@@ -337,33 +337,38 @@ void OptionsPanel::resized()
 
 void OptionsPanel::setNumVoices(int numVoices)
 {
+    if (appController == nullptr)
+        return;
+
     std::vector<VoiceBox*> boxes = { &box1, &box2, &box3, &box4 };
+
+    // resize modèle
+    int numCP = juce::jmax(0, numVoices - 1);
+    appController->getVoiceSettings().resize(numCP);
 
     for (size_t i = 0; i < boxes.size(); ++i)
     {
-        boxes[i]->isActive = (i < static_cast<size_t>(numVoices));
+        boxes[i]->setActive(i < (size_t)numVoices);
+
+        if (i == 0)
+        {
+            // CF
+            boxes[i]->speciesBox.setVisible(false);
+            boxes[i]->typeBox.setVisible(false);
+        }
+        else if (i >= 1 && i < (size_t)numVoices)
+        {
+            int cpIndex = i - 1;
+            //  CP
+            boxes[i]->speciesBox.setVisible(true);
+            boxes[i]->typeBox.setVisible(true);
+
+            boxes[i]->connectToController(appController, cpIndex);
+        }
         boxes[i]->repaint();
     }
 }
 
-//==============================================================================
-// Synchronisation : settings (species / type)
-//==============================================================================
-
-void OptionsPanel::setVoiceSettings(std::vector<AppController::VoiceSettings>& settings)
-{
-    std::vector<VoiceBox*> boxes = { &box1, &box2, &box3, &box4 };
-
-    for (size_t i = 0; i < boxes.size() && i < settings.size(); ++i)
-    {
-        // liaison UI ↔ modèle
-        boxes[i]->settings = &settings[i];
-
-        // mise à jour affichage
-        boxes[i]->speciesBox.setSelectedId(settings[i].species);
-        boxes[i]->typeBox.setSelectedId(settings[i].type + 4);
-    }
-}
 
 //==============================================================================
 // Colonne active (UI only)
@@ -386,12 +391,12 @@ void OptionsPanel::setAppController(AppController* app_controller)
     appController = app_controller;
 }
 
-/*void setLeftPanel(LeftPanel* panel)
+void OptionsPanel::setLeftPanel(LeftPanel* panel)
 {
     leftPanel = panel;
 }
 
-LeftPanel* getLeftPanel() const
+LeftPanel* OptionsPanel::getLeftPanel() const
 {
     return leftPanel;
-}*/
+}

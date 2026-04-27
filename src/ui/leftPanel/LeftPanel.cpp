@@ -58,31 +58,20 @@ LeftPanel::LeftPanel(AppController& controller)
     // =========================
     // Nombre de voix (CF inclus)
     // =========================
+    numVoicesCBLabel.setText("Number of voices",juce::sendNotification);
     numVoicesCB.addItem("2", 2);
     numVoicesCB.addItem("3", 3);
     numVoicesCB.addItem("4", 4);
-
-
-    numVoicesCBLabel.setText("Number of voices",juce::sendNotification);
     addAndMakeVisible(numVoicesCB);
+
 
     // Réaction au changement du nombre de voix
     numVoicesCB.onChange = [this]()
     {
-        int numVoices = numVoicesCB.getSelectedId();
-        updateVoiceSpeciesUI(numVoices);
+        updateVoiceSpeciesUI(numVoicesCB.getSelectedId());
     };
 
-    updateVoiceSpeciesUI(0);
 
-    speciesHeader.setText(
-        juce::String::fromUTF8(u8"Espèce"),
-        juce::dontSendNotification
-    );
-    typeHeader.setText("Type", juce::dontSendNotification);
-
-    addAndMakeVisible(speciesHeader);
-    addAndMakeVisible(typeHeader);
 }
 
 void LeftPanel::paint(juce::Graphics& g)
@@ -139,95 +128,6 @@ void LeftPanel::paint(juce::Graphics& g)
 
 
 //==============================================================================
-// SYNCHRONISATION UI → MODELE
-//==============================================================================
-
-void LeftPanel::updateVoiceSpeciesUI(int totalVoices)
-{
-
-    // =========================
-    // Sécurité (évite crash vector)
-    // =========================
-    if (totalVoices <= 0)
-    {
-        auto& settings = appController.getVoiceSettings();
-        settings.clear();
-
-        if (optionsPanel)
-            optionsPanel->setNumVoices(0);
-
-        return;
-    }
-    // =========================
-    // Nettoyage UI existante
-    // =========================
-    speciesBoxes.clear();
-    typeBoxes.clear();
-
-    // =========================
-    // On ne crée QUE les contrepoints
-    // CF = index 0 → ignoré ici
-    // =========================
-    int numCounterpoints = totalVoices - 1;
-
-    auto& settings = appController.getVoiceSettings();
-    settings.resize(static_cast<size_t>(numCounterpoints));
-
-    for (int i = 0; i < numCounterpoints; ++i)
-    {
-        // ===== Species =====
-        auto* speciesBox = new juce::ComboBox();
-
-        for (int s = 1; s <= 5; ++s)
-            speciesBox->addItem(juce::String(s), s);
-
-        speciesBox->setSelectedId(1);
-
-        addAndMakeVisible(speciesBox);
-        speciesBoxes.add(speciesBox);
-
-        speciesBox->onChange = [this, i, speciesBox]()
-        {
-            auto& voiceSettings = appController.getVoiceSettings();
-            voiceSettings[i].species = speciesBox->getSelectedId();
-
-            if (optionsPanel)
-                optionsPanel->setVoiceSettings(voiceSettings);
-        };
-
-        // ===== Type =====
-        auto* typeBox = new juce::ComboBox();
-
-        int id = 1;
-        for (int t = -3; t <= 2; ++t)
-            typeBox->addItem(juce::String(t), id++);
-
-        typeBox->setSelectedId(4);
-
-        addAndMakeVisible(typeBox);
-        typeBoxes.add(typeBox);
-
-        typeBox->onChange = [this, i, typeBox]()
-        {
-            auto& voiceSettings = appController.getVoiceSettings();
-            voiceSettings[i].type = typeBox->getSelectedId() - 4;
-
-            if (optionsPanel)
-                optionsPanel->setVoiceSettings(voiceSettings);
-        };
-    }
-
-    if (optionsPanel)
-    {
-        optionsPanel->setNumVoices(totalVoices);
-        optionsPanel->setVoiceSettings(settings);
-    }
-
-    resized();
-}
-
-
-//==============================================================================
 // LOGIQUE PRINCIPALE : GENERATION
 //==============================================================================
 
@@ -278,18 +178,23 @@ void LeftPanel::triggerGeneration()
     v.cf = cf;
 
     // Contrepoints
+    auto& settings = appController.getVoiceSettings();
+
     for (int i = 0; i < numCounterpoints; ++i)
     {
         CantusProblem::Counterpoint cp;
 
-        cp.species = speciesBoxes[i]->getSelectedId();
-        cp.type    = typeBoxes[i]->getSelectedId() - 4;
+        cp.species = settings[i].species;
+        cp.type    = settings[i].type;
 
         v.counterpoints.push_back(cp);
     }
 
+
+
     auto& problem = appController.getProblem();
     problem.setVoices(v);
+    problem.setVoiceCount(numVoices);
 
     // =========================
     //  PREPARATION FICHIER
@@ -380,79 +285,22 @@ void LeftPanel::resized()
 
     {
         auto row = content2.removeFromTop(22);
-        bool canShowVoices = row.getBottom() <= section2.getBottom() && sectionHeight > 50;
+
+        bool canShowVoices = row.getBottom() <= section2.getBottom()
+                             && sectionHeight > 50;
+
         numVoicesCB.setVisible(canShowVoices);
 
         if (canShowVoices)
         {
             int width = static_cast<int>(row.getWidth() * widthRatio);
             int x = row.getX() + 10;
+
             numVoicesCB.setBounds(x, row.getY(), width, row.getHeight());
         }
     }
 
     content2.removeFromTop(10);
-
-    // ===== ZONE DYNAMIQUE =====
-    auto dynamicArea = content2;
-    int numRows = speciesLabels.size();
-
-    int labelHeight = 18;
-    int boxHeight = 22;
-    int rowGap = 6;
-    int y = dynamicArea.getY();
-
-    if (numRows > 0)
-    {
-        bool canShowHeader = (y + labelHeight <= section2.getBottom()) && numVoicesCB.isVisible();
-        speciesHeader.setVisible(canShowHeader);
-        typeHeader.setVisible(canShowHeader);
-
-        if (canShowHeader)
-        {
-            float labelRatio = 0.4f;
-            float boxRatio = 0.2f;
-
-            int labelWidth = static_cast<int>(dynamicArea.getWidth() * labelRatio);
-            int boxWidth = static_cast<int>(dynamicArea.getWidth() * boxRatio);
-
-            int leftX = dynamicArea.getX() + 10;
-            int speciesX = leftX + labelWidth + 10;
-            int typeX = speciesX + boxWidth + 10;
-
-            speciesHeader.setBounds(speciesX, y, boxWidth, labelHeight);
-            typeHeader.setBounds(typeX, y, boxWidth, labelHeight);
-
-            y += labelHeight + rowGap;
-
-            for (int i = 0; i < numRows; ++i)
-            {
-                bool rowVisible = (y + boxHeight <= section2.getBottom());
-
-                speciesLabels[i]->setVisible(rowVisible);
-                speciesBoxes[i]->setVisible(rowVisible);
-                typeBoxes[i]->setVisible(rowVisible);
-
-                if (rowVisible)
-                {
-                    speciesLabels[i]->setBounds(leftX, y, labelWidth, labelHeight);
-                    speciesBoxes[i]->setBounds(speciesX, y, boxWidth, boxHeight);
-                    typeBoxes[i]->setBounds(typeX, y, boxWidth, boxHeight);
-                }
-
-                y += boxHeight + rowGap;
-            }
-        }
-        else
-        {
-            for (int i = 0; i < numRows; ++i)
-            {
-                speciesLabels[i]->setVisible(false);
-                speciesBoxes[i]->setVisible(false);
-                typeBoxes[i]->setVisible(false);
-            }
-        }
-    }
 
     // ===== SECTION 3 : DRAG ZONE CONTENT =====
     auto content3 = section3.reduced(10, 15);
@@ -498,4 +346,10 @@ void LeftPanel::updateCantusDisplay()
     }
 
     cfInput.setText(display, juce::dontSendNotification);
+}
+
+void LeftPanel::updateVoiceSpeciesUI(int totalVoices)
+{
+    if (optionsPanel)
+        optionsPanel->setNumVoices(totalVoices);
 }

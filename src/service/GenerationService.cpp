@@ -102,8 +102,16 @@ namespace
     {
         std::vector<int> result;
 
-        auto start = str.find("{");
-        auto end   = str.find("}");
+        auto pos = str.find("Solution array");
+
+        if (pos == std::string::npos)
+            pos = str.find("Solution Array");
+
+        if (pos == std::string::npos)
+            return result;
+
+        auto start = str.find("{", pos);
+        auto end   = str.find("}", start);
 
         if (start == std::string::npos || end == std::string::npos)
             return result;
@@ -112,7 +120,16 @@ namespace
         std::string token;
 
         while (std::getline(ss, token, ','))
-            result.push_back(std::stoi(token));
+        {
+            try
+            {
+                result.push_back(std::stoi(token));
+            }
+            catch (...)
+            {
+                return {};
+            }
+        }
 
         return result;
     }
@@ -310,12 +327,31 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
             // =========================
             //  Récupération solution brute
             // =========================
-            std::string solutionStr = pb->to_string();
-            auto solution = extractSolution(solutionStr);
+
+
+            std::vector<int> solution;
+            int size = pb->getSize();
+            int* raw = pb->return_solution();
+
+            for (int i = 0; i < size; ++i)
+                solution.push_back(raw[i]);
+
+            delete[] raw;
+
+            /*std::string solutionStr = pb->to_string();
+            auto solution = extractSolution(solutionStr);*/
+
+            /*DBG("solution size = " << solution.size());
+            DBG("numVoices = " << numVoices);
+            DBG("cfSize = " << cfSize);
+            DBG("expected = " << numVoices * cfSize);*/
+            std::cout << "solution size = " << solution.size() << std::endl;
+            std::cout << "numVoices = " << numVoices << std::endl;
+            std::cout << "cfSize = " << cfSize << std::endl;
+            std::cout << "expected CP solution size = " << (numVoices - 1) * cfSize << std::endl;
 
             /*
             * solution = {
-                    60, 62, 64,   // CF
                     67, 69, 71,   // CP1
                     72, 74, 76    // CP2
                 }
@@ -324,19 +360,16 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
             // =========================
             //  Transformation en voix
             // =========================
-            // solution = [ CF | CP1 | CP2 | ... ]
-            auto voices = splitVoices(solution, numVoices, cfSize);
+            // solution = [ CP1 | CP2 | ... ]
 
             /*voices = {
-                {60, 62, 64},   // CF
                 {67, 69, 71},   // CP1
                 {72, 74, 76}    // CP2
             }*/
 
-            // on enlève le CF (première voix)
-            // on retire le CF car il est déjà stocké séparément
-            if (!voices.empty())
-                voices.erase(voices.begin());
+            int numCounterpoints = numVoices - 1;
+
+            auto voices = splitVoices(solution, numCounterpoints, cfSize);
 
             // =========================
             //  Écriture MIDI
@@ -349,7 +382,7 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
             }
             else
             {
-                lastError = "Erreur écriture MIDI";
+                lastError = juce::String::fromUTF8("Erreur écriture MIDI");
             }
 
             delete pb;
@@ -372,7 +405,7 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
         return true;
     }
 
-    lastError = "Aucune solution trouvée";
+    lastError = juce::String::fromUTF8("Aucune solution trouvée");
     return false;
 }
 
@@ -389,6 +422,17 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
     // =========================
     const auto& cf = problem.getCantusFirmus();
     const auto& counterpoints = problem.getCounterpoints();
+
+    std::cout << "Nb contrepoints = " << counterpoints.size() << std::endl;
+
+    for (int i = 0; i < counterpoints.size(); ++i)
+    {
+        std::cout << "CP " << i
+                  << " species=" << counterpoints[i].species
+                  << " type=" << counterpoints[i].type
+                  << std::endl;
+    }
+
 
     if (cf.empty() || counterpoints.empty())
         return nullptr;
@@ -409,6 +453,7 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
 
     spListFux.reserve(counterpoints.size());
     vTypeFux.reserve(counterpoints.size());
+
 
     for (const auto& cp : counterpoints)
     {

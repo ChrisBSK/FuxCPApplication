@@ -29,35 +29,9 @@ VoiceBox::VoiceBox(const juce::String& name)
     typeBox.setSelectedId(1);
 
     // =========================
-    // Connexion bouton UI → MODÈLE
+    // Connexion bouton UI → MODÈLE (peut causer des crash si mal fait --> L'app s'ouvre pas)
     // =========================
-    speciesBox.onChange = [this]()
-    {
-        // update leftpanel -> optionpanel
-        if (settings)
-            settings->species = speciesBox.getSelectedId();
-        //update optionpanel -> leftpanel
-        /*if (auto* parent = findParentComponentOfClass<OptionsPanel>())
-        {
-            if (auto* lp = parent->getLeftPanel())
-                lp->refreshFromModel();
-        }*/
-    };
 
-    //Connexion type entre leftpanel et OptionPanel
-    typeBox.onChange = [this]()
-    {
-        // update leftpanel -> optionpanel
-        if (settings)
-            settings->type = typeBox.getSelectedId() - 4;
-        //update optionpanel -> leftpanel
-        /*
-        if (auto* parent = findParentComponentOfClass<OptionsPanel>())
-        {
-            if (auto* lp = parent->getLeftPanel())
-                lp->refreshFromModel();
-        }*/
-    };
 }
 
 void VoiceBox::paint(juce::Graphics& g)
@@ -86,4 +60,43 @@ void VoiceBox::resized()
     typeBox.setBounds(row.reduced(2));
 
 
+}
+
+void VoiceBox::setActive(bool active)
+{
+    if (isActive != active)
+    {
+        isActive = active;
+        repaint();
+    }
+}
+
+void VoiceBox::connectToController(AppController* controller, int index)
+{
+    appController = controller;
+    voiceIndex = index;
+
+    speciesBox.onChange = [this]()
+    {
+        if (appController && (voiceIndex >= 0))
+        {
+            appController->updateVoice(
+                voiceIndex,
+                speciesBox.getSelectedId(),
+                typeBox.getSelectedId() - 4
+            );
+        }
+    };
+
+    typeBox.onChange = [this]()
+    {
+        if (appController && (voiceIndex >= 0))
+        {
+            appController->updateVoice(
+                voiceIndex,
+                speciesBox.getSelectedId(),
+                typeBox.getSelectedId() - 4
+            );
+        }
+    };
 }

@@ -39,15 +39,23 @@ MainComponent::MainComponent()
     // UI SYNC (liaisons entre composants)
     // =========================
 
-    // LeftPanel <-> OptionsPanel
-    leftPanel.setOptionsPanel(&optionsPanel);
-
-    // Controller → UI
+    //callback generation
     appController.setLeftPanel(&leftPanel);
 
-    // OptionsPanel → Controller (contraintes)
+    appController.setGenerationService(&leftPanel.getGenerationService());
 
+    //relier les widgets des contraintes d'OptionPanel à AppController
     optionsPanel.setAppController(&appController);
+
+    //sync UI
+    leftPanel.setOptionsPanel(&optionsPanel);
+
+
+    //boutoun Generate
+    optionsPanel.setLeftPanel(&leftPanel);
+
+
+    optionsPanel.setNumVoices(defaultVoiceCount);
 
 
     // =========================

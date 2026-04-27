@@ -35,12 +35,15 @@ public:
 
     void setNumVoices(int numVoices);
 
-    void setVoiceSettings(std::vector<AppController::VoiceSettings>& settings);
-
     void setAppController(AppController * app_controller);
 
-    /*void setLeftPanel(LeftPanel* panel);
-    LeftPanel* getLeftPanel() const;*/
+    // Hyper important car il permet de construire le leftpanel
+    // et du coup d'être utilisé lors de la génération initiée
+    // par OptionsPanel (generateButton.onCLick)
+    //
+    void setLeftPanel(LeftPanel* panel);
+    LeftPanel* getLeftPanel() const;
+
 private:
     LeftPanel* leftPanel = nullptr;
     AppController* appController = nullptr;
@@ -88,6 +91,7 @@ private:
 
     juce::TextButton generateButton;
     juce::TextButton cancel;
+
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OptionsPanel)
 };

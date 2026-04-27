@@ -118,6 +118,13 @@ public:
     void addNoteFromKeyboard(int midiNote);
     void updateCantusDisplay();
 
+    GenerationService& getGenerationService()
+    {
+        return generationService;
+    }
+
+
+
 
 
 private:
@@ -139,15 +146,6 @@ private:
     juce::ComboBox numVoicesCB;
     juce::Label numVoicesCBLabel;
 
-    // =========================
-    // UI - Paramètres des voix
-    // =========================
-    juce::OwnedArray<juce::ComboBox> speciesBoxes;
-    juce::OwnedArray<juce::ComboBox> typeBoxes;
-    juce::OwnedArray<juce::Label> speciesLabels;
-
-    juce::Label speciesHeader;
-    juce::Label typeHeader;
 
     // =========================
     // Drag & Drop MIDI
@@ -159,6 +157,8 @@ private:
     // Helpers UI
     // =========================
     void updateVoiceSpeciesUI(int numVoices);
+
+    GenerationService generationService;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LeftPanel)
 };

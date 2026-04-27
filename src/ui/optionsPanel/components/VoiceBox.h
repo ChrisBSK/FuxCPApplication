@@ -13,13 +13,19 @@ public:
     void paint(juce::Graphics&) override;
     void resized() override;
 
+    void setActive(bool active);
+
     bool isActive = false;
 
     juce::ComboBox speciesBox;
     juce::ComboBox typeBox;
 
 
-    AppController::VoiceSettings* settings = nullptr;
+    AppController* appController = nullptr;
+
+    int voiceIndex = -1;
+
+    void connectToController(AppController* controller, int index);
 
 private:
     juce::Label title;

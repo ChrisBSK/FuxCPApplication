@@ -84,6 +84,8 @@ public:
     void setLeftPanel(LeftPanel* panel);
     void setGenerationService(GenerationService* service);
 
+    void updateVoice(int index, int species, int type);
+
 
 private:
     // =========================
