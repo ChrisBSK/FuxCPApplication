@@ -320,31 +320,12 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
 
     try
     {
-        while (CounterpointProblem* pb = engine.next())
-        {
-            nb_sol++;
-
+        while (CounterpointProblem* pb = engine.next()){
             // =========================
             //  Récupération solution brute
             // =========================
-
-
-            /*std::vector<int> solution;
-            int size = pb->getSize();
-            int* raw = pb->return_solution();
-
-            for (int i = 0; i < size; ++i)
-                solution.push_back(raw[i]);
-
-            delete[] raw;
-*/
-
-            /*std::cout << "solution size = " << solution.size() << std::endl;
-            std::cout << "numVoices = " << numVoices << std::endl;
-            std::cout << "cfSize = " << cfSize << std::endl;
-            std::cout << "expected CP solution size = " << (numVoices - 1) * cfSize << std::endl;*/
-
             std::vector<int> solution;
+
             int size = pb->getSize();
             int* raw = pb->return_solution();
 
@@ -352,20 +333,39 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
                 solution.push_back(raw[i]);
 
             delete[] raw;
+
+            int numCounterpoints = numVoices - 1;
+
+            auto voices = splitVoices(solution, numCounterpoints, cfSize);
+
+            // =========================
+            //  Vérification solution utilisable
+            // =========================
+            if (voices.empty() || voices.size() != (size_t) numCounterpoints)
+            {
+                std::cout << "\n===== SOLUTION INVALIDE =====\n";
+                std::cout << "solution size : " << solution.size() << "\n";
+                std::cout << "expected size : " << numCounterpoints * cfSize << "\n";
+                std::cout << "voices size   : " << voices.size() << "\n";
+                std::cout << "============================\n";
+
+                delete pb;
+                continue;
+            }
+
+            // Ici seulement, on a une vraie solution utilisable
+            nb_sol++;
 
             //===== Affichage configuration =========
             std::cout << "\n===== CONFIGURATION =====\n\n";
 
-            // Cantus Firmus
             std::cout << "Cantus Firmus : ";
             for (int note : cf)
                 std::cout << note << " ";
             std::cout << "\n";
 
-            // Nombre de voix
             std::cout << "Nombre de voix : " << numVoices << "\n\n";
 
-            // Contrepoints
             auto speciesList = problem.getSpeciesList();
             auto voiceTypes  = problem.getVoiceTypes();
 
@@ -376,33 +376,9 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
                 std::cout << "  Type   : " << voiceTypes[i] << "\n\n";
             }
 
-
-
-
-
-            /*
-            * solution = {
-                    67, 69, 71,   // CP1
-                    72, 74, 76    // CP2
-                }
-             */
-
-            // =========================
-            //  Transformation en voix
-            // =========================
-            // solution = [ CP1 | CP2 | ... ]
-
-            /*voices = {
-                {67, 69, 71},   // CP1
-                {72, 74, 76}    // CP2
-            }*/
-
-            int numCounterpoints = numVoices - 1;
-
-            auto voices = splitVoices(solution, numCounterpoints, cfSize);
-
             //===== Affichage solution =========
             std::cout << "\n===== SOLUTION =====\n\n";
+
             std::cout << "Cantus Firmus : ";
             for (int note : cf)
                 std::cout << note << " ";
@@ -415,6 +391,7 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
                     std::cout << note << " ";
                 std::cout << std::endl;
             }
+
             // =========================
             //  Écriture MIDI
             // =========================
@@ -427,31 +404,34 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
             else
             {
                 lastError = juce::String::fromUTF8("Erreur écriture MIDI");
+                delete pb;
+                delete fuxProblem;
+                return false;
             }
 
             delete pb;
-            break; // on prend une seule solution
+            break;
         }
-    }
-    catch (...)
-    {
-        lastError = "Erreur solveur";
-    }
+        }
+        catch (...)
+        {
+            lastError = "Erreur solveur";
+        }
 
-    delete fuxProblem;
+        delete fuxProblem;
 
-    // =========================
-    //  Résultat
-    // =========================
-    if (nb_sol > 0)
-    {
-        lastError.clear();
-        return true;
+        // =========================
+        //  Résultat
+        // =========================
+        if (nb_sol > 0)
+        {
+            lastError.clear();
+            return true;
+        }
+        lastGeneratedMidiPath.clear();
+        lastError = juce::String::fromUTF8("Aucune solution trouvée");
+        return false;
     }
-
-    lastError = juce::String::fromUTF8("Aucune solution trouvée");
-    return false;
-}
 
 
 

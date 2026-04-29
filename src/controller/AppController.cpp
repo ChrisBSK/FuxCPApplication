@@ -146,7 +146,7 @@ void AppController::handleAsyncUpdate()
         // =========================
         // Gestion erreur / aucun résultat
         // =========================
-        juce::String errorMsg = generationService->getLastError();
+        /*juce::String errorMsg = generationService->getLastError();
 
         if (errorMsg.isEmpty())
             errorMsg = juce::String::fromUTF8("Aucune solution trouvée.");
@@ -154,7 +154,12 @@ void AppController::handleAsyncUpdate()
         juce::AlertWindow::showMessageBoxAsync(
             juce::AlertWindow::WarningIcon,
             juce::String::fromUTF8("Résultat"),
-            errorMsg);
+            errorMsg);*/
+
+        juce::AlertWindow::showMessageBoxAsync(
+            juce::AlertWindow::InfoIcon,
+            juce::String::fromUTF8("Résultat"),
+            juce::String::fromUTF8("Aucune solution n'existe !"));
     }
 }
 
