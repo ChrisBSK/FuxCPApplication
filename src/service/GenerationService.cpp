@@ -349,7 +349,6 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
                 std::cout << "voices size   : " << voices.size() << "\n";
                 std::cout << "============================\n";
 
-                delete pb;
                 continue;
             }
 
@@ -404,12 +403,11 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
             else
             {
                 lastError = juce::String::fromUTF8("Erreur écriture MIDI");
-                delete pb;
+
                 delete fuxProblem;
                 return false;
             }
 
-            delete pb;
             break;
         }
         }
