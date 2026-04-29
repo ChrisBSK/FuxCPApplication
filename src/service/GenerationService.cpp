@@ -329,6 +329,21 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
             // =========================
 
 
+            /*std::vector<int> solution;
+            int size = pb->getSize();
+            int* raw = pb->return_solution();
+
+            for (int i = 0; i < size; ++i)
+                solution.push_back(raw[i]);
+
+            delete[] raw;
+*/
+
+            /*std::cout << "solution size = " << solution.size() << std::endl;
+            std::cout << "numVoices = " << numVoices << std::endl;
+            std::cout << "cfSize = " << cfSize << std::endl;
+            std::cout << "expected CP solution size = " << (numVoices - 1) * cfSize << std::endl;*/
+
             std::vector<int> solution;
             int size = pb->getSize();
             int* raw = pb->return_solution();
@@ -338,17 +353,32 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
 
             delete[] raw;
 
-            /*std::string solutionStr = pb->to_string();
-            auto solution = extractSolution(solutionStr);*/
+            //===== Affichage configuration =========
+            std::cout << "\n===== CONFIGURATION =====\n\n";
 
-            /*DBG("solution size = " << solution.size());
-            DBG("numVoices = " << numVoices);
-            DBG("cfSize = " << cfSize);
-            DBG("expected = " << numVoices * cfSize);*/
-            std::cout << "solution size = " << solution.size() << std::endl;
-            std::cout << "numVoices = " << numVoices << std::endl;
-            std::cout << "cfSize = " << cfSize << std::endl;
-            std::cout << "expected CP solution size = " << (numVoices - 1) * cfSize << std::endl;
+            // Cantus Firmus
+            std::cout << "Cantus Firmus : ";
+            for (int note : cf)
+                std::cout << note << " ";
+            std::cout << "\n";
+
+            // Nombre de voix
+            std::cout << "Nombre de voix : " << numVoices << "\n\n";
+
+            // Contrepoints
+            auto speciesList = problem.getSpeciesList();
+            auto voiceTypes  = problem.getVoiceTypes();
+
+            for (int i = 0; i < numVoices - 1; ++i)
+            {
+                std::cout << "Contrepoint " << (i + 1) << " :\n";
+                std::cout << "  Espèce : " << speciesList[i] << "\n";
+                std::cout << "  Type   : " << voiceTypes[i] << "\n\n";
+            }
+
+
+
+
 
             /*
             * solution = {
@@ -371,6 +401,20 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
 
             auto voices = splitVoices(solution, numCounterpoints, cfSize);
 
+            //===== Affichage solution =========
+            std::cout << "\n===== SOLUTION =====\n\n";
+            std::cout << "Cantus Firmus : ";
+            for (int note : cf)
+                std::cout << note << " ";
+            std::cout << std::endl;
+
+            for (int v = 0; v < voices.size(); ++v)
+            {
+                std::cout << "Contrepoint " << (v + 1) << " : ";
+                for (int note : voices[v])
+                    std::cout << note << " ";
+                std::cout << std::endl;
+            }
             // =========================
             //  Écriture MIDI
             // =========================
@@ -423,7 +467,7 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
     const auto& cf = problem.getCantusFirmus();
     const auto& counterpoints = problem.getCounterpoints();
 
-    std::cout << "Nb contrepoints = " << counterpoints.size() << std::endl;
+    /*std::cout << "Nb contrepoints = " << counterpoints.size() << std::endl;
 
     for (int i = 0; i < counterpoints.size(); ++i)
     {
@@ -432,6 +476,7 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
                   << " type=" << counterpoints[i].type
                   << std::endl;
     }
+    */
 
 
     if (cf.empty() || counterpoints.empty())
