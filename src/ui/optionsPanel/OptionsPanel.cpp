@@ -1,6 +1,9 @@
 #include "OptionsPanel.h"
 #include "../leftPanel/LeftPanel.h"
 #include "../../controller/AppController.h"
+#include "OptionsPanelStyle.h"
+#include "OptionsPanelHelpers.h"
+
 
 //==============================================================================
 // Constructor
@@ -16,27 +19,13 @@ OptionsPanel::OptionsPanel()
     addAndMakeVisible(column3);
     addAndMakeVisible(column4);
 
-    addAndMakeVisible(title1);
-    addAndMakeVisible(title2);
-    addAndMakeVisible(title3);
-    addAndMakeVisible(title4);
-
-    title1.setText("Basic Constraints", juce::dontSendNotification);
-    title2.setText("Melodic", juce::dontSendNotification);
-    title3.setText("Feature 3", juce::dontSendNotification);
-    title4.setText("Feature 4", juce::dontSendNotification);
-
-    auto setupLabel = [](juce::Label& l)// Centrer les titres des colonnes
-    {
-        l.setJustificationType(juce::Justification::centred);
-        l.setColour(juce::Label::textColourId, juce::Colours::white);
-        l.setFont(juce::Font(16.0f, juce::Font::bold));
-    };
-
-    setupLabel(title1);
-    setupLabel(title2);
-    setupLabel(title3);
-    setupLabel(title4);
+    // =========================
+    // Titres
+    // =========================
+    OptionsPanelHelpers::setupTitle(*this, title1, "Basic Constraints");
+    OptionsPanelHelpers::setupTitle(*this, title2, "Melodic");
+    OptionsPanelHelpers::setupTitle(*this, title3, "Feature 3");
+    OptionsPanelHelpers::setupTitle(*this, title4, "Feature 4");
 
     // =========================
     // Voice boxes
@@ -45,7 +34,6 @@ OptionsPanel::OptionsPanel()
     addAndMakeVisible(box2);
     addAndMakeVisible(box3);
     addAndMakeVisible(box4);
-
 
 
     // =========================
@@ -57,70 +45,50 @@ OptionsPanel::OptionsPanel()
     generateButton.setButtonText("Generate");
     cancel.setButtonText("Cancel");
 
-    // Display colonne active
+
+
+    generateButton.onClick = [this]()
+    {
+        if (leftPanel)
+            leftPanel->triggerGeneration();
+    };
+
+    // =========================
+    // Interactions colonnes
+    // =========================
+    setupColumnInteractions();
+
+    std::array<ClickableTitle*, 4> titles = { &title1, &title2, &title3, &title4 };
+    std::array<ColumnBox*, 4> columns = { &column1, &column2, &column3, &column4 };
+
+    for (int i = 0; i < 4; ++i)
+    {
+        setupHover(*titles[i], *columns[i], i + 1);
+    }
+
+
+}
+
+void OptionsPanel::setupColumnInteractions()
+{
+    // Click titres
     title1.onClick = [this]() { updateActiveColumn(1); };
     title2.onClick = [this]() { updateActiveColumn(2); };
     title3.onClick = [this]() { updateActiveColumn(3); };
     title4.onClick = [this]() { updateActiveColumn(4); };
 
-    // Gestion du Hover Titre et colonne
-    title1.onEnter = [this]()
-    {
-        hoveredColumn = 1;
-        column1.isHovered = true;
-        repaint();
-    };
+    // Hover titres
+    title1.onEnter = [this]() { hoveredColumn = 1; column1.isHovered = true; repaint(); };
+    title2.onEnter = [this]() { hoveredColumn = 2; column2.isHovered = true; repaint(); };
+    title3.onEnter = [this]() { hoveredColumn = 3; column3.isHovered = true; repaint(); };
+    title4.onEnter = [this]() { hoveredColumn = 4; column4.isHovered = true; repaint(); };
 
-    title2.onEnter = [this]()
-    {
-        hoveredColumn = 2;
-        column2.isHovered = true;
-        repaint();
-    };
+    title1.onExit = [this]() { hoveredColumn = 0; column1.isHovered = false; repaint(); };
+    title2.onExit = [this]() { hoveredColumn = 0; column2.isHovered = false; repaint(); };
+    title3.onExit = [this]() { hoveredColumn = 0; column3.isHovered = false; repaint(); };
+    title4.onExit = [this]() { hoveredColumn = 0; column4.isHovered = false; repaint(); };
 
-    title3.onEnter = [this]()
-    {
-        hoveredColumn = 3;
-        column3.isHovered = true;
-        repaint();
-    };
-
-    title4.onEnter = [this]()
-    {
-        hoveredColumn = 4;
-        column4.isHovered = true;
-        repaint();
-    };
-
-    title1.onExit = [this]()
-    {
-        hoveredColumn = 0;
-        column1.isHovered = false;
-        repaint();
-    };
-
-    title2.onExit = [this]()
-    {
-        hoveredColumn = 0;
-        column2.isHovered = false;
-        repaint();
-    };
-
-    title3.onExit = [this]()
-    {
-        hoveredColumn = 0;
-        column3.isHovered = false;
-        repaint();
-    };
-
-    title4.onExit = [this]()
-    {
-        hoveredColumn = 0;
-        column4.isHovered = false;
-        repaint();
-    };
-
-    // ===== Hover colonnes =====
+    // Hover colonnes
     column1.onEnter = [this]() { hoveredColumn = 1; column1.isHovered = true; repaint(); };
     column2.onEnter = [this]() { hoveredColumn = 2; column2.isHovered = true; repaint(); };
     column3.onEnter = [this]() { hoveredColumn = 3; column3.isHovered = true; repaint(); };
@@ -131,31 +99,31 @@ OptionsPanel::OptionsPanel()
     column3.onExit = [this]() { column3.isHovered = false; repaint(); };
     column4.onExit = [this]() { column4.isHovered = false; repaint(); };
 
-    // ===== Click colonnes =====
+    // Click colonnes
     column1.onClick = [this]() { updateActiveColumn(1); };
     column2.onClick = [this]() { updateActiveColumn(2); };
     column3.onClick = [this]() { updateActiveColumn(3); };
     column4.onClick = [this]() { updateActiveColumn(4); };
+}
 
-
-    generateButton.onClick = [this]()
+void OptionsPanel::setupHover(ClickableTitle& title,
+                              ColumnBox& column,
+                              int index)
+{
+    //// Gestion du Hover Titre et colonne
+    title.onEnter = [this, &column, index]()
     {
-        if (leftPanel)
-            leftPanel->triggerGeneration();
+        hoveredColumn = index;
+        column.isHovered = true;
+        repaint();
     };
 
-    // =========================
-    // Gestion colonnes actives
-    // =========================
-    title1.onClick = [this]() { updateActiveColumn(1); };
-    title2.onClick = [this]() { updateActiveColumn(2); };
-    title3.onClick = [this]() { updateActiveColumn(3); };
-    title4.onClick = [this]() { updateActiveColumn(4); };
-
-    column1.onClick = [this]() { updateActiveColumn(1); };
-    column2.onClick = [this]() { updateActiveColumn(2); };
-    column3.onClick = [this]() { updateActiveColumn(3); };
-    column4.onClick = [this]() { updateActiveColumn(4); };
+    title.onExit = [this, &column]()
+    {
+        hoveredColumn = 0;
+        column.isHovered = false;
+        repaint();
+    };
 }
 
 //==============================================================================

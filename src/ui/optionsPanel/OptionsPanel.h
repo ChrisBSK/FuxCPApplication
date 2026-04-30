@@ -44,6 +44,8 @@ public:
     void setLeftPanel(LeftPanel* panel);
     LeftPanel* getLeftPanel() const;
 
+
+
 private:
     LeftPanel* leftPanel = nullptr;
     AppController* appController = nullptr;
@@ -54,6 +56,11 @@ private:
 
     ColumnBox column1, column2, column3, column4;
     ClickableTitle title1, title2, title3, title4;
+
+    void setupColumnInteractions();
+    void setupHover(ClickableTitle &title,
+                    ColumnBox &column,
+                    int index);
 
     int activeColumn = 0;
     int hoveredColumn = 0;

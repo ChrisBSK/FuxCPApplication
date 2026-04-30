@@ -56,6 +56,10 @@ target_sources(myproject PRIVATE
         src/ui/optionsPanel/components/StyledLabel.h
         src/ui/optionsPanel/components/VoiceBox.h
         src/ui/optionsPanel/components/VoiceBox.cpp
+        src/ui/optionsPanel/OptionsPanelStyle.cpp
+        src/ui/optionsPanel/OptionsPanelStyle.h
+        src/ui/optionsPanel/OptionsPanelHelpers.cpp
+        src/ui/optionsPanel/OptionsPanelHelpers.h
 
         src/audio/synth/SimpleSynth.cpp
         src/audio/synth/SimpleSynth.h
