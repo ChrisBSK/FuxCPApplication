@@ -4,6 +4,20 @@
 // Données musicales (Voices)
 // =========================
 
+CantusProblem::CantusProblem()
+{
+    ConstraintSettings settings;
+
+    settings.soft.melodic   = {0, 1, 1, 576, 2, 2, 2, 1};
+    settings.soft.general   = {4, 1, 1, 2, 2, 2, 8, 1};
+    settings.soft.specific  = {8, 4, 0, 2, 1, 8, 50};
+    settings.soft.importance= {8,7,5,2,9,3,14,12,6,11,4,10,1,13};
+
+    settings.borrowMode = 1;
+
+    constraintSettings = settings;
+}
+
 void CantusProblem::setVoices(const Voices& v)
 {
     voices = v;

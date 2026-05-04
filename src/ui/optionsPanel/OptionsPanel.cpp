@@ -66,7 +66,50 @@ OptionsPanel::OptionsPanel()
         setupHover(*titles[i], *columns[i], i + 1);
     }
 
+    // =========================
+    // Contraintes mélodiques
+    // =========================
+    setupMelodicControls();
 
+}
+
+void OptionsPanel::setupMelodicControls()
+{
+    // =========================
+    // Label
+    // =========================
+    addAndMakeVisible(melodicVarietyLabel);
+    melodicVarietyLabel.setText("Variety", juce::dontSendNotification);
+
+    // =========================
+    // Sliders
+    // =========================
+    addAndMakeVisible(melodicVarietySlider);
+
+    melodicVarietySlider.setRange(0, 100, 1);
+    melodicVarietySlider.setValue(10, juce::dontSendNotification);
+    melodicVarietySlider.setSliderStyle(juce::Slider::LinearHorizontal);
+    melodicVarietySlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 50, 20);
+
+    // =========================
+    // Connexion aux coûts dans les vecteurs d'entrée
+    // =========================
+    melodicVarietySlider.onValueChange = [this]()
+    {
+        if (appController == nullptr || appController->isGenerating())
+            return;
+
+        auto& settings = appController->getProblem().getSettings();
+
+        if (settings.soft.melodic.size() < 8)
+            settings.soft.melodic.resize(8, 0);
+
+        settings.soft.melodic[0] = (int) melodicVarietySlider.getValue();
+
+        std::cout << "melodic[0] = " << settings.soft.melodic[0] << std::endl;
+
+
+    };
 }
 
 void OptionsPanel::setupColumnInteractions()
@@ -236,8 +279,8 @@ void OptionsPanel::resized()
     auto left1 = row1.removeFromLeft(labelWidth);
     row1.removeFromLeft(gapX);
 
-    melodicMaxLeapLabel.setBounds(left1);
-    melodicMaxLeapSlider.setBounds(row1.reduced(0, 6));
+    melodicVarietyLabel.setBounds(left1);
+    melodicVarietySlider.setBounds(row1.reduced(0, 6));
     inner2.removeFromTop(spacingY);
 
     // ===== 2. Step =====

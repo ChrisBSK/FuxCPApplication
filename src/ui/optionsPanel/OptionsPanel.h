@@ -24,6 +24,8 @@ class AppController;
 class OptionsPanel : public juce::Component
 {
 public:
+    void setupMelodicControls();
+
     OptionsPanel();
 
     void paint(juce::Graphics&) override;
@@ -80,8 +82,9 @@ private:
     // Contraintes mélodiques
     // =========================
 
-    StyledLabel melodicMaxLeapLabel;
-    juce::Slider melodicMaxLeapSlider;
+
+    StyledLabel melodicVarietyLabel;
+    juce::Slider melodicVarietySlider;
 
     StyledLabel melodicStepBiasLabel;
     juce::Slider melodicStepBiasSlider;

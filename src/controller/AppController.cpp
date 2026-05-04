@@ -70,26 +70,6 @@ void AppController::startGeneration(const juce::String& outputPath)
     if (generationService == nullptr)
         return;
 
-    // =========================
-    // 2. Injection paramètres solveur
-    // =========================
-    // (Ces paramètres définissent le comportement du solveur Fux)
-
-    ConstraintSettings settings;
-
-    settings.soft.melodic   = {0, 1, 1, 576, 2, 2, 2, 1};
-    //settings.soft.melodic = {100, 1, 2, 576, 5, 10, 25, 40};
-    settings.soft.general   = {4, 1, 1, 2, 2, 2, 8, 1};
-    settings.soft.specific  = {8, 4, 0, 2, 1, 8, 50};
-    settings.soft.importance= {8,7,5,2,9,3,14,12,6,11,4,10,1,13};
-    settings.borrowMode = 1;
-    problem.setSettings(settings);
-
-
-    // =========================
-    // Copie du problème
-    // =========================
-
     // On copie le modèle pour éviter tout accès concurrent
     // entre le thread UI et le thread de génération
     CantusProblem copyProblem = problem;
@@ -173,4 +153,12 @@ void AppController::updateVoice(int index, int species, int type)
     // Override les valeurs par défaut des voix
     voiceSettings[index].species = species; // 1 par défaut
     voiceSettings[index].type    = type; // 0 par défaut
+}
+
+bool AppController::isGenerating() const
+{
+    if (generationService == nullptr)
+        return false;
+
+    return generationService->isGenerating();
 }

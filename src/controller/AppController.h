@@ -85,6 +85,7 @@ public:
     void setGenerationService(GenerationService* service);
 
     void updateVoice(int index, int species, int type);
+    bool isGenerating() const;
 
 
 private:

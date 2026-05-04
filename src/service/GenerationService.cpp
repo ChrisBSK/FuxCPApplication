@@ -277,6 +277,9 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
 {
     inputValidationError = false;
 
+    // =========================
+    // Vérifications de base
+    // =========================
     if (!ready)
     {
         lastError = "Le service n'est pas prêt";
@@ -291,17 +294,14 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
     }
 
     // =========================
-    //  Récupération des données
+    // Récupération des données
     // =========================
     const auto& cf = problem.getCantusFirmus();
     int cfSize = (int) cf.size();
-
     int numVoices = (int) problem.getVoiceCount();
 
-
-
     // =========================
-    //  Création du problème Fux
+    // Création du problème Fux
     // =========================
     CounterpointProblem* fuxProblem = createFuxProblem(problem);
 
@@ -311,35 +311,47 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
         return false;
     }
 
+    std::unique_ptr<CounterpointProblem> problemPtr(fuxProblem);
+
     // =========================
-    //  Solveur
+    // Solveur Branch & Bound
     // =========================
     BAB<CounterpointProblem> engine(fuxProblem);
+
+    // Meilleure solution trouvée
+    //std::unique_ptr<CounterpointProblem> best;
 
     int nb_sol = 0;
 
     try
     {
-        while (CounterpointProblem* pb = engine.next()){
+        // =========================
+        // Parcours de toutes les solutions
+        // =========================
+        while (CounterpointProblem* rawPb = engine.next())
+        {
+            std::unique_ptr<CounterpointProblem> pb(rawPb);
+
             // =========================
-            //  Récupération solution brute
+            // Récupération solution brute
             // =========================
             std::vector<int> solution;
 
             int size = pb->getSize();
             int* raw = pb->return_solution();
 
+
             for (int i = 0; i < size; ++i)
                 solution.push_back(raw[i]);
 
-            delete[] raw;
+
+            //delete[] raw;
 
             int numCounterpoints = numVoices - 1;
-
             auto voices = splitVoices(solution, numCounterpoints, cfSize);
 
             // =========================
-            //  Vérification solution utilisable
+            // Vérification solution valide
             // =========================
             if (voices.empty() || voices.size() != (size_t) numCounterpoints)
             {
@@ -352,10 +364,11 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
                 continue;
             }
 
-            // Ici seulement, on a une vraie solution utilisable
             nb_sol++;
 
-            //===== Affichage configuration =========
+            // =========================
+            // AFFICHAGE CONFIGURATION
+            // =========================
             std::cout << "\n===== CONFIGURATION =====\n\n";
 
             std::cout << "Cantus Firmus : ";
@@ -375,7 +388,9 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
                 std::cout << "  Type   : " << voiceTypes[i] << "\n\n";
             }
 
-            //===== Affichage solution =========
+            // =========================
+            // AFFICHAGE SOLUTION
+            // =========================
             std::cout << "\n===== SOLUTION =====\n\n";
 
             std::cout << "Cantus Firmus : ";
@@ -391,9 +406,6 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
                 std::cout << std::endl;
             }
 
-            // =========================
-            //  Écriture MIDI
-            // =========================
             juce::File midiFile(outputPath);
 
             if (writeMidiFile(cf, voices, midiFile))
@@ -403,33 +415,30 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
             else
             {
                 lastError = juce::String::fromUTF8("Erreur écriture MIDI");
-
-                delete fuxProblem;
-                return false;
+                return false;  // unique_ptr nettoiera automatiquement
             }
 
             break;
-        }
-        }
-        catch (...)
-        {
-            lastError = "Erreur solveur";
-        }
 
-        delete fuxProblem;
-
-        // =========================
-        //  Résultat
-        // =========================
-        if (nb_sol > 0)
-        {
-            lastError.clear();
-            return true;
         }
-        lastGeneratedMidiPath.clear();
-        lastError = juce::String::fromUTF8("Aucune solution trouvée");
+    }
+    catch (...)
+    {
+        //delete fuxProblem;
+        lastError = "Erreur solveur";
         return false;
     }
+
+    if (nb_sol > 0)
+    {
+        lastError.clear();
+        return true;
+    }
+
+    lastGeneratedMidiPath.clear();
+    lastError = juce::String::fromUTF8("Aucune solution trouvée");
+    return false;
+}
 
 
 

@@ -11,6 +11,8 @@ public:
     // Structures de données
     // =========================
 
+    CantusProblem();
+
     struct Counterpoint
     {
         int type;     // position relative au CF (ex: -1, 1, 2...)
