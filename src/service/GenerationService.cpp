@@ -297,8 +297,8 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
     // Récupération des données
     // =========================
     const auto& cf = problem.getCantusFirmus();
-    int cfSize = (int) cf.size();
-    int numVoices = (int) problem.getVoiceCount();
+    int cfSize = (int)cf.size();
+    int numVoices = (int)problem.getVoiceCount();
 
     // =========================
     // Création du problème Fux
@@ -311,26 +311,38 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
         return false;
     }
 
-    std::unique_ptr<CounterpointProblem> problemPtr(fuxProblem);
-
-    // =========================
-    // Solveur Branch & Bound
-    // =========================
-    BAB<CounterpointProblem> engine(fuxProblem);
-
-    // Meilleure solution trouvée
-    //std::unique_ptr<CounterpointProblem> best;
-
     int nb_sol = 0;
+    bool success = false;
+    bool timeoutExceeded = false;
+
+    // Démarrage du chronomètre (timeout de 3 secondes)
+    const int TIMEOUT_SECONDS = 3;
+    auto startTime = std::chrono::high_resolution_clock::now();
 
     try
     {
         // =========================
+        // Solveur Branch & Bound
+        // =========================
+        BAB<CounterpointProblem> engine(fuxProblem);
+
+        // =========================
         // Parcours de toutes les solutions
         // =========================
-        while (CounterpointProblem* rawPb = engine.next())
+        while (CounterpointProblem* pb = engine.next())
         {
-            std::unique_ptr<CounterpointProblem> pb(rawPb);
+            // Vérifier le timeout toutes les 100ms
+            auto currentTime = std::chrono::high_resolution_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+                currentTime - startTime).count();
+
+            if (elapsed > TIMEOUT_SECONDS)
+            {
+                timeoutExceeded = true;
+                std::cerr << "Timeout : génération interrompue après "
+                          << TIMEOUT_SECONDS << " secondes\n";
+                break;
+            }
 
             // =========================
             // Récupération solution brute
@@ -340,12 +352,16 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
             int size = pb->getSize();
             int* raw = pb->return_solution();
 
+            if (raw == nullptr)
+            {
+                std::cerr << "Erreur : return_solution() retourne nullptr\n";
+                continue;
+            }
 
             for (int i = 0; i < size; ++i)
                 solution.push_back(raw[i]);
 
-
-            //delete[] raw;
+            delete[] raw;
 
             int numCounterpoints = numVoices - 1;
             auto voices = splitVoices(solution, numCounterpoints, cfSize);
@@ -353,7 +369,7 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
             // =========================
             // Vérification solution valide
             // =========================
-            if (voices.empty() || voices.size() != (size_t) numCounterpoints)
+            if (voices.empty() || voices.size() != (size_t)numCounterpoints)
             {
                 std::cout << "\n===== SOLUTION INVALIDE =====\n";
                 std::cout << "solution size : " << solution.size() << "\n";
@@ -379,7 +395,7 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
             std::cout << "Nombre de voix : " << numVoices << "\n\n";
 
             auto speciesList = problem.getSpeciesList();
-            auto voiceTypes  = problem.getVoiceTypes();
+            auto voiceTypes = problem.getVoiceTypes();
 
             for (int i = 0; i < numVoices - 1; ++i)
             {
@@ -398,7 +414,7 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
                 std::cout << note << " ";
             std::cout << std::endl;
 
-            for (int v = 0; v < voices.size(); ++v)
+            for (size_t v = 0; v < voices.size(); ++v)
             {
                 std::cout << "Contrepoint " << (v + 1) << " : ";
                 for (int note : voices[v])
@@ -406,37 +422,70 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
                 std::cout << std::endl;
             }
 
+            // =========================
+            // Écriture MIDI
+            // =========================
             juce::File midiFile(outputPath);
 
             if (writeMidiFile(cf, voices, midiFile))
             {
                 lastGeneratedMidiPath = midiFile.getFullPathName();
+                success = true;
+                std::cout << "MIDI généré avec succès\n";
             }
             else
             {
-                lastError = juce::String::fromUTF8("Erreur écriture MIDI");
-                return false;  // unique_ptr nettoiera automatiquement
+                lastError = "Erreur écriture MIDI";
+                lastGeneratedMidiPath.clear();
+                success = false;
             }
 
+            // On prend la première solution valide et on sort
             break;
-
         }
+    }
+    catch (const std::exception& e)
+    {
+        lastError = juce::String("Erreur solveur : ") + e.what();
+        lastGeneratedMidiPath.clear();
+        return false;
     }
     catch (...)
     {
-        //delete fuxProblem;
-        lastError = "Erreur solveur";
+        lastError = "Erreur solveur inconnue";
+        lastGeneratedMidiPath.clear();
         return false;
     }
 
-    if (nb_sol > 0)
+    // LE MOTEUR DÉTRUIT fuxProblem AUTOMATIQUEMENT
+
+    // =========================
+    // Résultat - Gestion des messages
+    // =========================
+    if (success)
     {
         lastError.clear();
         return true;
     }
 
-    lastGeneratedMidiPath.clear();
-    lastError = juce::String::fromUTF8("Aucune solution trouvée");
+    // Distinction entre timeout et espace exploré complètement
+    if (timeoutExceeded)
+    {
+        lastError = "Aucune solution trouvée dans le temps imparti (30s).\n\n"
+                    "L'espace de solutions est peut-être trop vaste.\n"
+                    "Essayez de réduire la complexité du problème.";
+    }
+    else if (nb_sol == 0)
+    {
+        lastError = "Aucune solution n'existe pour ce problème.\n\n"
+                    "L'espace de solutions a été complètement exploré,\n"
+                    "mais aucune combinaison valide n'a pu être trouvée.";
+    }
+    else
+    {
+        lastError = "Erreur lors de la génération MIDI";
+    }
+
     return false;
 }
 
