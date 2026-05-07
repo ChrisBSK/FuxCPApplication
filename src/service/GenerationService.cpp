@@ -266,11 +266,12 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
 
     int nb_sol = 0;
     bool success = false;
-    /*bool timeoutExceeded = false;
+
+    bool timeoutExceeded = false;
 
     // Démarrage du chronomètre (timeout de 3 secondes)
     const int TIMEOUT_SECONDS = 3;
-    auto startTime = std::chrono::high_resolution_clock::now();*/
+    auto startTime = std::chrono::high_resolution_clock::now();
 
     try
     {
@@ -284,6 +285,18 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
         // =========================
         while (CounterpointProblem* pb = engine.next())
         {
+            auto currentTime = std::chrono::high_resolution_clock::now();
+
+            auto elapsed =
+                std::chrono::duration_cast<std::chrono::seconds>(
+                    currentTime - startTime).count();
+
+            if (elapsed > TIMEOUT_SECONDS)
+            {
+                lastError = "Timeout : aucune solution trouvée.";
+                break;
+            }
+
            nb_sol++;
 
             // =========================
@@ -306,7 +319,7 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
             // =========================
             if (size != expectedSize)
             {
-                std::cout << "\n===== SOLUTION INVALIDE =====\n";
+                /*std::cout << "\n===== SOLUTION INVALIDE =====\n";
                 std::cout << "size attendu : " << expectedSize << "\n";
                 std::cout << "size reçu    : " << size << "\n";
 
@@ -315,7 +328,7 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
                 for (int i = 0; i < size; ++i)
                     std::cout << raw[i] << " ";
 
-                std::cout << "\n============================\n";
+                std::cout << "\n============================\n";*/
 
                 continue;
             }
@@ -324,6 +337,7 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
             // Conversion raw -> vector
             // =========================
             std::vector<int> solution(raw, raw + size);
+            delete[] raw;
 
             // =========================
             // Découpage voix
