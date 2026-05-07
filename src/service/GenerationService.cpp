@@ -336,6 +336,7 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
             auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
                 currentTime - startTime).count();
 
+
             if (elapsed > TIMEOUT_SECONDS)
             {
                 timeoutExceeded = true;
@@ -351,6 +352,11 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
 
             int size = pb->getSize();
             int* raw = pb->return_solution();
+
+            //Hyper imprtant cette ligne (C'était la cause de pleisn de crahs)
+            // Le truc c'est que la taille du vecteur doit être réallouer à
+            // chaque fois donc il faut le faire à la bonne taille
+            solution.reserve(size);
 
             if (raw == nullptr)
             {
