@@ -10,7 +10,6 @@
 #include "../controller/AppController.h"
 
 #include <gecode/search.hh>
-#include <sstream>
 #include <memory>
 
 //==============================================================================
@@ -82,57 +81,7 @@ namespace
         return result;
     }
 
-    std::vector<int> extractSolution(const std::string& str)
-    // Exemple :
-    // str = "Solution array: {60, 62, 64, 67, 69, 71}"
-    //
-    //
-    // - On récupère ce qu’il y a entre { }
-    //    → "60, 62, 64, 67, 69, 71"
-    //
-    // - On découpe par virgules
-    //    → "60" "62" "64" "67" "69" "71"
-    //
-    // - On convertit en int
-    //
-    // Résultat :
-    // {60, 62, 64, 67, 69, 71}
-    //
-    //  Transforme la string du solver en vecteur de notes
-    {
-        std::vector<int> result;
 
-        auto pos = str.find("Solution array");
-
-        if (pos == std::string::npos)
-            pos = str.find("Solution Array");
-
-        if (pos == std::string::npos)
-            return result;
-
-        auto start = str.find("{", pos);
-        auto end   = str.find("}", start);
-
-        if (start == std::string::npos || end == std::string::npos)
-            return result;
-
-        std::stringstream ss(str.substr(start + 1, end - start - 1));
-        std::string token;
-
-        while (std::getline(ss, token, ','))
-        {
-            try
-            {
-                result.push_back(std::stoi(token));
-            }
-            catch (...)
-            {
-                return {};
-            }
-        }
-
-        return result;
-    }
 
     bool writeMidiFile(const std::vector<int>& cantusFirmus,
                        const std::vector<std::vector<int>>& counterpointVoices,
@@ -297,8 +246,12 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
     // Récupération des données
     // =========================
     const auto& cf = problem.getCantusFirmus();
-    int cfSize = (int)cf.size();
-    int numVoices = (int)problem.getVoiceCount();
+    const int cfSize = (int)cf.size();
+    const int numVoices = (int)problem.getVoiceCount();
+    const int numCounterpoints = numVoices - 1;
+
+    // raw contient UNIQUEMENT les contrepoints
+    int expectedSize = numCounterpoints * cfSize;
 
     // =========================
     // Création du problème Fux
@@ -313,11 +266,11 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
 
     int nb_sol = 0;
     bool success = false;
-    bool timeoutExceeded = false;
+    /*bool timeoutExceeded = false;
 
     // Démarrage du chronomètre (timeout de 3 secondes)
     const int TIMEOUT_SECONDS = 3;
-    auto startTime = std::chrono::high_resolution_clock::now();
+    auto startTime = std::chrono::high_resolution_clock::now();*/
 
     try
     {
@@ -331,32 +284,16 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
         // =========================
         while (CounterpointProblem* pb = engine.next())
         {
-            // Vérifier le timeout toutes les 100ms
-            auto currentTime = std::chrono::high_resolution_clock::now();
-            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
-                currentTime - startTime).count();
-
-
-            if (elapsed > TIMEOUT_SECONDS)
-            {
-                timeoutExceeded = true;
-                std::cerr << "Timeout : génération interrompue après "
-                          << TIMEOUT_SECONDS << " secondes\n";
-                break;
-            }
+           nb_sol++;
 
             // =========================
             // Récupération solution brute
             // =========================
-            std::vector<int> solution;
 
             int size = pb->getSize();
             int* raw = pb->return_solution();
 
-            //Hyper imprtant cette ligne (C'était la cause de pleisn de crahs)
-            // Le truc c'est que la taille du vecteur doit être réallouer à
-            // chaque fois donc il faut le faire à la bonne taille
-            solution.reserve(size);
+            //delete pb;
 
             if (raw == nullptr)
             {
@@ -364,132 +301,102 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
                 continue;
             }
 
-            for (int i = 0; i < size; ++i)
-                solution.push_back(raw[i]);
-
-            delete[] raw;
-
-            int numCounterpoints = numVoices - 1;
-            auto voices = splitVoices(solution, numCounterpoints, cfSize);
-
             // =========================
-            // Vérification solution valide
+            // Vérification taille
             // =========================
-            if (voices.empty() || voices.size() != (size_t)numCounterpoints)
+            if (size != expectedSize)
             {
                 std::cout << "\n===== SOLUTION INVALIDE =====\n";
-                std::cout << "solution size : " << solution.size() << "\n";
-                std::cout << "expected size : " << numCounterpoints * cfSize << "\n";
-                std::cout << "voices size   : " << voices.size() << "\n";
-                std::cout << "============================\n";
+                std::cout << "size attendu : " << expectedSize << "\n";
+                std::cout << "size reçu    : " << size << "\n";
+
+                std::cout << "raw = ";
+
+                for (int i = 0; i < size; ++i)
+                    std::cout << raw[i] << " ";
+
+                std::cout << "\n============================\n";
 
                 continue;
             }
 
-            nb_sol++;
+            // =========================
+            // Conversion raw -> vector
+            // =========================
+            std::vector<int> solution(raw, raw + size);
 
             // =========================
-            // AFFICHAGE CONFIGURATION
+            // Découpage voix
             // =========================
-            std::cout << "\n===== CONFIGURATION =====\n\n";
+            auto voices = splitVoices(solution,
+                                      numCounterpoints,
+                                      cfSize);
 
-            std::cout << "Cantus Firmus : ";
+            if (voices.empty())
+            {
+                std::cout << "voices vide\n";
+                continue;
+            }
+
+
+
+            // =========================
+            // Affichage
+            // =========================
+            std::cout << "\n===== SOLUTION =====\n";
+
+            std::cout << "CF : ";
             for (int note : cf)
                 std::cout << note << " ";
             std::cout << "\n";
 
-            std::cout << "Nombre de voix : " << numVoices << "\n\n";
-
-            auto speciesList = problem.getSpeciesList();
-            auto voiceTypes = problem.getVoiceTypes();
-
-            for (int i = 0; i < numVoices - 1; ++i)
-            {
-                std::cout << "Contrepoint " << (i + 1) << " :\n";
-                std::cout << "  Espèce : " << speciesList[i] << "\n";
-                std::cout << "  Type   : " << voiceTypes[i] << "\n\n";
-            }
-
-            // =========================
-            // AFFICHAGE SOLUTION
-            // =========================
-            std::cout << "\n===== SOLUTION =====\n\n";
-
-            std::cout << "Cantus Firmus : ";
-            for (int note : cf)
-                std::cout << note << " ";
-            std::cout << std::endl;
-
             for (size_t v = 0; v < voices.size(); ++v)
             {
-                std::cout << "Contrepoint " << (v + 1) << " : ";
+                std::cout << "CP " << (v + 1) << " : ";
+
                 for (int note : voices[v])
                     std::cout << note << " ";
-                std::cout << std::endl;
+
+                std::cout << "\n";
             }
 
             // =========================
-            // Écriture MIDI
+            // MIDI
             // =========================
             juce::File midiFile(outputPath);
 
             if (writeMidiFile(cf, voices, midiFile))
             {
                 lastGeneratedMidiPath = midiFile.getFullPathName();
+                lastError.clear();
+
                 success = true;
-                std::cout << "MIDI généré avec succès\n";
+
+                std::cout << "MIDI généré\n";
             }
             else
             {
                 lastError = "Erreur écriture MIDI";
-                lastGeneratedMidiPath.clear();
-                success = false;
             }
 
-            // On prend la première solution valide et on sort
             break;
         }
     }
     catch (const std::exception& e)
     {
         lastError = juce::String("Erreur solveur : ") + e.what();
-        lastGeneratedMidiPath.clear();
-        return false;
-    }
-    catch (...)
-    {
-        lastError = "Erreur solveur inconnue";
-        lastGeneratedMidiPath.clear();
         return false;
     }
 
-    // LE MOTEUR DÉTRUIT fuxProblem AUTOMATIQUEMENT
 
-    // =========================
-    // Résultat - Gestion des messages
-    // =========================
+
     if (success)
-    {
-        lastError.clear();
         return true;
-    }
 
-    // Distinction entre timeout et espace exploré complètement
-    if (timeoutExceeded)
+    if (nb_sol == 0)
     {
-        lastError = "Aucune solution trouvée dans le temps imparti (30s).\n\n"
-                    "L'espace de solutions est peut-être trop vaste.\n"
-                    "Essayez de réduire la complexité du problème.";
-    }
-    else if (nb_sol == 0)
-    {
-        lastError = "Aucune solution n'existe pour ce problème.\n\n"
-                    "L'espace de solutions a été complètement exploré,\n"
-                    "mais aucune combinaison valide n'a pu être trouvée.";
-    }
-    else
-    {
-        lastError = "Erreur lors de la génération MIDI";
+        lastError =
+            "Aucune solution n'existe pour ce problème.";
     }
 
     return false;
