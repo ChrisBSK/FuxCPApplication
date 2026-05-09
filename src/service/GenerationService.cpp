@@ -226,8 +226,11 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
 {
     inputValidationError = false;
 
+    lastError.clear();
+    lastGeneratedMidiPath.clear();
+
     // =========================
-    // Vérifications de base
+    // Vérifications
     // =========================
     if (!ready)
     {
@@ -238,23 +241,25 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
     if (problem.isEmpty())
     {
         inputValidationError = true;
-        lastError = "Le problème est vide.\n\nEntrez un problème complet";
+
+        lastError =
+            "Le problème est vide.\n\n"
+            "Entrez un problème complet";
+
         return false;
     }
 
     // =========================
-    // Récupération des données
+    // Données
     // =========================
     const auto& cf = problem.getCantusFirmus();
-    const int cfSize = (int)cf.size();
-    const int numVoices = (int)problem.getVoiceCount();
+    const int cfSize = (int) cf.size();
+    const int numVoices = (int) problem.getVoiceCount();
     const int numCounterpoints = numVoices - 1;
-
-    // raw contient UNIQUEMENT les contrepoints
-    int expectedSize = numCounterpoints * cfSize;
+    const int expectedSize = numCounterpoints * cfSize;
 
     // =========================
-    // Création du problème Fux
+    // Création problème
     // =========================
     CounterpointProblem* fuxProblem = createFuxProblem(problem);
 
@@ -264,159 +269,153 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
         return false;
     }
 
-    int nb_sol = 0;
-    bool success = false;
-
-    bool timeoutExceeded = false;
-
-    // Démarrage du chronomètre (timeout de 3 secondes)
-    const int TIMEOUT_SECONDS = 3;
-    auto startTime = std::chrono::high_resolution_clock::now();
-
     try
     {
         // =========================
-        // Solveur Branch & Bound
+        // Timeout Gecode
         // =========================
-        BAB<CounterpointProblem> engine(fuxProblem);
+        Gecode::Search::Options opts;
+        Gecode::Search::TimeStop timeout(3000); // 3000ms = 3secondes
+        opts.stop = &timeout;
+        opts.threads = 1;
 
         // =========================
-        // Parcours de toutes les solutions
+        // Solveur
         // =========================
-        while (CounterpointProblem* pb = engine.next())
-        {
-            auto currentTime = std::chrono::high_resolution_clock::now();
+        BAB<CounterpointProblem> e(fuxProblem, opts);
 
-            auto elapsed =
-                std::chrono::duration_cast<std::chrono::seconds>(
-                    currentTime - startTime).count();
+        // =========================
+        // Meilleure solution
+        // =========================
+        CounterpointProblem* best = nullptr;
 
-            if (elapsed > TIMEOUT_SECONDS)
-            {
-                lastError = "Timeout : aucune solution trouvée.";
-                break;
-            }
+        while (CounterpointProblem* pb = e.next()) {
 
-           nb_sol++;
+            //on garde la meilleure solution trouvée
+            best = pb;
+        }
 
-            // =========================
-            // Récupération solution brute
-            // =========================
+        // =========================
+        // Aucune solution
+        // =========================
+        if (best == nullptr) {
+            lastError =
+                "Aucune solution trouvée.\n\n"
+                "Le problème est peut-être "
+                "trop complexe ou aucune "
+                "solution n'existe.";
 
-            int size = pb->getSize();
-            int* raw = pb->return_solution();
+            return false;
+        }
 
-            //delete pb;
+        // =========================
+        // Solution brute
+        // =========================
+        int size = best->getSize();
+        int *raw = best->return_solution();
 
-            if (raw == nullptr)
-            {
-                std::cerr << "Erreur : return_solution() retourne nullptr\n";
-                continue;
-            }
+        if (raw == nullptr) {
 
-            // =========================
-            // Vérification taille
-            // =========================
-            if (size != expectedSize)
-            {
-                /*std::cout << "\n===== SOLUTION INVALIDE =====\n";
-                std::cout << "size attendu : " << expectedSize << "\n";
-                std::cout << "size reçu    : " << size << "\n";
 
-                std::cout << "raw = ";
+            lastError =
+                "Erreur : solution brute invalide.";
 
-                for (int i = 0; i < size; ++i)
-                    std::cout << raw[i] << " ";
+            return false;
+        }
 
-                std::cout << "\n============================\n";*/
-
-                continue;
-            }
-
-            // =========================
-            // Conversion raw -> vector
-            // =========================
-            std::vector<int> solution(raw, raw + size);
+        // =========================
+        // Vérification taille
+        // =========================
+        if (size != expectedSize) {
             delete[] raw;
 
-            // =========================
-            // Découpage voix
-            // =========================
-            auto voices = splitVoices(solution,
-                                      numCounterpoints,
-                                      cfSize);
+            lastError =
+                "Erreur : taille de solution invalide.";
 
-            if (voices.empty())
-            {
-                std::cout << "voices vide\n";
-                continue;
-            }
-
-
-
-            // =========================
-            // Affichage
-            // =========================
-            std::cout << "\n===== SOLUTION =====\n";
-
-            std::cout << "CF : ";
-            for (int note : cf)
-                std::cout << note << " ";
-            std::cout << "\n";
-
-            for (size_t v = 0; v < voices.size(); ++v)
-            {
-                std::cout << "CP " << (v + 1) << " : ";
-
-                for (int note : voices[v])
-                    std::cout << note << " ";
-
-                std::cout << "\n";
-            }
-
-            // =========================
-            // MIDI
-            // =========================
-            juce::File midiFile(outputPath);
-
-            if (writeMidiFile(cf, voices, midiFile))
-            {
-                lastGeneratedMidiPath = midiFile.getFullPathName();
-                lastError.clear();
-
-                success = true;
-
-                std::cout << "MIDI généré\n";
-            }
-            else
-            {
-                lastError = "Erreur écriture MIDI";
-            }
-
-            break;
+            return false;
         }
+
+        // =========================
+        // Conversion
+        // =========================
+        std::vector<int> solution(
+                    raw,
+                    raw + size);
+
+        delete[] raw;
+
+
+        // =========================
+        // Découpage voix
+        // =========================
+        auto voices = splitVoices(solution, numCounterpoints, cfSize);
+
+        if (voices.empty())
+        {
+            lastError =
+                "Erreur : découpage des voix invalide.";
+
+            return false;
+        }
+
+        // =========================
+        // Debug console
+        // =========================
+        std::cout << "\n===== SOLUTION =====\n";
+
+        std::cout << "CF : ";
+
+        for (int note : cf)
+            std::cout << note << " ";
+
+        std::cout << "\n";
+
+        for (size_t v = 0; v < voices.size(); ++v)
+        {
+            std::cout << "CP " << (v + 1) << " : ";
+
+            for (int note : voices[v])
+                std::cout << note << " ";
+
+            std::cout << "\n";
+        }
+
+        // =========================
+        // MIDI
+        // =========================
+        juce::File midiFile(outputPath);
+
+        if (!writeMidiFile(cf,voices,midiFile))
+        {
+            lastError =
+                "Erreur écriture MIDI";
+
+            return false;
+        }
+
+        // =========================
+        // Succès
+        // =========================
+        lastGeneratedMidiPath =
+            midiFile.getFullPathName();
+
+        lastError.clear();
+
+        std::cout << "MIDI généré\n";
+
+        return true;
     }
     catch (const std::exception& e)
     {
-        lastError = juce::String("Erreur solveur : ") + e.what();
+        lastGeneratedMidiPath.clear();
+
+        lastError =
+            juce::String("Erreur solveur : ")
+            + e.what();
+
         return false;
     }
-
-
-
-    if (success)
-        return true;
-
-    if (nb_sol == 0)
-    {
-        lastError =
-            "Aucune solution n'existe pour ce problème.";
-    }
-
-    return false;
 }
-
-
 
 //==============================================================================
 // Adaptation modèle --> FuxCP
