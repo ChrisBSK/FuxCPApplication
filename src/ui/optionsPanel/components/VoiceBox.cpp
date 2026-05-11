@@ -76,6 +76,10 @@ void VoiceBox::connectToController(AppController* controller, int index)
     appController = controller;
     voiceIndex = index;
 
+    // reset anciens callbacks
+    speciesBox.onChange = nullptr;
+    typeBox.onChange = nullptr;
+
     speciesBox.onChange = [this]()
     {
         if (appController && (voiceIndex >= 0))

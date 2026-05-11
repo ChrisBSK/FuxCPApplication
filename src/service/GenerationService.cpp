@@ -294,6 +294,13 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
         return false;
     }
 
+    // =========================
+    // Validation CF
+    // =========================
+
+    const auto& cf =
+        problem.getCantusFirmus();
+
     try
     {
         CounterpointProblem* fuxProblem = createFuxProblem(problem);
@@ -330,10 +337,132 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
             return false;
         }
 
-        std::cout << "[GEN] Une solution existe." << std::endl;
+        std::cout << "[GEN] Une solution a été trouvée." << std::endl;
 
+        // =========================
+        // Extraction solution
+        // =========================
+
+        const int numCounterpoints = (int) problem.getCounterpointCount();
+
+        const int cfSize =
+            (int) cf.size();
+
+        const int solutionSize =
+            numCounterpoints * cfSize;
+
+        int* raw =
+            solution->return_solution();
+
+        if (raw == nullptr)
+        {
+            lastError = "Erreur extraction solution.";
+            delete solution;
+            return false;
+        }
+
+        // vector<int>
+        std::vector<int> flatSolution(
+            raw,
+            raw + solutionSize
+        );
+
+        delete[] raw;
+
+        // =========================
+        // Découpage voix
+        // =========================
+
+        auto voices =
+    splitVoices(flatSolution,
+                numCounterpoints,
+                cfSize);
+
+        if ((int) voices.size() != numCounterpoints)
+        {
+            lastError = "Erreur découpage voix.";
+            delete solution;
+            return false;
+        }
+
+
+        // =========================
+        // MIDI
+        // =========================
+
+        juce::File midiFile(outputPath);
+
+        if (!writeMidiFile(cf, voices, midiFile))
+        {
+            lastError = "Erreur écriture MIDI.";
+            delete solution;
+            return false;
+        }
+
+        // =========================
+        // Succès
+        // =========================
+
+        lastGeneratedMidiPath =
+            midiFile.getFullPathName();
 
         lastError.clear();
+
+        delete solution;
+
+        // =========================
+        // Affichage solution finale
+        // =========================
+
+        std::cout << "\n====================================";
+        std::cout << "\n        SOLUTION FINALE";
+        std::cout << "\n====================================\n";
+
+        // =========================
+        // Cantus Firmus
+        // =========================
+
+        std::cout << "\nCantus Firmus\n";
+        std::cout << "Notes : ";
+
+        for (int note : cf)
+            std::cout << note << " ";
+
+        std::cout << "\n";
+
+        // =========================
+        // Contrepoints
+        // =========================
+
+        const auto& cps =
+            problem.getCounterpoints();
+
+        for (size_t i = 0; i < voices.size(); ++i)
+        {
+            std::cout << "\n------------------------------------\n";
+
+            std::cout << "Contrepoint "
+                      << (i + 1)
+                      << "\n";
+
+            std::cout << "Espèce : "
+                      << cps[i].species
+                      << "\n";
+
+            std::cout << "Type : "
+                      << cps[i].type
+                      << "\n";
+
+            std::cout << "Notes : ";
+
+            for (int note : voices[i])
+                std::cout << note << " ";
+
+            std::cout << "\n";
+        }
+
+        std::cout << "\n====================================\n";
+
         return true;
     }
     catch (const std::exception& e)
@@ -355,6 +484,8 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
 CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& problem)
 {
     const auto& cf = problem.getCantusFirmus();
+
+
     const auto& counterpoints = problem.getCounterpoints();
 
     if (cf.empty())
@@ -442,8 +573,8 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
 
     for (size_t i = 0; i < spListFux.size(); ++i)
     {
-        std::cout << "FUX CP " << i
-                  << " species=" << static_cast<int>(spListFux[i])
+        std::cout << "FUX CP " << i+1
+                  << " species=" << static_cast<int>(spListFux[i]+1)
                   << " type=" << vTypeFux[i]
                   << std::endl;
     }

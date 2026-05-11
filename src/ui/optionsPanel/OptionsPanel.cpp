@@ -337,6 +337,13 @@ void OptionsPanel::setNumVoices(int numVoices)
             boxes[i]->speciesBox.setVisible(true);
             boxes[i]->typeBox.setVisible(true);
 
+            boxes[i]->speciesBox.onChange = nullptr;
+            boxes[i]->typeBox.onChange = nullptr;
+
+            boxes[i]->speciesBox.setSelectedId(1,juce::dontSendNotification);
+
+            boxes[i]->typeBox.setSelectedId(4,juce::dontSendNotification);
+
             // Connexion UI -> modèle
             boxes[i]->connectToController(
                 appController,
