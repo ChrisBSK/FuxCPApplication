@@ -5,6 +5,8 @@
 #include "../ui/leftPanel/LeftPanel.h"
 #include "../model/ConstraintsSettings.h"
 
+#include <iostream>
+
 
 //==============================================================================
 // CONSTRUCTEURS
@@ -28,19 +30,7 @@ const CantusProblem& AppController::getProblem() const
 }
 
 
-//==============================================================================
-// SYNCHRONISATION UI (LeftPanel <-> OptionsPanel)
-//==============================================================================
 
-std::vector<AppController::VoiceSettings>& AppController::getVoiceSettings()
-{
-    return voiceSettings;
-}
-
-const std::vector<AppController::VoiceSettings>& AppController::getVoiceSettings() const
-{
-    return voiceSettings;
-}
 
 
 //==============================================================================
@@ -168,9 +158,62 @@ void AppController::updateVoice(int index, int species, int type)
     if (index < 0)
         return;
 
-    if (index >= (int)voiceSettings.size())
+    auto voices = problem.getVoices();
+
+    if (index >= (int) voices.counterpoints.size())
         return;
-    // Override les valeurs par défaut des voix
-    voiceSettings[index].species = species; // 1 par défaut
-    voiceSettings[index].type    = type; // 0 par défaut
+
+    voices.counterpoints[index].species = species;
+    voices.counterpoints[index].type = type;
+
+    problem.setVoices(voices);
+
+    std::cout << "\n=== UPDATE MODEL ===\n";
+    std::cout << "CP " << index
+              << " species=" << species
+              << " type=" << type
+              << std::endl;
+}
+
+
+void AppController::setVoiceCount(int count)
+{
+    if (count < 2)
+        return;
+
+    problem.setVoiceCount(count);
+
+    CantusProblem::Voices voices;
+
+    // garder le CF actuel
+    voices.cf = problem.getCantusFirmus();
+
+    // FuxCP :
+    // 2 voix -> 1 CP
+    // 3 voix -> 2 CP
+    // 4 voix -> 3 CP
+
+    const int cpCount = count - 1;
+
+    for (int i = 0; i < cpCount; ++i)
+    {
+        CantusProblem::Counterpoint cp;
+
+        cp.species = 1;
+        cp.type = -3;
+
+        voices.counterpoints.push_back(cp);
+    }
+
+    problem.setVoices(voices);
+
+    std::cout << "\n=== VOICE COUNT UPDATED ===\n";
+
+    std::cout << "voiceCount = "
+              << count
+              << std::endl;
+
+    std::cout << "counterpoints = "
+              << voices.counterpoints.size()
+              << std::endl;
 }

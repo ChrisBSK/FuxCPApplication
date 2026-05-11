@@ -73,10 +73,6 @@ public:
         int type    = 0;
     };
 
-    std::vector<VoiceSettings>& getVoiceSettings();
-    const std::vector<VoiceSettings>& getVoiceSettings() const;
-
-
     // =========================
     // Connexions UI
     // =========================
@@ -85,6 +81,7 @@ public:
     void setGenerationService(GenerationService* service);
 
     void updateVoice(int index, int species, int type);
+    void setVoiceCount(int count);
 
 
 private:
@@ -96,7 +93,7 @@ private:
     // =========================
     // Synchronisation UI
     // =========================
-    std::vector<VoiceSettings> voiceSettings;
+
 
     // =========================
     // Services externes
@@ -112,4 +109,6 @@ private:
      * Callback appelé après la génération (thread → UI)
      */
     void handleAsyncUpdate() override;
+
+    void updateCounterpoint(int index, int species, int type);
 };

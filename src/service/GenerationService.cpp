@@ -275,161 +275,76 @@ void GenerationService::run()
 bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
                                                const juce::String& outputPath)
 {
+    juce::ignoreUnused(outputPath);
+
     inputValidationError = false;
+    lastGeneratedMidiPath.clear();
+    lastError.clear();
 
     if (!ready)
     {
-        lastError = "Le service n'est pas prêt";
+        lastError = juce::String::fromUTF8("Le service n'est pas prêt.");
         return false;
     }
 
     if (problem.isEmpty())
     {
         inputValidationError = true;
-        lastError = "Le problème est vide.\n\nEntrez un problème complet";
+        lastError = juce::String::fromUTF8("Le problème est vide.");
         return false;
     }
-
-    // =========================
-    //  Récupération des données
-    // =========================
-    const auto& cf = problem.getCantusFirmus();
-    int cfSize = (int) cf.size();
-
-    int numVoices = (int) problem.getVoiceCount();
-
-
-
-    // =========================
-    //  Création du problème Fux
-    // =========================
-    CounterpointProblem* fuxProblem = createFuxProblem(problem);
-
-    if (fuxProblem == nullptr)
-    {
-        lastError = "Erreur création problème Fux";
-        return false;
-    }
-
-    // =========================
-    //  Solveur
-    // =========================
-    BAB<CounterpointProblem> engine(fuxProblem);
-
-    int nb_sol = 0;
 
     try
     {
-        while (CounterpointProblem* pb = engine.next()){
-            // =========================
-            //  Récupération solution brute
-            // =========================
-            std::vector<int> solution;
+        CounterpointProblem* fuxProblem = createFuxProblem(problem);
 
-            int size = pb->getSize();
-            int* raw = pb->return_solution();
-
-            for (int i = 0; i < size; ++i)
-                solution.push_back(raw[i]);
-
-            delete[] raw;
-
-            int numCounterpoints = numVoices - 1;
-
-            auto voices = splitVoices(solution, numCounterpoints, cfSize);
-
-            // =========================
-            //  Vérification solution utilisable
-            // =========================
-            if (voices.empty() || voices.size() != (size_t) numCounterpoints)
-            {
-                std::cout << "\n===== SOLUTION INVALIDE =====\n";
-                std::cout << "solution size : " << solution.size() << "\n";
-                std::cout << "expected size : " << numCounterpoints * cfSize << "\n";
-                std::cout << "voices size   : " << voices.size() << "\n";
-                std::cout << "============================\n";
-
-                continue;
-            }
-
-            // Ici seulement, on a une vraie solution utilisable
-            nb_sol++;
-
-            //===== Affichage configuration =========
-            std::cout << "\n===== CONFIGURATION =====\n\n";
-
-            std::cout << "Cantus Firmus : ";
-            for (int note : cf)
-                std::cout << note << " ";
-            std::cout << "\n";
-
-            std::cout << "Nombre de voix : " << numVoices << "\n\n";
-
-            auto speciesList = problem.getSpeciesList();
-            auto voiceTypes  = problem.getVoiceTypes();
-
-            for (int i = 0; i < numVoices - 1; ++i)
-            {
-                std::cout << "Contrepoint " << (i + 1) << " :\n";
-                std::cout << "  Espèce : " << speciesList[i] << "\n";
-                std::cout << "  Type   : " << voiceTypes[i] << "\n\n";
-            }
-
-            //===== Affichage solution =========
-            std::cout << "\n===== SOLUTION =====\n\n";
-
-            std::cout << "Cantus Firmus : ";
-            for (int note : cf)
-                std::cout << note << " ";
-            std::cout << std::endl;
-
-            for (int v = 0; v < voices.size(); ++v)
-            {
-                std::cout << "Contrepoint " << (v + 1) << " : ";
-                for (int note : voices[v])
-                    std::cout << note << " ";
-                std::cout << std::endl;
-            }
-
-            // =========================
-            //  Écriture MIDI
-            // =========================
-            juce::File midiFile(outputPath);
-
-            if (writeMidiFile(cf, voices, midiFile))
-            {
-                lastGeneratedMidiPath = midiFile.getFullPathName();
-            }
-            else
-            {
-                lastError = juce::String::fromUTF8("Erreur écriture MIDI");
-
-                delete fuxProblem;
-                return false;
-            }
-
-            break;
-        }
-        }
-        catch (...)
+        if (fuxProblem == nullptr)
         {
-            lastError = "Erreur solveur";
+            lastError = juce::String::fromUTF8("Erreur création problème Fux.");
+            return false;
         }
 
-        delete fuxProblem;
+        std::cout << "\n[GEN] Problème Fux créé." << std::endl;
 
-        // =========================
-        //  Résultat
-        // =========================
-        if (nb_sol > 0)
+        // on utilise les mêmes méthode que dans main.cpp de FUXCP
+        Search::Base<CounterpointProblem>* engine =
+            make_solver(fuxProblem, bab_solver);
+
+        if (engine == nullptr)
         {
-            lastError.clear();
-            return true;
+            lastError = juce::String::fromUTF8("Erreur création solveur FuxCP.");
+            return false;
         }
-        lastGeneratedMidiPath.clear();
-        lastError = juce::String::fromUTF8("Aucune solution trouvée");
+
+        std::cout << "[GEN] Solveur créé." << std::endl;
+
+        CounterpointProblem* solution =
+            get_next_solution_space(engine);
+
+        std::cout << "[GEN] Recherche terminée." << std::endl;
+
+        if (solution == nullptr)
+        {
+            lastError = juce::String::fromUTF8("Aucune solution trouvée.");
+            std::cout << "[GEN] Aucune solution trouvée." << std::endl;
+            return false;
+        }
+
+        std::cout << "[GEN] Une solution existe." << std::endl;
+
+
+        lastError.clear();
+        return true;
+    }
+    catch (const std::exception& e)
+    {
+        lastError =
+            juce::String::fromUTF8("Erreur solveur : ")
+            + juce::String(e.what());
+
         return false;
     }
+}
 
 
 
@@ -439,55 +354,111 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
 
 CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& problem)
 {
-    // =========================
-    //  Données musicales
-    // =========================
     const auto& cf = problem.getCantusFirmus();
     const auto& counterpoints = problem.getCounterpoints();
 
-    /*std::cout << "Nb contrepoints = " << counterpoints.size() << std::endl;
-
-    for (int i = 0; i < counterpoints.size(); ++i)
+    if (cf.empty())
     {
-        std::cout << "CP " << i
-                  << " species=" << counterpoints[i].species
-                  << " type=" << counterpoints[i].type
-                  << std::endl;
-    }
-    */
-
-
-    if (cf.empty() || counterpoints.empty())
+        std::cout << "Erreur : Cantus Firmus vide." << std::endl;
         return nullptr;
+    }
 
-    // =========================
-    //  Paramètres du solveur
-    // =========================
+    if (cf.size() < 8)
+    {
+        std::cout << "Erreur : Cantus Firmus trop court pour FuxCP. Taille = "
+                  << cf.size()
+                  << std::endl;
+
+        return nullptr;
+    }
+
+    if (counterpoints.empty())
+    {
+        std::cout << "Erreur : aucun contrepoint." << std::endl;
+        return nullptr;
+    }
+
     const auto& settings = problem.getSettings();
 
-    // =========================
-    // Conversion des contrepoints
-    // =========================
-    // IMPORTANT :
-    // Fux reçoit le Cantus Firmus séparément via `cf`.
-    // spListFux et vTypeFux contiennent donc uniquement les contrepoints.
+    if (settings.soft.melodic.size() != 8 ||
+        settings.soft.general.size() != 8 ||
+        settings.soft.specific.size() != 7 ||
+        settings.soft.importance.size() != 14)
+    {
+        std::cout << "Erreur : tailles des paramètres FuxCP invalides." << std::endl;
+        std::cout << "melodic = " << settings.soft.melodic.size() << std::endl;
+        std::cout << "general = " << settings.soft.general.size() << std::endl;
+        std::cout << "specific = " << settings.soft.specific.size() << std::endl;
+        std::cout << "importance = " << settings.soft.importance.size() << std::endl;
+        return nullptr;
+    }
+
     std::vector<Species> spListFux;
     std::vector<int> vTypeFux;
 
     spListFux.reserve(counterpoints.size());
     vTypeFux.reserve(counterpoints.size());
 
-
     for (const auto& cp : counterpoints)
     {
+        if (cp.species < 1 || cp.species > 5)
+        {
+            std::cout << "Erreur : species invalide = " << cp.species << std::endl;
+            return nullptr;
+        }
+
+        if (cp.type < -3 || cp.type > 2)
+        {
+            std::cout << "Erreur : type invalide = " << cp.type << std::endl;
+            return nullptr;
+        }
+
         spListFux.push_back(mapSpeciesIntToFux(cp.species));
         vTypeFux.push_back(cp.type);
     }
 
-    // =========================
-    //  Création du problème Fux
-    // =========================
-    return create_problem(
+    std::cout << "\n=== BEFORE create_problem ===" << std::endl;
+
+    std::cout << "voiceCount = "
+              << problem.getVoiceCount()
+              << std::endl;
+
+    std::cout << "cf size = "
+              << cf.size()
+              << std::endl;
+
+    std::cout << "cf = ";
+    for (int note : cf)
+        std::cout << note << " ";
+    std::cout << std::endl;
+
+    std::cout << "spListFux size = "
+              << spListFux.size()
+              << std::endl;
+
+    std::cout << "vTypeFux size = "
+              << vTypeFux.size()
+              << std::endl;
+
+    for (size_t i = 0; i < spListFux.size(); ++i)
+    {
+        std::cout << "FUX CP " << i
+                  << " species=" << static_cast<int>(spListFux[i])
+                  << " type=" << vTypeFux[i]
+                  << std::endl;
+    }
+
+    std::cout << "melodic size = " << settings.soft.melodic.size() << std::endl;
+    std::cout << "general size = " << settings.soft.general.size() << std::endl;
+    std::cout << "specific size = " << settings.soft.specific.size() << std::endl;
+    std::cout << "importance size = " << settings.soft.importance.size() << std::endl;
+    std::cout << "borrowMode = " << settings.borrowMode << std::endl;
+
+    std::cout << "CALL create_problem NOW" << std::endl;
+
+    try
+    {
+        CounterpointProblem* fuxProblem = create_problem(
         cf,
         spListFux,
         vTypeFux,
@@ -497,6 +468,17 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
         settings.soft.importance,
         settings.borrowMode
     );
+
+        return fuxProblem;
+    }
+    catch (const std::exception& e)
+    {
+        std::cout << "Erreur create_problem : "
+                  << e.what()
+                  << std::endl;
+
+        return nullptr;
+    }
 }
 
 

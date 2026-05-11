@@ -305,34 +305,54 @@ void OptionsPanel::resized()
 
 void OptionsPanel::setNumVoices(int numVoices)
 {
-    if (appController == nullptr)
-        return;
-
-    std::vector<VoiceBox*> boxes = { &box1, &box2, &box3, &box4 };
-
-    // resize modèle
-    int numCP = juce::jmax(0, numVoices - 1);
-    appController->getVoiceSettings().resize(numCP);
+    std::vector<VoiceBox*> boxes =
+    {
+        &box1,
+        &box2,
+        &box3,
+        &box4
+    };
 
     for (size_t i = 0; i < boxes.size(); ++i)
     {
-        boxes[i]->setActive(i < (size_t)numVoices);
+        // Active uniquement les voix visibles
+        boxes[i]->setActive(i < (size_t) numVoices);
 
+        // =========================
+        // Cantus Firmus
+        // =========================
         if (i == 0)
         {
-            // CF
             boxes[i]->speciesBox.setVisible(false);
             boxes[i]->typeBox.setVisible(false);
         }
-        else if (i >= 1 && i < (size_t)numVoices)
+
+        // =========================
+        // Contrepoints
+        // =========================
+        else if (i < (size_t) numVoices)
         {
-            int cpIndex = i - 1;
-            //  CP
+            int cpIndex = (int) i - 1;
+
             boxes[i]->speciesBox.setVisible(true);
             boxes[i]->typeBox.setVisible(true);
 
-            boxes[i]->connectToController(appController, cpIndex);
+            // Connexion UI -> modèle
+            boxes[i]->connectToController(
+                appController,
+                cpIndex
+            );
         }
+
+        // =========================
+        // Voix inutilisées
+        // =========================
+        else
+        {
+            boxes[i]->speciesBox.setVisible(false);
+            boxes[i]->typeBox.setVisible(false);
+        }
+
         boxes[i]->repaint();
     }
 }

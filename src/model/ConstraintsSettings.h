@@ -51,16 +51,28 @@ struct HardConstraints
 struct SoftConstraints
 {
     // Coûts liés aux règles mélodiques
-    std::vector<int> melodic;
+    std::vector<int> melodic =
+    {
+        0, 1, 1, 576, 2, 2, 2, 1
+    };
 
     // Coûts globaux
-    std::vector<int> general;
+    std::vector<int> general =
+    {
+        4, 1, 1, 2, 2, 2, 8, 1
+    };
 
     // Coûts spécifiques aux espèces
-    std::vector<int> specific;
+    std::vector<int> specific =
+    {
+        8, 4, 0, 2, 1, 8, 50
+    };
 
     // Pondération relative des contraintes
-    std::vector<int> importance;
+    std::vector<int> importance =
+    {
+        8, 7, 5, 2, 9, 3, 14, 12, 6, 11, 4, 10, 1, 13
+    };
 };
 
 

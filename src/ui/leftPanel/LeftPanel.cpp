@@ -68,7 +68,13 @@ LeftPanel::LeftPanel(AppController& controller)
     // Réaction au changement du nombre de voix
     numVoicesCB.onChange = [this]()
     {
-        updateVoiceSpeciesUI(numVoicesCB.getSelectedId());
+        int totalVoices = numVoicesCB.getSelectedId();
+
+        // Mise à jour UI
+        updateVoiceSpeciesUI(totalVoices);
+
+        // Mise à jour MODÈLE
+        appController.setVoiceCount(totalVoices);
     };
 
 
@@ -165,36 +171,25 @@ void LeftPanel::triggerGeneration()
         return;
     }
 
+
     // =========================
-    //  CONSTRUCTION DU PROBLEME
+    // MODÈLE
     // =========================
-
-    int numVoices = numVoicesCB.getSelectedId();
-    int numCounterpoints = numVoices - 1;
-
-    CantusProblem::Voices v;
-
-    // CF
-    v.cf = cf;
-
-    // Contrepoints
-    auto& settings = appController.getVoiceSettings();
-
-    for (int i = 0; i < numCounterpoints; ++i)
-    {
-        CantusProblem::Counterpoint cp;
-
-        cp.species = settings[i].species;
-        cp.type    = settings[i].type;
-
-        v.counterpoints.push_back(cp);
-    }
-
-
 
     auto& problem = appController.getProblem();
-    problem.setVoices(v);
-    problem.setVoiceCount(numVoices);
+
+    CantusProblem::Voices voices;
+
+    // CF
+    voices.cf = cf;
+
+    // CP déjà synchronisés par les VoiceBox
+    voices.counterpoints =
+        problem.getCounterpoints();
+
+    problem.setVoices(voices);
+
+
 
     // =========================
     //  PREPARATION FICHIER
