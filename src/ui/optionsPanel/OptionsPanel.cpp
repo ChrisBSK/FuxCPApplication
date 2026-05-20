@@ -66,7 +66,45 @@ OptionsPanel::OptionsPanel()
         setupHover(*titles[i], *columns[i], i + 1);
     }
 
+    // =========================
+    // Contraintes mélodiques
+    // =========================
+    setupMelodicControls();
 
+
+}
+
+void OptionsPanel::setupMelodicControls()
+{
+    // =========================
+    // Label
+    // =========================
+    addAndMakeVisible(melodicLeapPenaltyLabel);
+    melodicLeapPenaltyLabel.setText("Leap Penalty", juce::dontSendNotification);
+
+    // =========================
+    // Sliders
+    // =========================
+    addAndMakeVisible(melodicLeapPenaltySlider);
+
+    melodicLeapPenaltySlider.setRange(1, 100, 1); //(1 = sauts autorisés, 100 = interdits)
+    melodicLeapPenaltySlider.setValue(50, juce::dontSendNotification);
+    melodicLeapPenaltySlider.setSliderStyle(juce::Slider::LinearHorizontal);
+    melodicLeapPenaltySlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 50, 20);
+
+    // =========================
+    // Connexion aux coûts dans les vecteurs d'entrée
+    // =========================
+    melodicLeapPenaltySlider.onValueChange = [this]()
+    {
+        int value =
+            (int) melodicLeapPenaltySlider.getValue();
+
+        appController->getProblem()
+            .getSettings()
+            .leapPenalty = value;
+
+    };
 }
 
 void OptionsPanel::setupColumnInteractions()
@@ -236,8 +274,8 @@ void OptionsPanel::resized()
     auto left1 = row1.removeFromLeft(labelWidth);
     row1.removeFromLeft(gapX);
 
-    melodicMaxLeapLabel.setBounds(left1);
-    melodicMaxLeapSlider.setBounds(row1.reduced(0, 6));
+    melodicLeapPenaltyLabel.setBounds(left1);
+    melodicLeapPenaltySlider.setBounds(row1.reduced(0, 6));
     inner2.removeFromTop(spacingY);
 
     // ===== 2. Step =====

@@ -27,7 +27,7 @@
 // Ces paramètres modifient directement les règles du contrepoint.
 // Ils doivent être respectés pour qu'une solution soit valide.
 //
-struct HardConstraints
+/*truct HardConstraints
 {
     // Intervalle maximal autorisé entre deux notes consécutives
     int maxLeap = 5;
@@ -38,7 +38,7 @@ struct HardConstraints
     // Direction globale de la ligne mélodique
     // -1 = descendante, 0 = neutre, +1 = ascendante
     int preferredDirection = 0;
-};
+};*/
 
 
 //==============================================================================
@@ -48,7 +48,7 @@ struct HardConstraints
 // Ces paramètres n'interdisent rien,
 // mais guident le solveur vers de meilleures solutions.
 //
-struct SoftConstraints
+/*struct SoftConstraints
 {
     // Coûts liés aux règles mélodiques
     std::vector<int> melodic =
@@ -73,7 +73,7 @@ struct SoftConstraints
     {
         8, 7, 5, 2, 9, 3, 14, 12, 6, 11, 4, 10, 1, 13
     };
-};
+};*/
 
 
 //==============================================================================
@@ -86,11 +86,34 @@ struct SoftConstraints
 //
 struct ConstraintSettings
 {
-    HardConstraints hard;
-    SoftConstraints soft;
+    // UI PARAMETERS
+    // =========================
 
-    // Mode d'emprunt (altérations)
-    // 0 = strict
-    // 1 = autorisé
-    int borrowMode = 0;
+    int leapPenalty = 50;
+
+
+    int borrowMode = 1;
+
+
+    // =========================
+    // BUILD FUX COSTS
+    // =========================
+
+    std::vector<int> buildMelodicCosts() const;
+
+    std::vector<int> buildGeneralCosts() const;
+
+    std::vector<int> buildSpecificCosts() const;
+
+    std::vector<int> buildImportance() const;
+
+    int getBorrowMode() const
+    {
+        return borrowMode;
+    }
+
+    void setBorrowMode(int value)
+    {
+        borrowMode = (value == 0 ? 0 : 1);
+    }
 };

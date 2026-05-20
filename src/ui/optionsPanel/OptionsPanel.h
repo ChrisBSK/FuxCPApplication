@@ -26,6 +26,8 @@ class OptionsPanel : public juce::Component
 public:
     OptionsPanel();
 
+    void setupMelodicControls();
+
     void paint(juce::Graphics&) override;
     void resized() override;
 
@@ -80,8 +82,8 @@ private:
     // Contraintes mélodiques
     // =========================
 
-    StyledLabel melodicMaxLeapLabel;
-    juce::Slider melodicMaxLeapSlider;
+    StyledLabel melodicLeapPenaltyLabel;
+    juce::Slider melodicLeapPenaltySlider;
 
     StyledLabel melodicStepBiasLabel;
     juce::Slider melodicStepBiasSlider;
@@ -98,6 +100,8 @@ private:
 
     juce::TextButton generateButton;
     juce::TextButton cancel;
+
+
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OptionsPanel)

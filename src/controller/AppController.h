@@ -58,6 +58,8 @@ public:
      */
     const CantusProblem& getProblem() const;
 
+    ConstraintSettings& getSettings();
+
 
     // =========================
     // Synchronisation UI
@@ -84,6 +86,8 @@ public:
     void setVoiceCount(int count);
 
 
+
+
 private:
     // =========================
     // Modèle principal
@@ -104,6 +108,8 @@ private:
     // UI callbacks
     // =========================
     LeftPanel* leftPanel = nullptr;
+
+    ConstraintSettings currentSettings;
 
     /**
      * Callback appelé après la génération (thread → UI)

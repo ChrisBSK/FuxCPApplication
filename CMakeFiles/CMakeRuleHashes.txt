@@ -1,0 +1,2 @@
+# Hashes of file build rules.
+b2ce9a4e2432519f9b84e579c63bde52 myproject_artefacts/JuceLibraryCode/myproject/PkgInfo

@@ -509,18 +509,33 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
         return nullptr;
     }
 
-    const auto& settings = problem.getSettings();
+    auto& settings =
+    problem.getSettings();
 
-    if (settings.soft.melodic.size() != 8 ||
-        settings.soft.general.size() != 8 ||
-        settings.soft.specific.size() != 7 ||
-        settings.soft.importance.size() != 14)
+    auto melodic =
+        settings.buildMelodicCosts();
+
+    auto general =
+        settings.buildGeneralCosts();
+
+    auto specific =
+        settings.buildSpecificCosts();
+
+    auto importance =
+        settings.buildImportance();
+
+    int borrowMode = settings.getBorrowMode();
+
+    if (melodic.size() != 8 ||
+        general.size() != 8 ||
+        specific.size() != 7 ||
+        importance.size() != 14)
     {
         std::cout << "Erreur : tailles des paramètres FuxCP invalides." << std::endl;
-        std::cout << "melodic = " << settings.soft.melodic.size() << std::endl;
-        std::cout << "general = " << settings.soft.general.size() << std::endl;
-        std::cout << "specific = " << settings.soft.specific.size() << std::endl;
-        std::cout << "importance = " << settings.soft.importance.size() << std::endl;
+        std::cout << "melodic = " << melodic.size() << std::endl;
+        std::cout << "general = " << general.size() << std::endl;
+        std::cout << "specific = " << specific.size() << std::endl;
+        std::cout << "importance = " << importance.size() << std::endl;
         return nullptr;
     }
 
@@ -579,11 +594,19 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
                   << std::endl;
     }
 
-    std::cout << "melodic size = " << settings.soft.melodic.size() << std::endl;
-    std::cout << "general size = " << settings.soft.general.size() << std::endl;
-    std::cout << "specific size = " << settings.soft.specific.size() << std::endl;
-    std::cout << "importance size = " << settings.soft.importance.size() << std::endl;
-    std::cout << "borrowMode = " << settings.borrowMode << std::endl;
+    std::cout << "melodic size = " << melodic.size() << std::endl;
+    std::cout << "general size = " << general.size() << std::endl;
+    std::cout << "specific size = " << specific.size() << std::endl;
+    std::cout << "importance size = " << importance.size() << std::endl;
+    //std::cout << "borrowMode = " << settings.borrowMode << std::endl;
+
+    std::cout << "melodic vector = " << int_vector_to_string(melodic) << std::endl;
+    std::cout << "general vector = " << int_vector_to_string(general) << std::endl;
+    std::cout << "specific vector = " << int_vector_to_string(specific) << std::endl;
+    std::cout << "importance vector = " << int_vector_to_string(importance) << std::endl;
+
+
+
 
     std::cout << "CALL create_problem NOW" << std::endl;
 
@@ -593,11 +616,11 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
         cf,
         spListFux,
         vTypeFux,
-        settings.soft.melodic,
-        settings.soft.general,
-        settings.soft.specific,
-        settings.soft.importance,
-        settings.borrowMode
+        melodic,
+        general,
+        specific,
+        importance,
+        borrowMode
     );
 
         return fuxProblem;

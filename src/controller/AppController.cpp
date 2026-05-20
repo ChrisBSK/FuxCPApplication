@@ -12,7 +12,11 @@
 // CONSTRUCTEURS
 //==============================================================================
 
-AppController::AppController() = default;
+//AppController::AppController() = default;
+AppController::AppController()
+{
+
+}
 
 
 //==============================================================================
@@ -55,7 +59,55 @@ void AppController::setGenerationService(GenerationService* service)
 void AppController::startGeneration(const juce::String& outputPath)
 {
     // =========================
-    // 1. Vérification sécurité
+    // 1. Vérification sécurité//==============================================================================
+    //// GÉNÉRATION
+    ////==============================================================================
+    //
+    //void AppController::startGeneration(const juce::String& outputPath)
+    //{
+    //    // =========================
+    //    // 1. Vérification sécurité
+    //    // =========================
+    //    if (generationService == nullptr)
+    //        return;
+    //
+    //    // =========================
+    //    // 2. Injection paramètres solveur
+    //    // =========================
+    //    // (Ces paramètres définissent le comportement du solveur Fux)
+    //
+    //    ConstraintSettings settings;
+    //
+    //    settings.soft.melodic   = {0, 1, 1, 576, 2, 2, 2, 1};
+    //    //settings.soft.melodic = {100, 1, 2, 576, 5, 10, 25, 40};
+    //    settings.soft.general   = {4, 1, 1, 2, 2, 2, 8, 1};
+    //    settings.soft.specific  = {8, 4, 0, 2, 1, 8, 50};
+    //    settings.soft.importance= {8,7,5,2,9,3,14,12,6,11,4,10,1,13};
+    //    settings.borrowMode = 1;
+    //    problem.setSettings(settings);
+    //
+    //
+    //    // =========================
+    //    // Copie du problème
+    //    // =========================
+    //
+    //    // On copie le modèle pour éviter tout accès concurrent
+    //    // entre le thread UI et le thread de génération
+    //    CantusProblem copyProblem = problem;
+    //
+    //    // =========================
+    //    // Lancement du thread
+    //    // =========================
+    //    bool started = generationService->startGeneration(copyProblem, outputPath, this);
+    //
+    //    if (!started)
+    //    {
+    //        juce::AlertWindow::showMessageBoxAsync(
+    //            juce::AlertWindow::WarningIcon,
+    //            "Erreur",
+    //            "Impossible de lancer la génération.\nPeut-être déjà en cours ?");
+    //    }
+    //}
     // =========================
     if (generationService == nullptr)
         return;
@@ -65,15 +117,15 @@ void AppController::startGeneration(const juce::String& outputPath)
     // =========================
     // (Ces paramètres définissent le comportement du solveur Fux)
 
-    ConstraintSettings settings;
+    /*ConstraintSettings settings;
 
-    settings.soft.melodic   = {0, 1, 1, 576, 2, 2, 2, 1};
+    settings.soft.melodic = {0, 1, 1, 576, 2, 2, 2, 1};
     //settings.soft.melodic = {100, 1, 2, 576, 5, 10, 25, 40};
-    settings.soft.general   = {4, 1, 1, 2, 2, 2, 8, 1};
-    settings.soft.specific  = {8, 4, 0, 2, 1, 8, 50};
-    settings.soft.importance= {8,7,5,2,9,3,14,12,6,11,4,10,1,13};
-    settings.borrowMode = 1;
-    problem.setSettings(settings);
+    settings.soft.general = {4, 1, 1, 2, 2, 2, 8, 1};
+    settings.soft.specific = {8, 4, 0, 2, 1, 8, 50};
+    settings.soft.importance = {8, 7, 5, 2, 9, 3, 14, 12, 6, 11, 4, 10, 1, 13};
+    settings.borrowMode = 1;*/
+    problem.setSettings(currentSettings);
 
 
     // =========================
@@ -89,8 +141,7 @@ void AppController::startGeneration(const juce::String& outputPath)
     // =========================
     bool started = generationService->startGeneration(copyProblem, outputPath, this);
 
-    if (!started)
-    {
+    if (!started) {
         juce::AlertWindow::showMessageBoxAsync(
             juce::AlertWindow::WarningIcon,
             "Erreur",
@@ -103,17 +154,14 @@ void AppController::startGeneration(const juce::String& outputPath)
 // CALLBACK THREAD → UI
 //==============================================================================
 
-void AppController::handleAsyncUpdate()
-{
+void AppController::handleAsyncUpdate() {
     // =========================
     // Résultat du solveur
     // =========================
     if (generationService == nullptr)
         return;
 
-    if (generationService->getLastGenerationSuccess())
-    {
-
+    if (generationService->getLastGenerationSuccess()) {
         // Récupération du fichier MIDI
         juce::File file(generationService->getLastGeneratedMidiPath());
 
@@ -217,3 +265,9 @@ void AppController::setVoiceCount(int count)
               << voices.counterpoints.size()
               << std::endl;
 }
+
+ConstraintSettings& AppController::getSettings()
+{
+    return currentSettings;
+}
+
