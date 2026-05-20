@@ -68,19 +68,43 @@ std::vector<int> CantusProblem::getVoiceTypes() const
 // =========================
 // Paramètres du solveur
 // =========================
-void CantusProblem::setSettings(const ConstraintSettings& s)
-{
-    constraintSettings = s;
+void CantusProblem::setSettings(const ConstraintSettings& s) {
+    settings = s;
+    recalculateCosts();  // Recalcule les coûts à chaque mise à jour des paramètres
 }
 
-ConstraintSettings& CantusProblem::getSettings()
-{
-    return constraintSettings;
+ConstraintSettings& CantusProblem::getSettings() {
+    return settings;
 }
 
-const ConstraintSettings& CantusProblem::getSettings() const
-{
-    return constraintSettings;
+const ConstraintSettings& CantusProblem::getSettings() const {
+    return settings;
+}
+
+// =========================
+// Recalcul des coûts
+// =========================
+void CantusProblem::recalculateCosts() {
+    melodicCosts = settings.buildMelodicCosts();
+    generalCosts = settings.buildGeneralCosts();
+    specificCosts = settings.buildSpecificCosts();
+    importanceCosts = settings.buildImportanceCosts();
+}
+
+const std::vector<int>& CantusProblem::getMelodicCosts() const {
+    return melodicCosts;
+}
+
+const std::vector<int>& CantusProblem::getGeneralCosts() const {
+    return generalCosts;
+}
+
+const std::vector<int>& CantusProblem::getSpecificCosts() const {
+    return specificCosts;
+}
+
+const std::vector<int>& CantusProblem::getImportanceCosts() const {
+    return importanceCosts;
 }
 
 // =========================

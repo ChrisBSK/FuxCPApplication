@@ -95,16 +95,19 @@ void OptionsPanel::setupMelodicControls()
     // =========================
     // Connexion aux coûts dans les vecteurs d'entrée
     // =========================
-    melodicLeapPenaltySlider.onValueChange = [this]()
-    {
-        int value =
-            (int) melodicLeapPenaltySlider.getValue();
+    melodicLeapPenaltySlider.onValueChange = [this]() {
+        int value = static_cast<int>(melodicLeapPenaltySlider.getValue());
 
-        appController->getProblem()
-            .getSettings()
-            .leapPenalty = value;
+        // Récupère les paramètres actuels
+        auto settings = appController->getProblem().getSettings();
 
+        // Met à jour leapPenalty
+        settings.leapPenalty = value;
+
+        // Met à jour les paramètres et recalcule les coûts
+        appController->updateSettings(settings);
     };
+
 }
 
 void OptionsPanel::setupColumnInteractions()

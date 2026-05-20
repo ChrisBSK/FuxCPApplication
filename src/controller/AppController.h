@@ -60,6 +60,8 @@ public:
 
     ConstraintSettings& getSettings();
 
+    void updateSettings(const ConstraintSettings &newSettings);
+
 
     // =========================
     // Synchronisation UI

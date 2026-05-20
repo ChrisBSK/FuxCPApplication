@@ -105,7 +105,7 @@ struct ConstraintSettings
 
     std::vector<int> buildSpecificCosts() const;
 
-    std::vector<int> buildImportance() const;
+    std::vector<int> buildImportanceCosts() const;
 
     int getBorrowMode() const
     {

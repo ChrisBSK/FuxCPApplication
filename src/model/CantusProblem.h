@@ -49,9 +49,22 @@ public:
     // Paramètres du solveur
     // =========================
     void setSettings(const ConstraintSettings& s);
-
     ConstraintSettings& getSettings();
     const ConstraintSettings& getSettings() const;
+
+
+    // =========================
+    // Recalcul des coûts
+    // =========================
+    void recalculateCosts();
+
+    const std::vector<int> &getMelodicCosts() const;
+
+    const std::vector<int> &getGeneralCosts() const;
+
+    const std::vector<int> &getSpecificCosts() const;
+
+    const std::vector<int> &getImportanceCosts() const;
 
     // =========================
     // Métadonnées
@@ -66,12 +79,20 @@ public:
 
     bool isEmpty() const;
 
+
+
+
 private:
     Voices voices;                 // Données musicales
-    ConstraintSettings constraintSettings;   // Paramètres solveur
+    ConstraintSettings settings;  // Paramètres solveur
     juce::String title;            // Nom du problème
 
     int voiceCount = 0;
+
+    std::vector<int> melodicCosts;
+    std::vector<int> generalCosts;
+    std::vector<int> specificCosts;
+    std::vector<int> importanceCosts;
 
 
 };

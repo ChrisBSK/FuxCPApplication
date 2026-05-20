@@ -236,6 +236,7 @@ bool GenerationService::startGeneration(const CantusProblem& problem,
 
     // Copie du problème pour éviter les accès concurrents avec l'UI.
     problemToGenerate = problem;
+    problemToGenerate.recalculateCosts(); //recalcule les coûts
     outputPathToGenerate = outputPath;
 
     {
@@ -484,9 +485,8 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
 CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& problem)
 {
     const auto& cf = problem.getCantusFirmus();
-
-
     const auto& counterpoints = problem.getCounterpoints();
+
 
     if (cf.empty())
     {
@@ -509,22 +509,13 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
         return nullptr;
     }
 
-    auto& settings =
-    problem.getSettings();
+    //Update vecteurs de coûts
+    const auto& melodic = problem.getMelodicCosts();
+    const auto& general = problem.getGeneralCosts();
+    const auto& specific = problem.getSpecificCosts();
+    const auto& importance = problem.getImportanceCosts();
 
-    auto melodic =
-        settings.buildMelodicCosts();
-
-    auto general =
-        settings.buildGeneralCosts();
-
-    auto specific =
-        settings.buildSpecificCosts();
-
-    auto importance =
-        settings.buildImportance();
-
-    int borrowMode = settings.getBorrowMode();
+    int borrowMode = problem.getSettings().getBorrowMode();
 
     if (melodic.size() != 8 ||
         general.size() != 8 ||
@@ -594,6 +585,7 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
                   << std::endl;
     }
 
+    std::cout << "=================== " << std::endl;
     std::cout << "melodic size = " << melodic.size() << std::endl;
     std::cout << "general size = " << general.size() << std::endl;
     std::cout << "specific size = " << specific.size() << std::endl;
@@ -605,7 +597,7 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
     std::cout << "specific vector = " << int_vector_to_string(specific) << std::endl;
     std::cout << "importance vector = " << int_vector_to_string(importance) << std::endl;
 
-
+    std::cout << "=================== " << std::endl;
 
 
     std::cout << "CALL create_problem NOW" << std::endl;

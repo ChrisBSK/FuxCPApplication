@@ -271,3 +271,16 @@ ConstraintSettings& AppController::getSettings()
     return currentSettings;
 }
 
+void AppController::updateSettings(const ConstraintSettings& newSettings) {
+    currentSettings = newSettings;
+    problem.setSettings(currentSettings);  // Met à jour les paramètres et recalcule les coûts
+
+    std::cout << "Settings updated. Leap Penalty: " << currentSettings.leapPenalty << std::endl;
+    std::cout << "Melodic costs: ";
+    for (int cost : problem.getMelodicCosts()) {
+        std::cout << cost << " ";
+    }
+    std::cout << std::endl;
+}
+
+
