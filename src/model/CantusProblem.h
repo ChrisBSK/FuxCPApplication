@@ -11,7 +11,7 @@ public:
     // Structures de données
     // =========================
 
-    CantusProblem();
+    //CantusProblem();
 
     struct Counterpoint
     {
@@ -68,12 +68,25 @@ public:
 
     bool isEmpty() const;
 
+    const std::vector<int> &getMelodicCosts() const;
+
+    const std::vector<int> &getGeneralCosts() const;
+
+    const std::vector<int> &getSpecificCosts() const;
+
+    const std::vector<int> &getImportanceCosts() const;
+
+    void recalculateCosts();
+
 private:
     Voices voices;                 // Données musicales
-    ConstraintSettings constraintSettings;   // Paramètres solveur
+    ConstraintSettings settings;   // Paramètres solveur
     juce::String title;            // Nom du problème
 
     int voiceCount = 0;
 
-
+    std::vector<int> melodicCosts;
+    std::vector<int> generalCosts;
+    std::vector<int> specificCosts;
+    std::vector<int> importanceCosts;
 };

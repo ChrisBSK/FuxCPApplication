@@ -449,6 +449,10 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
     // =========================
     const auto& settings = problem.getSettings();
 
+    melodicStorage   = settings.buildMelodicCosts();
+    generalStorage   = settings.buildGeneralCosts();
+    specificStorage  = settings.buildSpecificCosts();
+    importanceStorage = settings.buildImportanceCosts();
     // =========================
     // Conversion des contrepoints
     // =========================
@@ -475,10 +479,10 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
         cf,
         spListFux,
         vTypeFux,
-        settings.soft.melodic,
-        settings.soft.general,
-        settings.soft.specific,
-        settings.soft.importance,
+        melodicStorage,
+        generalStorage,
+        specificStorage,
+        importanceStorage,
         settings.borrowMode
     );
 }

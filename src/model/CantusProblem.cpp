@@ -4,19 +4,19 @@
 // Données musicales (Voices)
 // =========================
 
-CantusProblem::CantusProblem()
+/*CantusProblem::CantusProblem()
 {
-    ConstraintSettings settings;
+    ConstraintSettings s;
 
-    settings.soft.melodic   = {0, 1, 1, 576, 2, 2, 2, 1};
-    settings.soft.general   = {4, 1, 1, 2, 2, 2, 8, 1};
-    settings.soft.specific  = {8, 4, 0, 2, 1, 8, 50};
-    settings.soft.importance= {8,7,5,2,9,3,14,12,6,11,4,10,1,13};
+    //settings.soft.melodic   = {0, 1, 1, 576, 2, 2, 2, 1};
+    //settings.soft.general   = {4, 1, 1, 2, 2, 2, 8, 1};
+    //settings.soft.specific  = {8, 4, 0, 2, 1, 8, 50};
+    //settings.soft.importance= {8,7,5,2,9,3,14,12,6,11,4,10,1,13};
 
-    settings.borrowMode = 1;
+    //settings.borrowMode = 1;
 
-    constraintSettings = settings;
-}
+    settings = s;
+}*/
 
 void CantusProblem::setVoices(const Voices& v)
 {
@@ -84,17 +84,18 @@ std::vector<int> CantusProblem::getVoiceTypes() const
 // =========================
 void CantusProblem::setSettings(const ConstraintSettings& s)
 {
-    constraintSettings = s;
+    settings = s;
+    recalculateCosts();
 }
 
 ConstraintSettings& CantusProblem::getSettings()
 {
-    return constraintSettings;
+    return settings;
 }
 
 const ConstraintSettings& CantusProblem::getSettings() const
 {
-    return constraintSettings;
+    return settings;
 }
 
 // =========================
@@ -118,4 +119,34 @@ juce::String CantusProblem::getTitle() const
 bool CantusProblem::isEmpty() const
 {
     return voices.cf.empty() || voices.counterpoints.empty();
+}
+
+const std::vector<int>& CantusProblem::getMelodicCosts() const {
+    return melodicCosts;
+}
+
+const std::vector<int>& CantusProblem::getGeneralCosts() const {
+    return generalCosts;
+}
+
+const std::vector<int>& CantusProblem::getSpecificCosts() const {
+    return specificCosts;
+}
+
+const std::vector<int>& CantusProblem::getImportanceCosts() const {
+    return importanceCosts;
+}
+
+// =========================
+// Recalcul des coûts
+// =========================
+void CantusProblem::recalculateCosts() {
+    melodicCosts = settings.buildMelodicCosts();
+    generalCosts = settings.buildGeneralCosts();
+    specificCosts = settings.buildSpecificCosts();
+    importanceCosts = settings.buildImportanceCosts();
+
+    std::cout << "melodicCosts size = "
+          << melodicCosts.size()
+          << std::endl;
 }

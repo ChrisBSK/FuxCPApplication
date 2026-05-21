@@ -86,7 +86,7 @@ void OptionsPanel::setupMelodicControls()
     // =========================
     addAndMakeVisible(melodicVarietySlider);
 
-    melodicVarietySlider.setRange(0, 100, 1);
+    melodicVarietySlider.setRange(0, 100, 10);
     melodicVarietySlider.setValue(10, juce::dontSendNotification);
     melodicVarietySlider.setSliderStyle(juce::Slider::LinearHorizontal);
     melodicVarietySlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 50, 20);
@@ -94,7 +94,7 @@ void OptionsPanel::setupMelodicControls()
     // =========================
     // Connexion aux coûts dans les vecteurs d'entrée
     // =========================
-    melodicVarietySlider.onValueChange = [this]()
+    /*melodicVarietySlider.onValueChange = [this]()
     {
         if (appController == nullptr || appController->isGenerating())
             return;
@@ -109,6 +109,19 @@ void OptionsPanel::setupMelodicControls()
         std::cout << "melodic[0] = " << settings.soft.melodic[0] << std::endl;
 
 
+    };*/
+
+    melodicVarietySlider.onValueChange = [this]() {
+    int value = static_cast<int>(melodicVarietySlider.getValue());
+
+    // Récupère les paramètres actuels
+    auto settings = appController->getProblem().getSettings();
+
+    // Met à jour leapPenalty
+    settings.leapPenalty = value;
+
+    // Met à jour les paramètres et recalcule les coûts
+    appController->updateSettings(settings);
     };
 }
 

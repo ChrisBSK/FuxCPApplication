@@ -27,6 +27,7 @@ target_sources(myproject PRIVATE
         src/model/CantusProblem.cpp
         src/model/CantusProblem.h
         src/model/ConstraintsSettings.h
+        src/model/ConstraintsSettings.cpp
         src/model/ConstraintsDefinition.h
 
 

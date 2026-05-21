@@ -111,5 +111,10 @@ private:
     struct Impl;
     std::unique_ptr<Impl> pImpl;
 
+    std::vector<int> melodicStorage;
+    std::vector<int> generalStorage;
+    std::vector<int> specificStorage;
+    std::vector<int> importanceStorage;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GenerationService)
 };

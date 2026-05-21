@@ -87,6 +87,7 @@ public:
     void updateVoice(int index, int species, int type);
     bool isGenerating() const;
 
+    void updateSettings(const ConstraintSettings &newSettings);
 
 private:
     // =========================
@@ -113,4 +114,6 @@ private:
      * Callback appelé après la génération (thread → UI)
      */
     void handleAsyncUpdate() override;
+
+    ConstraintSettings currentSettings;
 };
