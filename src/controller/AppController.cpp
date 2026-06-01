@@ -159,17 +159,22 @@ void AppController::handleAsyncUpdate()
     {
         juce::String midiPath = generationService->getLastGeneratedMidiPath();
 
-        if (midiPath.isNotEmpty())
-        {
-            generationState.setProperty("midiFilePath", midiPath, nullptr);
-        }
-
-        generationState.setProperty("generationStatus", "completed", nullptr);
-
-        juce::AlertWindow::showMessageBoxAsync(
-            juce::AlertWindow::InfoIcon,
-            juce::String::fromUTF8("Résultat"),
-            juce::String::fromUTF8("Une solution a été trouvée."));
+        juce::AlertWindow::showOkCancelBox(
+            juce::AlertWindow::QuestionIcon,
+            juce::String::fromUTF8("Solution trouvée"),
+            juce::String::fromUTF8("Une solution existe.\n\nVoulez-vous générer la solution ?"),
+            juce::String::fromUTF8("Oui"),
+            juce::String::fromUTF8("Non"),
+            nullptr,
+            juce::ModalCallbackFunction::create(
+                [this, midiPath](int result)
+                {
+                    if (result == 1 && midiPath.isNotEmpty())
+                    {
+                        generationState.setProperty("midiFilePath", midiPath, nullptr);
+                        generationState.setProperty("generationStatus", "completed", nullptr);
+                    }
+                }));
     }
     else
     {
