@@ -6,8 +6,8 @@
 }*/
 std::vector<int> ConstraintSettings::buildMelodicCosts() const {
     std::vector<int> melodic_params = {0, 1, 1, 576, 2, 2, 2, 1};
-    melodic_params[6] = std::min(leapPenalty / 10, 100);  // Sixte
-    melodic_params[7] = std::min(leapPenalty / 5, 100);   // Septième
+    /*melodic_params[6] = std::min(leapPenalty / 10, 100);  // Sixte
+    melodic_params[7] = std::min(leapPenalty / 5, 100);   // Septième*/
     return melodic_params;
 }
 

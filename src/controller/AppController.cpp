@@ -64,36 +64,53 @@ void AppController::setGenerationService(GenerationService* service)
 
 void AppController::startGeneration(const juce::String& outputPath)
 {
-    // =========================
-    // 1. Vérification sécurité
-    // =========================
-    if (generationService == nullptr)
-        return;
+    generationState.setProperty("generationStatus", "idle", nullptr);
 
-    // On copie le modèle pour éviter tout accès concurrent
-    // entre le thread UI et le thread de génération
+    if (generationService == nullptr)
+    {
+        generationState.setProperty("generationError",
+                                    juce::String::fromUTF8("Service de génération indisponible."),
+                                    nullptr);
+
+        generationState.setProperty("generationStatus", "error", nullptr);
+        return;
+    }
+
+    if (problem.isEmpty())
+    {
+        generationState.setProperty("generationError",
+                                    juce::String::fromUTF8("Le problème est vide.\n\nEntrez un problème complet."),
+                                    nullptr);
+
+        generationState.setProperty("generationStatus", "warning", nullptr);
+        return;
+    }
+
+    generationState.setProperty("generationStatus", "generating", nullptr);
+
     CantusProblem copyProblem = problem;
 
-    // =========================
-    // Lancement du thread
-    // =========================
     bool started = generationService->startGeneration(copyProblem, outputPath, this);
 
     if (!started)
     {
-        juce::AlertWindow::showMessageBoxAsync(
-            juce::AlertWindow::WarningIcon,
-            "Erreur",
-            juce::String::fromUTF8("Impossible de lancer la génération.\nPeut-être déjà en cours ?"));
+        generationState.setProperty("generationError",
+                                    generationService->getLastError(),
+                                    nullptr);
+
+        generationState.setProperty("generationStatus",
+                                    generationService->isInputValidationError()
+                                        ? "warning"
+                                        : "error",
+                                    nullptr);
     }
 }
-
 
 //==============================================================================
 // CALLBACK THREAD → UI
 //==============================================================================
 
-void AppController::handleAsyncUpdate()
+/*void AppController::handleAsyncUpdate()
 {
     // =========================
     // Résultat du solveur
@@ -123,23 +140,41 @@ void AppController::handleAsyncUpdate()
     }
     else
     {
-        // =========================
-        // Gestion erreur / aucun résultat
-        // =========================
-        /*juce::String errorMsg = generationService->getLastError();
-
-        if (errorMsg.isEmpty())
-            errorMsg = juce::String::fromUTF8("Aucune solution trouvée.");
-
-        juce::AlertWindow::showMessageBoxAsync(
-            juce::AlertWindow::WarningIcon,
-            juce::String::fromUTF8("Résultat"),
-            errorMsg);*/
 
         juce::AlertWindow::showMessageBoxAsync(
             juce::AlertWindow::InfoIcon,
             juce::String::fromUTF8("Résultat"),
             juce::String::fromUTF8("Aucune solution n'existe !"));
+    }
+}*/
+
+void AppController::handleAsyncUpdate()
+{
+    if (generationService == nullptr)
+        return;
+
+    bool success = generationService->getLastGenerationSuccess();
+
+    if (success)
+    {
+        juce::String midiPath = generationService->getLastGeneratedMidiPath();
+
+        if (midiPath.isNotEmpty())
+            generationState.setProperty("midiFilePath", midiPath, nullptr);
+
+        generationState.setProperty("generationStatus", "completed", nullptr);
+    }
+    else
+    {
+        generationState.setProperty("generationError",
+                                    generationService->getLastError(),
+                                    nullptr);
+
+        generationState.setProperty("generationStatus",
+                                    generationService->isInputValidationError()
+                                        ? "warning"
+                                        : "error",
+                                    nullptr);
     }
 }
 

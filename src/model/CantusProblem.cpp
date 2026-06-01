@@ -18,6 +18,12 @@
     settings = s;
 }*/
 
+CantusProblem::CantusProblem()
+{
+    voiceCount = 0;
+    recalculateCosts();
+}
+
 void CantusProblem::setVoices(const Voices& v)
 {
     voices = v;
@@ -146,7 +152,7 @@ void CantusProblem::recalculateCosts() {
     specificCosts = settings.buildSpecificCosts();
     importanceCosts = settings.buildImportanceCosts();
 
-    std::cout << "melodicCosts size = "
+    /*std::cout << "melodicCosts size = "
           << melodicCosts.size()
-          << std::endl;
+          << std::endl;*/
 }

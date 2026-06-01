@@ -2,6 +2,7 @@
 
 #include <juce_core/juce_core.h>
 #include <juce_events/juce_events.h>
+#include <juce_data_structures/juce_data_structures.h>
 
 #include "../model/CantusProblem.h"
 #include "../service/GenerationService.h"
@@ -89,6 +90,11 @@ public:
 
     void updateSettings(const ConstraintSettings &newSettings);
 
+    juce::ValueTree& getGenerationState()
+    {
+        return generationState;
+    }
+
 private:
     // =========================
     // Modèle principal
@@ -116,4 +122,7 @@ private:
     void handleAsyncUpdate() override;
 
     ConstraintSettings currentSettings;
+
+    juce::ValueTree generationState { "GenerationState" };
+
 };

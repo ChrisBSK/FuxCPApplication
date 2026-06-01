@@ -29,6 +29,8 @@ public:
     // Données musicales
     // =========================
 
+    CantusProblem();
+
     void setVoices(const Voices& v);
     const Voices& getVoices() const;
 

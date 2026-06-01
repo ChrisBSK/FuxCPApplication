@@ -88,6 +88,7 @@ target_link_libraries(myproject PRIVATE
         juce::juce_audio_utils
         juce::juce_events
         juce::juce_core
+        juce::juce_data_structures
 
 
 
