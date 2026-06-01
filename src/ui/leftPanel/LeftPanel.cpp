@@ -3,7 +3,11 @@
 #include "../../controller/AppController.h"
 #include "../../model/NoteConverter.h"
 
-
+LeftPanel::~LeftPanel()
+{
+    if (generationState.isValid())
+        generationState.removeListener(this);
+}
 //==============================================================================
 // PARSING : Cantus Firmus (texte → MIDI)
 //==============================================================================
@@ -352,4 +356,28 @@ void LeftPanel::updateVoiceSpeciesUI(int totalVoices)
 {
     if (optionsPanel)
         optionsPanel->setNumVoices(totalVoices);
+}
+
+void LeftPanel::connectToGenerationState(juce::ValueTree state)
+{
+    generationState = state;
+    generationState.addListener(this);
+}
+
+void LeftPanel::valueTreePropertyChanged(juce::ValueTree& tree,
+                                         const juce::Identifier& property)
+{
+    if (property != juce::Identifier("generationStatus"))
+        return;
+
+    auto status = tree.getProperty("generationStatus").toString();
+
+    if (status == "completed")
+    {
+        auto midiPath = tree.getProperty("midiFilePath").toString();
+        juce::File midiFile(midiPath);
+
+        if (midiFile.existsAsFile())
+            onGenerationFinished(midiFile);
+    }
 }

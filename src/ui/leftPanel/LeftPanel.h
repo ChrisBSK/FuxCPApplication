@@ -69,14 +69,14 @@ public:
 // ======================================================
 // LeftPanel : UI principale (entrée utilisateur)
 // ======================================================
-class LeftPanel : public juce::Component
+class LeftPanel : public juce::Component, private juce::ValueTree::Listener
 {
 public:
     explicit LeftPanel(AppController& controller);
 
     void paint(juce::Graphics &g) override;
 
-    ~LeftPanel() override = default;
+    ~LeftPanel() override;
 
     // =========================
     // JUCE
@@ -124,6 +124,8 @@ public:
     }
 
 
+    void connectToGenerationState(juce::ValueTree state);
+
 
 
 
@@ -160,5 +162,10 @@ private:
 
     GenerationService generationService;
 
+
+    juce::ValueTree generationState;
+
+    void valueTreePropertyChanged(juce::ValueTree& tree,
+                                  const juce::Identifier& property) override;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LeftPanel)
 };

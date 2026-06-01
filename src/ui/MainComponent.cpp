@@ -44,6 +44,9 @@ MainComponent::MainComponent()
 
     appController.setGenerationService(&leftPanel.getGenerationService());
 
+    // LeftPanel écoute les changements de génération
+    leftPanel.connectToGenerationState(appController.getGenerationState());
+
     //relier les widgets des contraintes d'OptionPanel à AppController
     optionsPanel.setAppController(&appController);
 
