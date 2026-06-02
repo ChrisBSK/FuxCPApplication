@@ -3,7 +3,8 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 
 #include "../ui/leftPanel/LeftPanel.h"
-#include "../model/ConstraintsSettings.h"
+#include "../ui/optionsPanel/OptionsPanel.h"
+
 
 /*
 //==============================================================================
@@ -220,3 +221,18 @@ bool AppController::isGenerating() const
     return generationService->isGenerating();
 }
 
+
+//==============================================================================
+// tentative de modification des sliders
+//==============================================================================
+void AppController::updateSettings(const ConstraintSettings& newSettings) {
+    currentSettings = newSettings;
+    problem.setSettings(currentSettings);  // Met à jour les paramètres et recalcule les coûts
+
+    /*std::cout << "Settings updated. Leap Penalty: " << currentSettings.leapPenalty << std::endl;
+    std::cout << "Melodic costs: ";
+    for (int cost : problem.getMelodicCosts()) {
+        std::cout << cost << " ";
+    }
+    std::cout << std::endl;*/
+}

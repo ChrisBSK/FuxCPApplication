@@ -10,67 +10,66 @@
 
 OptionsPanel::OptionsPanel()
 {
-    // =========================
-    // Colonnes
-    // =========================
+    setupColumns();
+    setupTitles();
+    setupVoiceBoxes();
+    setupButtons();
+    setupColumnInteractions();
+    setupMelodicControls();
+}
+
+//==============================================================================
+// Construction des colonnes principales
+//==============================================================================
+void OptionsPanel::setupColumns()
+{
     addAndMakeVisible(column1);
     addAndMakeVisible(column2);
     addAndMakeVisible(column3);
     addAndMakeVisible(column4);
+}
 
-    // =========================
-    // Titres
-    // =========================
+//==============================================================================
+// Initialisation des titres de colonnes
+//==============================================================================
+void OptionsPanel::setupTitles()
+{
     OptionsPanelHelpers::setupTitle(*this, title1, "Basic Constraints");
     OptionsPanelHelpers::setupTitle(*this, title2, "Melodic");
     OptionsPanelHelpers::setupTitle(*this, title3, "Feature 3");
     OptionsPanelHelpers::setupTitle(*this, title4, "Feature 4");
+}
 
-    // =========================
-    // Voice boxes
-    // =========================
+//==============================================================================
+// Initialisation des blocs de voix
+//==============================================================================
+void OptionsPanel::setupVoiceBoxes()
+{
     addAndMakeVisible(box1);
     addAndMakeVisible(box2);
     addAndMakeVisible(box3);
     addAndMakeVisible(box4);
+}
 
-
-    // =========================
-    // Boutons
-    // =========================
+//==============================================================================
+// Initialisation des boutons d'action
+//==============================================================================
+void OptionsPanel::setupButtons()
+{
     addAndMakeVisible(generateButton);
     addAndMakeVisible(cancel);
 
     generateButton.setButtonText("Generate");
     cancel.setButtonText("Cancel");
 
-
-
     generateButton.onClick = [this]()
     {
-        if (leftPanel)
+        if (leftPanel != nullptr)
             leftPanel->triggerGeneration();
     };
-
-    // =========================
-    // Interactions colonnes
-    // =========================
-    setupColumnInteractions();
-
-    std::array<ClickableTitle*, 4> titles = { &title1, &title2, &title3, &title4 };
-    std::array<ColumnBox*, 4> columns = { &column1, &column2, &column3, &column4 };
-
-    for (int i = 0; i < 4; ++i)
-    {
-        setupHover(*titles[i], *columns[i], i + 1);
-    }
-
-    // =========================
-    // Contraintes mélodiques
-    // =========================
-    setupMelodicControls();
-
 }
+
+
 
 void OptionsPanel::setupMelodicControls()
 {
@@ -105,41 +104,26 @@ void OptionsPanel::setupMelodicControls()
     };
 }
 
+//==============================================================================
+// Connexion des interactions de colonnes
+//==============================================================================
 void OptionsPanel::setupColumnInteractions()
 {
-    // Click titres
     title1.onClick = [this]() { updateActiveColumn(1); };
     title2.onClick = [this]() { updateActiveColumn(2); };
     title3.onClick = [this]() { updateActiveColumn(3); };
     title4.onClick = [this]() { updateActiveColumn(4); };
 
-    // Hover titres
-    title1.onEnter = [this]() { hoveredColumn = 1; column1.isHovered = true; repaint(); };
-    title2.onEnter = [this]() { hoveredColumn = 2; column2.isHovered = true; repaint(); };
-    title3.onEnter = [this]() { hoveredColumn = 3; column3.isHovered = true; repaint(); };
-    title4.onEnter = [this]() { hoveredColumn = 4; column4.isHovered = true; repaint(); };
-
-    title1.onExit = [this]() { hoveredColumn = 0; column1.isHovered = false; repaint(); };
-    title2.onExit = [this]() { hoveredColumn = 0; column2.isHovered = false; repaint(); };
-    title3.onExit = [this]() { hoveredColumn = 0; column3.isHovered = false; repaint(); };
-    title4.onExit = [this]() { hoveredColumn = 0; column4.isHovered = false; repaint(); };
-
-    // Hover colonnes
-    column1.onEnter = [this]() { hoveredColumn = 1; column1.isHovered = true; repaint(); };
-    column2.onEnter = [this]() { hoveredColumn = 2; column2.isHovered = true; repaint(); };
-    column3.onEnter = [this]() { hoveredColumn = 3; column3.isHovered = true; repaint(); };
-    column4.onEnter = [this]() { hoveredColumn = 4; column4.isHovered = true; repaint(); };
-
-    column1.onExit = [this]() { column1.isHovered = false; repaint(); };
-    column2.onExit = [this]() { column2.isHovered = false; repaint(); };
-    column3.onExit = [this]() { column3.isHovered = false; repaint(); };
-    column4.onExit = [this]() { column4.isHovered = false; repaint(); };
-
-    // Click colonnes
     column1.onClick = [this]() { updateActiveColumn(1); };
     column2.onClick = [this]() { updateActiveColumn(2); };
     column3.onClick = [this]() { updateActiveColumn(3); };
     column4.onClick = [this]() { updateActiveColumn(4); };
+
+    std::array<ClickableTitle*, 4> titles = { &title1, &title2, &title3, &title4 };
+    std::array<ColumnBox*, 4> columns = { &column1, &column2, &column3, &column4 };
+
+    for (int i = 0; i < 4; ++i)
+        setupHover(*titles[i], *columns[i], i + 1);
 }
 
 void OptionsPanel::setupHover(ClickableTitle& title,

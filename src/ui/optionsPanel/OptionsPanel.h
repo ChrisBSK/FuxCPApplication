@@ -63,6 +63,10 @@ private:
     void setupHover(ClickableTitle &title,
                     ColumnBox &column,
                     int index);
+    void setupColumns();
+    void setupTitles();
+    void setupVoiceBoxes();
+    void setupButtons();
 
     int activeColumn = 0;
     int hoveredColumn = 0;
