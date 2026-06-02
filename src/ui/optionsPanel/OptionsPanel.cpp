@@ -260,32 +260,6 @@ void OptionsPanel::resized()
     melodicVarietySlider.setBounds(row1.reduced(0, 6));
     inner2.removeFromTop(spacingY);
 
-    // ===== 2. Step =====
-    auto row2 = inner2.removeFromTop(rowHeight);
-    auto left2 = row2.removeFromLeft(labelWidth);
-    row2.removeFromLeft(gapX);
-
-    melodicStepBiasLabel.setBounds(left2);
-    melodicStepBiasSlider.setBounds(row2.reduced(0, 6));
-    inner2.removeFromTop(spacingY);
-
-    // ===== 3. Repetition allowed =====
-    auto row3 = inner2.removeFromTop(rowHeight);
-    auto left3 = row3.removeFromLeft(labelWidth);
-    row3.removeFromLeft(gapX);
-
-    melodicRepetitionLabel.setBounds(left3);
-    melodicRepetitionToggle.setBounds(row3.reduced(0, 3));
-    inner2.removeFromTop(spacingY);
-
-    // ===== 4. Direction =====
-    auto row4 = inner2.removeFromTop(rowHeight);
-    auto left4 = row4.removeFromLeft(labelWidth);
-    row4.removeFromLeft(gapX);
-
-    melodicDirectionLabel.setBounds(left4);
-    melodicDirectionBox.setBounds(row4.reduced(0, 3));
-
     // =============================
     // Colonne 3
     // =============================

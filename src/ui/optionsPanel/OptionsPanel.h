@@ -90,15 +90,6 @@ private:
     StyledLabel melodicVarietyLabel;
     juce::Slider melodicVarietySlider;
 
-    StyledLabel melodicStepBiasLabel;
-    juce::Slider melodicStepBiasSlider;
-
-    StyledLabel melodicRepetitionLabel;
-    juce::ToggleButton melodicRepetitionToggle;
-
-    StyledLabel melodicDirectionLabel;
-    juce::ComboBox melodicDirectionBox;
-
     // =========================
     // Boutons
     // =========================
