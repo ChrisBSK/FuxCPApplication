@@ -7,24 +7,20 @@
 #include "../model/CantusProblem.h"
 #include "../service/GenerationService.h"
 
+/*
+//==============================================================================
+   AppController
+
+   Contrôleur principal de l'application.
+
+   Assure la communication entre l'interface utilisateur,
+   le modèle (CantusProblem) et le service de génération.
+//==============================================================================
+*/
+
 // Forward declaration
 class LeftPanel;
 
-/*
-==============================================================================
-    AppController
-
-    Rôle :
-    - Point central entre UI (LeftPanel / OptionsPanel) et logique métier
-    - Possède le modèle CantusProblem
-    - Lance la génération via GenerationService
-    - Reçoit le résultat (callback async)
-
-
-    Flux :
-    UI → AppController → GenerationService → AppController → UI
-==============================================================================
-*/
 
 class AppController : public juce::AsyncUpdater
 {

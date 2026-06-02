@@ -5,16 +5,29 @@
 #include "../ui/leftPanel/LeftPanel.h"
 #include "../model/ConstraintsSettings.h"
 
+/*
+//==============================================================================
+   AppController
+
+  Coordonne les interactions entre l'UI,
+  le modèle musical et le moteur de génération.
+
+  Responsable de :
+   - construire le problème à générer
+   - lancer la génération
+   - recevoir les résultats du solveur
+   - notifier l'interface utilisateur
+//==============================================================================
+*/
 
 //==============================================================================
-// CONSTRUCTEURS
+// CONSTRUCTEUR  -  Initialise le contrôleur principal de l'application.
 //==============================================================================
-
 AppController::AppController() = default;
 
-
 //==============================================================================
-// ACCÈS MODÈLE
+// ACCÈS AU MODÈLE COURANT EN ECRITURE
+// Utilisé par l'UI pour construire ou modifier le problème.
 //==============================================================================
 
 CantusProblem& AppController::getProblem()
@@ -22,6 +35,9 @@ CantusProblem& AppController::getProblem()
     return problem;
 }
 
+//==============================================================================
+// ACCÈS AU MODÈLE COURANT EN LECTURE SEULE
+//==============================================================================
 const CantusProblem& AppController::getProblem() const
 {
     return problem;
@@ -30,6 +46,7 @@ const CantusProblem& AppController::getProblem() const
 
 //==============================================================================
 // SYNCHRONISATION UI (LeftPanel <-> OptionsPanel)
+// Accès aux paramètres UI des voix.
 //==============================================================================
 
 std::vector<AppController::VoiceSettings>& AppController::getVoiceSettings()
@@ -37,6 +54,9 @@ std::vector<AppController::VoiceSettings>& AppController::getVoiceSettings()
     return voiceSettings;
 }
 
+//==============================================================================
+// Accès en lecture seule aux paramètres UI des voix.
+//==============================================================================
 const std::vector<AppController::VoiceSettings>& AppController::getVoiceSettings() const
 {
     return voiceSettings;
@@ -47,11 +67,20 @@ const std::vector<AppController::VoiceSettings>& AppController::getVoiceSettings
 // CONNEXION DES COMPOSANTS
 //==============================================================================
 
+//==============================================================================
+// Connexion au LeftPanel
+// Permet de notifier l'UI après la génération.
+//==============================================================================
+
 void AppController::setLeftPanel(LeftPanel* panel)
 {
     leftPanel = panel;
 }
 
+//==============================================================================
+// Connexion au service de génération.
+// Le service exécute le solveur dans un thread séparé.
+//==============================================================================
 void AppController::setGenerationService(GenerationService* service)
 {
     generationService = service;
@@ -62,6 +91,10 @@ void AppController::setGenerationService(GenerationService* service)
 // GÉNÉRATION
 //==============================================================================
 
+//==============================================================================
+// Lance une génération.
+// Vérifie l'état courant, copie le problème, puis démarre le thread solveur.
+//==============================================================================
 void AppController::startGeneration(const juce::String& outputPath)
 {
     generationState.setProperty("generationStatus", "idle", nullptr);
@@ -107,47 +140,12 @@ void AppController::startGeneration(const juce::String& outputPath)
 }
 
 //==============================================================================
-// CALLBACK THREAD → UI
+// CALLBACK THREAD --> UI
+
+// Callback de fin de génération.
+// Appelé sur le thread UI après la fin du solveur.
+// Affiche le résultat et met à jour generationState.
 //==============================================================================
-
-/*void AppController::handleAsyncUpdate()
-{
-    // =========================
-    // Résultat du solveur
-    // =========================
-    if (generationService == nullptr)
-        return;
-
-    if (generationService->getLastGenerationSuccess())
-    {
-
-        // Récupération du fichier MIDI
-        juce::File file(generationService->getLastGeneratedMidiPath());
-
-
-        // Envoi au LeftPanel (UI)
-        if (file.existsAsFile() && leftPanel != nullptr)
-        {
-            leftPanel->onGenerationFinished(file);
-        }
-
-
-        // Feedback utilisateur
-        juce::AlertWindow::showMessageBoxAsync(
-            juce::AlertWindow::InfoIcon,
-            juce::String::fromUTF8("Résultat"),
-            juce::String::fromUTF8("Une solution existe !"));
-    }
-    else
-    {
-
-        juce::AlertWindow::showMessageBoxAsync(
-            juce::AlertWindow::InfoIcon,
-            juce::String::fromUTF8("Résultat"),
-            juce::String::fromUTF8("Aucune solution n'existe !"));
-    }
-}*/
-
 void AppController::handleAsyncUpdate()
 {
     if (generationService == nullptr)
@@ -195,6 +193,10 @@ void AppController::handleAsyncUpdate()
     }
 }
 
+//==============================================================================
+// Met à jour les paramètres d'une voix de contrepoint.
+// Appelé lorsque l'utilisateur change l'espèce ou le type.
+//==============================================================================
 void AppController::updateVoice(int index, int species, int type)
 {
     if (index < 0)
@@ -207,6 +209,9 @@ void AppController::updateVoice(int index, int species, int type)
     voiceSettings[index].type    = type; // 0 par défaut
 }
 
+//==============================================================================
+// Indique si une génération est actuellement en cours.
+//==============================================================================
 bool AppController::isGenerating() const
 {
     if (generationService == nullptr)
@@ -215,15 +220,3 @@ bool AppController::isGenerating() const
     return generationService->isGenerating();
 }
 
-
-void AppController::updateSettings(const ConstraintSettings& newSettings) {
-    currentSettings = newSettings;
-    problem.setSettings(currentSettings);  // Met à jour les paramètres et recalcule les coûts
-
-    std::cout << "Settings updated. Leap Penalty: " << currentSettings.leapPenalty << std::endl;
-    std::cout << "Melodic costs: ";
-    for (int cost : problem.getMelodicCosts()) {
-        std::cout << cost << " ";
-    }
-    std::cout << std::endl;
-}

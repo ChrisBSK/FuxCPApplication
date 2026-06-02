@@ -4,40 +4,42 @@
 #include "../../service/GenerationService.h"
 #include "../optionsPanel/OptionsPanel.h"
 
+
 /*
 ==============================================================================
     LeftPanel
 
+    Panneau principal de saisie utilisateur. (sur la gauche de l'interface)
+
     Rôle :
-    Ce composant représente l’interface principale d’entrée utilisateur.
+    - récupérer le Cantus Firmus
+    - choisir le nombre de voix
+    - transmettre les paramètres de contrepoint au modèle
+    - lancer la génération via l'AppController
+    - afficher le fichier MIDI généré dans la zone de drag & drop
 
-    Responsabilités :
-    - Saisir le Cantus Firmus (suite de notes MIDI ou noms de notes)
-    - Choisir le nombre de voix (cantus firmus inclus)
-    - Configurer les contrepoints (espèce et type) via des ComboBox
-    - Construire un problème musical à partir des entrées utilisateur
-    - Déclencher la génération via le AppController
-    - Afficher le fichier MIDI généré et permettre son drag & drop
-
-    IMPORTANT :
-    - Le Cantus Firmus n’est PAS une voix
-    - Les espèces et types ne concernent QUE les contrepoints
-    - Aucune logique de génération ou de résolution ici (UI uniquement)
-
+    Ce composant reste une couche UI :
+    il ne résout pas le problème et ne contient pas de logique solveur.
 ==============================================================================
 */
 
 class AppController;
 class OptionsPanel;
 
+/*
 // ======================================================
-// Composant Drag & Drop pour fichier MIDI
-// ======================================================
+   Composant Drag & Drop pour fichier MIDI
+
+   MidiFileItem: Élément visuel représentant le fichier MIDI généré.
+   Peut être glissé vers une application externe.
+//==============================================================================
+*/
 class MidiFileItem : public juce::Component
 {
 public:
     juce::File file;
 
+    // Dessine l'icône MIDI affichée dans la zone de sortie.
     void paint(juce::Graphics& g) override
     {
         auto bounds = getLocalBounds().toFloat();
@@ -51,6 +53,7 @@ public:
                    juce::Justification::centred);
     }
 
+    // Lance le drag & drop externe du fichier MIDI.
     void mouseDrag(const juce::MouseEvent&) override
     {
         if (file.existsAsFile())
@@ -60,70 +63,77 @@ public:
         }
     }
 
-    void mouseDown(const juce::MouseEvent&) override
-    {
-        // nécessaire pour initier le drag
-    }
+    // Présent pour initialiser correctement le geste de drag.
+    void mouseDown(const juce::MouseEvent&) override{}
 };
 
-// ======================================================
-// LeftPanel : UI principale (entrée utilisateur)
-// ======================================================
+/*
+//==============================================================================
+   LeftPanel
+
+   Interface d'entrée et de sortie principale.
+   Construit le problème musical depuis l'UI et affiche le résultat généré.
+//==============================================================================
+*/
 class LeftPanel : public juce::Component, private juce::ValueTree::Listener
 {
 public:
+    // Construction
     explicit LeftPanel(AppController& controller);
-
-    void paint(juce::Graphics &g) override;
-
     ~LeftPanel() override;
 
-    // =========================
-    // JUCE
-    // =========================
-    //void paint(juce::Graphics&) override;
+    // Rendu et Layout
+    void paint(juce::Graphics &g) override;
     void resized() override;
 
-    // =========================
-    // Interaction utilisateur
-    // =========================
+    // Lance la construction du problème puis la génération.
     void triggerGeneration();
 
+    // Affiche une boîte de dialogue utilisateur.
     void showAlert(juce::AlertWindow::AlertIconType icon,
                    const juce::String& title,
                    const juce::String& message);
 
-    // =========================
-    // Cantus Firmus
-    // =========================
-    /*juce::String getCantusText() const;
-    void setCantusText(const juce::String& newText);*/
-
-    // =========================
-    // Liaison avec OptionsPanel
-    // =========================
+    // Connecte le panneau d'options associé.
     void setOptionsPanel(OptionsPanel* panel)
     {
         optionsPanel = panel;
     }
 
-
-    // =========================
-    // Callback après génération
-    // =========================
+    // Affiche le fichier MIDI généré dans la zone de drag & drop.
     void onGenerationFinished(const juce::File& file);
 
+    // Prépare le chemin du futur fichier MIDI.
     void prepareOutputFile();
 
+    // Ajoute une note jouée depuis le clavier virtuel au Cantus Firmus.
     void addNoteFromKeyboard(int midiNote);
+
+    // Met à jour l'affichage textuel du Cantus Firmus.
     void updateCantusDisplay();
 
+    /*
+    //==============================================================================
+      --> Donne accès au service de génération possédé par le LeftPanel. (LANCE LA GENERATION)
+
+       Permet à l'AppController de déclencher une génération
+       sans posséder directement le service.
+    //==============================================================================
+    */
     GenerationService& getGenerationService()
     {
         return generationService;
     }
 
+    /*
+    //==============================================================================
+     --> Connecte le LeftPanel à l'état de génération.
 
+         Utilisé pour être notifié automatiquement lorsqu'une
+         génération démarre, échoue ou se termine.
+         Connecte le LeftPanel à l'état de génération de l'AppController.
+    //==============================================================================
+    */
     void connectToGenerationState(juce::ValueTree state);
 
 
@@ -155,16 +165,25 @@ private:
     juce::File midiOutFileToGenerate;
     std::unique_ptr<MidiFileItem> midiItem;
 
+
     // =========================
-    // Helpers UI
+    // Synchronisation UI
     // =========================
+
+    // Adapte l'interface des contrepoints au nombre de voix choisi.
     void updateVoiceSpeciesUI(int numVoices);
 
+    // =========================
+    // Génération
+    // =========================
+
+    // Service chargé d'exécuter la génération.
     GenerationService generationService;
 
-
+    // État de génération partagé avec l'AppController.
     juce::ValueTree generationState;
 
+    // Réagit aux changements d'état de la génération.
     void valueTreePropertyChanged(juce::ValueTree& tree,
                                   const juce::Identifier& property) override;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LeftPanel)

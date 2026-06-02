@@ -13,6 +13,18 @@
 #include <memory>
 
 //==============================================================================
+// GenerationService
+//
+// Gère l'exécution du solveur de contrepoint.
+//
+// Responsable de :
+// - lancer la génération
+// - exécuter le solveur en arrière-plan
+// - récupérer les solutions
+// - générer le fichier MIDI correspondant
+//==============================================================================
+
+//==============================================================================
 // Impl interne
 //==============================================================================
 
@@ -167,6 +179,14 @@ GenerationService::~GenerationService()
 // Lancement thread
 //==============================================================================
 
+/*
+//==============================================================================
+   Démarrage d'une génération
+
+   Vérifie l'état du service, copie le problème courant
+   puis lance le thread de génération.
+//==============================================================================
+*/
 bool GenerationService::startGeneration(const CantusProblem& problem,
                                         const juce::String& outputPath,
                                         AppController* controller)
@@ -200,6 +220,14 @@ bool GenerationService::startGeneration(const CantusProblem& problem,
     return true;
 }
 
+/*
+//==============================================================================
+   Exécution du thread
+
+   Lance le solveur en arrière-plan puis notifie
+   l'AppController lorsque la génération est terminée.
+//==============================================================================
+*/
 void GenerationService::run()
 {
     bool success = generateMidiFromInputs(problemToGenerate, outputPathToGenerate);
@@ -275,7 +303,7 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
         // Timeout Gecode
         // =========================
         Gecode::Search::Options opts;
-        Gecode::Search::TimeStop timeout(3000); // 3000ms = 3secondes
+        Gecode::Search::TimeStop timeout(1000); // 1000ms = 1secondes
         opts.stop = &timeout;
         opts.threads = 1;
 

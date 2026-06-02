@@ -1,68 +1,103 @@
 #include "CantusProblem.h"
+/*
+//==============================================================================
+  CantusProblem
 
-// =========================
-// Données musicales (Voices)
-// =========================
+  Modèle central représentant un problème de contrepoint.
 
-/*CantusProblem::CantusProblem()
-{
-    ConstraintSettings s;
+  Contient :
+   - le Cantus Firmus
+   - les contrepoints
+   - les paramètres du solveur
+   - les vecteurs de coûts calculés
 
-    //settings.soft.melodic   = {0, 1, 1, 576, 2, 2, 2, 1};
-    //settings.soft.general   = {4, 1, 1, 2, 2, 2, 8, 1};
-    //settings.soft.specific  = {8, 4, 0, 2, 1, 8, 50};
-    //settings.soft.importance= {8,7,5,2,9,3,14,12,6,11,4,10,1,13};
+  Utilisé par le GenerationService pour construire le problème Fux/Gecode.
+//==============================================================================
+*/
 
-    //settings.borrowMode = 1;
+//==============================================================================
+// Construction
+//==============================================================================
 
-    settings = s;
-}*/
-
+/*
+    Initialise un problème vide avec les paramètres par défaut
+    et calcule les vecteurs de coûts associés.
+*/
 CantusProblem::CantusProblem()
 {
     voiceCount = 0;
     recalculateCosts();
 }
 
+//==============================================================================
+// Données musicales
+// Gestion du Cantus Firmus et des contrepoints
+//==============================================================================
+
+/*
+    Remplace complètement la structure musicale du problème.
+*/
 void CantusProblem::setVoices(const Voices& v)
 {
     voices = v;
 }
 
+/*
+    Retourne l'ensemble des voix du problème.
+*/
 const CantusProblem::Voices& CantusProblem::getVoices() const
 {
     return voices;
 }
 
+/*
+    Retourne le Cantus Firmus.
+*/
 const std::vector<int>& CantusProblem::getCantusFirmus() const
 {
     return voices.cf;
 }
 
+/*
+    Retourne la liste des contrepoints.
+*/
 const std::vector<CantusProblem::Counterpoint>& CantusProblem::getCounterpoints() const
 {
     return voices.counterpoints;
 }
 
+/*
+    Retourne le nombre de contrepoints.
+*/
 size_t CantusProblem::getCounterpointCount() const
 {
     return voices.counterpoints.size();
 }
 
+/*
+    Définit le nombre total de voix (CF inclus).
+*/
 void CantusProblem::setVoiceCount(int count)
 {
     voiceCount = count;
 }
 
+/*
+    Retourne le nombre total de voix.
+*/
 int CantusProblem::getVoiceCount() const
 {
     return voiceCount;
 }
 
-// =========================
-// Conversion pour le solver
-// =========================
+//==============================================================================
+// Conversion pour le solveur
+// Extraction des données attendues par Fux/Gecode
+//==============================================================================
 
+/*
+    Construit la liste des espèces des contrepoints.
+*/
 std::vector<int> CantusProblem::getSpeciesList() const
 {
     std::vector<int> result;
@@ -74,6 +109,9 @@ std::vector<int> CantusProblem::getSpeciesList() const
     return result;
 }
 
+/*
+    Construit la liste des types de voix.
+*/
 std::vector<int> CantusProblem::getVoiceTypes() const
 {
     std::vector<int> result;
@@ -85,67 +123,108 @@ std::vector<int> CantusProblem::getVoiceTypes() const
     return result;
 }
 
-// =========================
-// Paramètres du solveur
-// =========================
+//==============================================================================
+// Paramètres de contraintes
+// Gestion des réglages et des coûts du solveur
+//==============================================================================
+
+/*
+    Met à jour les paramètres du solveur
+    puis recalcule tous les vecteurs de coûts.
+*/
 void CantusProblem::setSettings(const ConstraintSettings& s)
 {
     settings = s;
     recalculateCosts();
 }
 
+/*
+    Accès aux paramètres du solveur.
+*/
 ConstraintSettings& CantusProblem::getSettings()
 {
     return settings;
 }
 
+/*
+    Accès en lecture seule aux paramètres du solveur.
+*/
 const ConstraintSettings& CantusProblem::getSettings() const
 {
     return settings;
 }
 
-// =========================
+//==============================================================================
 // Métadonnées
-// =========================
+// Informations descriptives du problème
+//==============================================================================
 
+/*
+    Définit le titre du problème.
+*/
 void CantusProblem::setTitle(const juce::String& newTitle)
 {
     title = newTitle;
 }
 
+/*
+    Retourne le titre du problème.
+*/
 juce::String CantusProblem::getTitle() const
 {
     return title;
 }
 
-// =========================
+//==============================================================================
 // Validation
-// =========================
+// Vérification de la cohérence minimale du problème
+//==============================================================================
 
+/*
+    Vérifie que le problème contient
+    un Cantus Firmus et au moins un contrepoint.
+*/
 bool CantusProblem::isEmpty() const
 {
     return voices.cf.empty() || voices.counterpoints.empty();
 }
 
+//==============================================================================
+// Accès aux coûts calculés
+//==============================================================================
+
+/*
+    Retourne les coûts mélodiques.
+*/
 const std::vector<int>& CantusProblem::getMelodicCosts() const {
     return melodicCosts;
 }
 
+/*
+    Retourne les coûts généraux.
+*/
 const std::vector<int>& CantusProblem::getGeneralCosts() const {
     return generalCosts;
 }
 
+/*
+    Retourne les coûts spécifiques aux espèces.
+*/
 const std::vector<int>& CantusProblem::getSpecificCosts() const {
     return specificCosts;
 }
 
+/*
+    Retourne les priorités d'optimisation.
+*/
 const std::vector<int>& CantusProblem::getImportanceCosts() const {
     return importanceCosts;
 }
 
-// =========================
+//==============================================================================
 // Recalcul des coûts
-// =========================
+// Synchronisation entre les paramètres et le solveur
+//==============================================================================
 void CantusProblem::recalculateCosts() {
     melodicCosts = settings.buildMelodicCosts();
     generalCosts = settings.buildGeneralCosts();

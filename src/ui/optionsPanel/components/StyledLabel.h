@@ -2,8 +2,8 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 /**
- * Label custom avec fond + texte stylé
- * → purement visuel
+ * Label custom avec fond + texte (dans les columnbox)
+ * --> fond rectangle vert + écriture blanche (purement visuel)
  */
 class StyledLabel : public juce::Label
 {

@@ -20,7 +20,7 @@ class AppController;
     - Génère un fichier MIDI
 
     Flux :
-    AppController → GenerationService → Solveur → MIDI → AppController
+    AppController --> GenerationService --> Solveur --> MIDI --> AppController
 ==============================================================================
 */
 
@@ -105,7 +105,7 @@ private:
     juce::String outputPathToGenerate;
 
     // =========================
-    // Impl interne (si besoin)
+    // Impl interne
     // =========================
 
     struct Impl;

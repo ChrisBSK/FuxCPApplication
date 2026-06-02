@@ -2,9 +2,15 @@
 #include "../../../controller/AppController.h"
 #include "../../leftPanel/LeftPanel.h"
 #include "../../../model/ConstraintsDefinition.h"
-// =============================
-// VoiceBox : UI d'une voix
-// =============================
+/*
+//==============================================================================
+   VoiceBox
+
+   Composant représentant une voix de contrepoint.
+
+   Permet de sélectionner l'espèce et le type d'une voix
+   puis synchronise ces choix avec l'AppController.
+//==============================================================================*/
 VoiceBox::VoiceBox(const juce::String& name)
 {
     //  titre de la voix
@@ -28,12 +34,15 @@ VoiceBox::VoiceBox(const juce::String& name)
 
     typeBox.setSelectedId(1);
 
-    // =========================
-    // Connexion bouton UI → MODÈLE (peut causer des crash si mal fait --> L'app s'ouvre pas)
-    // =========================
-
 }
 
+/*
+//==============================================================================
+   Dessine l'état visuel de la voix.
+
+   Met en évidence la voix actuellement sélectionnée.
+//==============================================================================
+*/
 void VoiceBox::paint(juce::Graphics& g)
 {
     //  Highlight actif
@@ -46,6 +55,13 @@ void VoiceBox::paint(juce::Graphics& g)
     g.fillRoundedRectangle(getLocalBounds().toFloat(), 6.0f);
 }
 
+/*
+//==============================================================================
+   Positionne les éléments de l'interface.
+
+   Organise le titre, l'espèce et le type dans la colonne.
+//==============================================================================
+*/
 void VoiceBox::resized()
 {
     auto area = getLocalBounds().reduced(8);
@@ -62,6 +78,9 @@ void VoiceBox::resized()
 
 }
 
+//==============================================================================
+// Active ou désactive la mise en évidence de la voix.
+//==============================================================================
 void VoiceBox::setActive(bool active)
 {
     if (isActive != active)
@@ -71,11 +90,20 @@ void VoiceBox::setActive(bool active)
     }
 }
 
+/*
+//==============================================================================
+   Connecte la VoiceBox à l'AppController.
+
+   Synchronise les changements d'espèce et de type
+   avec le modèle de l'application.
+//==============================================================================
+*/
 void VoiceBox::connectToController(AppController* controller, int index)
 {
     appController = controller;
     voiceIndex = index;
 
+    // Met à jour l'espèce de la voix dans le modèle.
     speciesBox.onChange = [this]()
     {
         if (appController && (voiceIndex >= 0))
@@ -88,6 +116,7 @@ void VoiceBox::connectToController(AppController* controller, int index)
         }
     };
 
+    // Met à jour le type de la voix dans le modèle.
     typeBox.onChange = [this]()
     {
         if (appController && (voiceIndex >= 0))

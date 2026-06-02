@@ -3,13 +3,27 @@
 #include "../../controller/AppController.h"
 #include "../../model/NoteConverter.h"
 
+/*
+//==============================================================================
+   LeftPanel
+
+   Interface principale de saisie utilisateur.
+
+   Permet de :
+   - entrer le Cantus Firmus
+   - configurer les voix de contrepoint
+   - lancer la génération
+   - afficher et exporter le fichier MIDI généré
+//==============================================================================
+*/
+
 LeftPanel::~LeftPanel()
 {
     if (generationState.isValid())
         generationState.removeListener(this);
 }
 //==============================================================================
-// PARSING : Cantus Firmus (texte → MIDI)
+// PARSING : Cantus Firmus (texte --> MIDI)
 //==============================================================================
 
 static std::vector<int> parseCantusFirmus(const juce::String& text)
@@ -135,6 +149,15 @@ void LeftPanel::paint(juce::Graphics& g)
 // LOGIQUE PRINCIPALE : GENERATION
 //==============================================================================
 
+/*
+//==============================================================================
+   Construit et lance un problème de génération.
+
+   Récupère les données saisies dans l'interface,
+   crée la structure musicale attendue par le modèle,
+   puis démarre la génération du contrepoint.
+//==============================================================================
+*/
 void LeftPanel::triggerGeneration()
 {
     // =========================
@@ -182,8 +205,10 @@ void LeftPanel::triggerGeneration()
     v.cf = cf;
 
     // Contrepoints
-    auto& settings = appController.getVoiceSettings();
 
+    // Récupère les paramètres des contrepoints sélectionnés dans l'interface
+    // (espèce et type pour chaque voix).
+    auto& settings = appController.getVoiceSettings();
     for (int i = 0; i < numCounterpoints; ++i)
     {
         CantusProblem::Counterpoint cp;
@@ -195,9 +220,14 @@ void LeftPanel::triggerGeneration()
     }
 
 
-
+    // Récupère le modèle musical central de l'application.
+    // Ce modèle sera transmis ensuite au GenerationService.
     auto& problem = appController.getProblem();
+
+    // Copie dans le modèle les voix construites à partir de l'UI.
     problem.setVoices(v);
+
+    // Enregistre le nombre total de voix choisi par l'utilisateur.
     problem.setVoiceCount(numVoices);
 
     // =========================
@@ -216,6 +246,15 @@ void LeftPanel::triggerGeneration()
 // RESULTAT : MIDI
 //==============================================================================
 
+/*
+//==============================================================================
+   Réception d'un fichier MIDI généré.
+
+   Associe le fichier MIDI au composant de drag & drop,
+   affiche l'icône MIDI dans l'interface et permet ensuite
+   à l'utilisateur de le glisser vers un logiciel externe.
+//=============================================================================
+*/
 void LeftPanel::onGenerationFinished(const juce::File& file)
 {
     midiItem = std::make_unique<MidiFileItem>();
@@ -230,6 +269,14 @@ void LeftPanel::onGenerationFinished(const juce::File& file)
 // OUTILS UI
 //==============================================================================
 
+/*
+//==============================================================================
+   Préparation du fichier MIDI de sortie.
+
+   Génère un chemin unique dans le dossier temporaire
+   afin d'éviter tout conflit entre plusieurs générations.
+//==============================================================================
+*/
 void LeftPanel::prepareOutputFile()
 {
     auto tempDir = juce::File::getSpecialLocation(
@@ -241,6 +288,14 @@ void LeftPanel::prepareOutputFile()
         "FuxCP_Solution_" + juce::String(timestamp) + ".mid");
 }
 
+/*
+//==============================================================================
+ Affichage d'un message utilisateur.
+
+ Affiche une fenêtre d'information, d'avertissement
+ ou d'erreur selon le contexte.
+//==============================================================================
+*/
 void LeftPanel::showAlert(juce::AlertWindow::AlertIconType icon,
                          const juce::String& title,
                          const juce::String& message)
@@ -321,6 +376,13 @@ void LeftPanel::resized()
     }
 }
 
+
+/*
+//==============================================================================
+   Ajoute une note provenant du clavier virtuel
+   à la fin du Cantus Firmus affiché
+//==============================================================================
+*/
 void LeftPanel::addNoteFromKeyboard(int midiNote)
 {
     auto noteStr = NoteConverter::midiToNoteName(midiNote);
@@ -335,6 +397,12 @@ void LeftPanel::addNoteFromKeyboard(int midiNote)
     cfInput.setText(current, juce::dontSendNotification);
 }
 
+/*
+//==============================================================================
+   Synchronise l'affichage du Cantus Firmus avec les données
+   actuellement stockées dans le modèle.
+//==============================================================================
+*/
 void LeftPanel::updateCantusDisplay()
 {
     const auto& cf = appController.getProblem().getCantusFirmus();
@@ -352,18 +420,40 @@ void LeftPanel::updateCantusDisplay()
     cfInput.setText(display, juce::dontSendNotification);
 }
 
+/*
+//==============================================================================
+   Met à jour l'affichage des voix dans l'OptionsPanel
+   lorsque le nombre de voix change.
+//==============================================================================
+*/
 void LeftPanel::updateVoiceSpeciesUI(int totalVoices)
 {
     if (optionsPanel)
         optionsPanel->setNumVoices(totalVoices);
 }
 
+/*
+//==============================================================================
+   Connecte le LeftPanel au ValueTree de génération.
+
+   Permet de recevoir automatiquement les changements
+   d'état produits par l'AppController.
+//==============================================================================
+*/
 void LeftPanel::connectToGenerationState(juce::ValueTree state)
 {
     generationState = state;
     generationState.addListener(this);
 }
 
+/*
+//==============================================================================
+   Réagit aux changements de génération.
+
+   Lorsque la génération est terminée, récupère le
+   fichier MIDI produit et l'affiche dans la drag zone.
+//==============================================================================
+*/
 void LeftPanel::valueTreePropertyChanged(juce::ValueTree& tree,
                                          const juce::Identifier& property)
 {

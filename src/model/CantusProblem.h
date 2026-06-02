@@ -4,6 +4,15 @@
 #include <juce_core/juce_core.h>
 #include "ConstraintsSettings.h"
 
+/*
+//==============================================================================
+   CantusProblem
+
+   Modèle contenant toutes les données nécessaires
+   à la génération d'un contrepoint.
+//==============================================================================
+*/
+
 class CantusProblem
 {
 public:

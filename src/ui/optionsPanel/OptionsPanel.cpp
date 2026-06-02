@@ -1,7 +1,6 @@
 #include "OptionsPanel.h"
 #include "../leftPanel/LeftPanel.h"
 #include "../../controller/AppController.h"
-#include "OptionsPanelStyle.h"
 #include "OptionsPanelHelpers.h"
 
 
@@ -91,25 +90,6 @@ void OptionsPanel::setupMelodicControls()
     melodicVarietySlider.setSliderStyle(juce::Slider::LinearHorizontal);
     melodicVarietySlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 50, 20);
 
-    // =========================
-    // Connexion aux coûts dans les vecteurs d'entrée
-    // =========================
-    /*melodicVarietySlider.onValueChange = [this]()
-    {
-        if (appController == nullptr || appController->isGenerating())
-            return;
-
-        auto& settings = appController->getProblem().getSettings();
-
-        if (settings.soft.melodic.size() < 8)
-            settings.soft.melodic.resize(8, 0);
-
-        settings.soft.melodic[0] = (int) melodicVarietySlider.getValue();
-
-        std::cout << "melodic[0] = " << settings.soft.melodic[0] << std::endl;
-
-
-    };*/
 
     melodicVarietySlider.onValueChange = [this]() {
     int value = static_cast<int>(melodicVarietySlider.getValue());

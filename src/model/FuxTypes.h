@@ -28,6 +28,13 @@
 #include <unordered_map>
 #include <vector>
 
+
+//==============================================================================
+// FuxTypes
+//
+// Regroupe les types, constantes et énumérations
+// nécessaires à la construction des problèmes Fux/Gecode.
+//==============================================================================
 namespace fuxcp {
 
 // ---------------------------------------------------------------------------
