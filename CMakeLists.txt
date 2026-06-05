@@ -47,9 +47,6 @@ target_sources(myproject PRIVATE
         src/ui/leftPanel/LeftPanel.cpp
         src/ui/leftPanel/LeftPanel.h
 
-        src/ui/WorkArea/WorkAreaPanel.cpp
-        src/ui/WorkArea/WorkAreaPanel.h
-
         src/ui/optionsPanel/OptionsPanel.cpp
         src/ui/optionsPanel/OptionsPanel.h
         src/ui/optionsPanel/components/ClickableTitle.h
@@ -57,10 +54,11 @@ target_sources(myproject PRIVATE
         src/ui/optionsPanel/components/StyledLabel.h
         src/ui/optionsPanel/components/VoiceBox.h
         src/ui/optionsPanel/components/VoiceBox.cpp
-        src/ui/optionsPanel/OptionsPanelStyle.cpp
-        src/ui/optionsPanel/OptionsPanelStyle.h
         src/ui/optionsPanel/OptionsPanelHelpers.cpp
         src/ui/optionsPanel/OptionsPanelHelpers.h
+        src/ui/optionsPanel/components/ParameterRow.h
+        src/ui/optionsPanel/components/ParameterColumn.h
+        src/ui/optionsPanel/components/ParameterFactory.h
 
         src/audio/synth/SimpleSynth.cpp
         src/audio/synth/SimpleSynth.h

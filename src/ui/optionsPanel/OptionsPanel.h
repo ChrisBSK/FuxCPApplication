@@ -1,102 +1,107 @@
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
+
 #include "components/VoiceBox.h"
 #include "components/ColumnBox.h"
 #include "components/ClickableTitle.h"
-#include "components/StyledLabel.h"
-
+#include "components/ParameterColumn.h"
+#include "components/ParameterFactory.h"
 
 class LeftPanel;
 class AppController;
 
-/**
- * =============================================================================
- * OptionsPanel
- *
- * Rôle :
- * - Affichage des voix + paramètres
- * - Synchronisation UI avec LeftPanel
- * - Gestion du layout
- *
- * =============================================================================
- */
+/*
+//==============================================================================
+  OptionsPanel
+
+  Panneau de configuration de la génération.
+
+  Permet de :
+  - choisir les paramètres des voix
+  - modifier les contraintes de génération
+  - lancer la génération via le LeftPanel
+  - synchroniser l'interface avec l'AppController
+//==============================================================================
+*/
+
 class OptionsPanel : public juce::Component
 {
 public:
-    void setupMelodicControls();
-
     OptionsPanel();
 
+    // Rendu et disposition
     void paint(juce::Graphics&) override;
     void resized() override;
 
-    // =========================
-    // Synchronisation UI
-    // =========================
-
+    // Met à jour l'affichage des voix selon le nombre sélectionné
     void setNumVoices(int numVoices);
 
-    void setAppController(AppController * app_controller);
-
-    // Hyper important car il permet de construire le leftpanel
-    // et du coup d'être utilisé lors de la génération initiée
-    // par OptionsPanel (generateButton.onCLick)
-    //
+    // Connexions externes
+    void setAppController(AppController* app_controller);
     void setLeftPanel(LeftPanel* panel);
     LeftPanel* getLeftPanel() const;
 
-
-
 private:
+    // Références externes
     LeftPanel* leftPanel = nullptr;
     AppController* appController = nullptr;
 
-    // =========================
-    // Colonnes
-    // =========================
-
+    // Colonnes principales
     ColumnBox column1, column2, column3, column4;
     ClickableTitle title1, title2, title3, title4;
 
-    void setupColumnInteractions();
-    void setupHover(ClickableTitle &title,
-                    ColumnBox &column,
-                    int index);
-    void setupColumns();
-    void setupTitles();
-    void setupVoiceBoxes();
-    void setupButtons();
-
-    int activeColumn = 0;
-    int hoveredColumn = 0;
-
-    void updateActiveColumn(int index);
-
-    // =========================
-    // Voix
-    // =========================
-
+    // Voix affichées dans la première colonne
     VoiceBox box1 { "Cantus Firmus" };
     VoiceBox box2 { "Contrepoint 1" };
     VoiceBox box3 { "Contrepoint 2" };
     VoiceBox box4 { "Contrepoint 3" };
 
-    // =========================
-    // Contraintes mélodiques
-    // =========================
+    // Paramètres configurables par colonne
+    ParameterColumn basicColumn;
+    ParameterColumn melodicColumn;
+    ParameterColumn harmonicColumn;
+    ParameterColumn otherColumn;
 
-
-    StyledLabel melodicVarietyLabel;
-    juce::Slider melodicVarietySlider;
-
-    // =========================
-    // Boutons
-    // =========================
-
+    // Boutons d'action
     juce::TextButton generateButton;
     juce::TextButton cancel;
 
+    // État visuel des colonnes
+    int activeColumn = 0;
+    int hoveredColumn = 0;
+
+    // Initialisation de l'interface
+    void setupColumns();
+    void setupTitles();
+    void setupVoiceBoxes();
+    void setupButtons();
+    void setupMelodicControls();
+
+    // Interactions utilisateur
+    void setupColumnInteractions();
+    void setupHover(ClickableTitle& title,
+                    ColumnBox& column,
+                    int index);
+
+    void updateActiveColumn(int index);
+
+    // Layout interne
+    void layoutVoiceColumn(juce::Rectangle<int> bounds);
+    void layoutButtons(juce::Rectangle<int> bottomArea);
+
+    // Ajoute un paramètre UI dans une colonne donnée
+    template <typename ControlType>
+    ControlType* addParameter(ParameterColumn& column,
+                              const juce::String& label,
+                              std::unique_ptr<ControlType> control)
+    {
+        auto* controlPtr = control.get();
+
+        column.addParameter(*this, label, std::move(control));
+
+        return controlPtr;
+    }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OptionsPanel)
 };

@@ -13,7 +13,7 @@ public:
         auto bounds = getLocalBounds().toFloat();
 
         g.setColour(juce::Colour(0xff2f4f4f));
-        g.fillRect(bounds);
+        g.fillRoundedRectangle(bounds, 6.0f);
 
         g.setColour(juce::Colours::white);
         g.setFont(getFont());

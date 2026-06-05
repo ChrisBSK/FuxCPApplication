@@ -13,7 +13,6 @@ MainComponent::MainComponent()
     // =========================
     addAndMakeVisible(header);
     addAndMakeVisible(leftPanel);
-    addAndMakeVisible(workArea);
     addAndMakeVisible(optionsPanel);
     addAndMakeVisible(history);
     addAndMakeVisible(keyboard);

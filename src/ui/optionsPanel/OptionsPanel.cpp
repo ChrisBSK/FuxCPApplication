@@ -1,11 +1,13 @@
 #include "OptionsPanel.h"
+
 #include "../leftPanel/LeftPanel.h"
 #include "../../controller/AppController.h"
 #include "OptionsPanelHelpers.h"
 
+#include <array>
 
 //==============================================================================
-// Constructor
+// Construction
 //==============================================================================
 
 OptionsPanel::OptionsPanel()
@@ -14,53 +16,43 @@ OptionsPanel::OptionsPanel()
     setupTitles();
     setupVoiceBoxes();
     setupButtons();
+
     setupColumnInteractions();
     setupMelodicControls();
 }
 
 //==============================================================================
-// Construction des colonnes principales
+// Initialisation UI
 //==============================================================================
+
 void OptionsPanel::setupColumns()
 {
-    addAndMakeVisible(column1);
-    addAndMakeVisible(column2);
-    addAndMakeVisible(column3);
-    addAndMakeVisible(column4);
+    std::array<ColumnBox*, 4> columns { &column1, &column2, &column3, &column4 };
+
+    for (auto* column : columns)
+        addAndMakeVisible(*column);
 }
 
-//==============================================================================
-// Initialisation des titres de colonnes
-//==============================================================================
 void OptionsPanel::setupTitles()
 {
     OptionsPanelHelpers::setupTitle(*this, title1, "Basic Constraints");
     OptionsPanelHelpers::setupTitle(*this, title2, "Melodic");
-    OptionsPanelHelpers::setupTitle(*this, title3, "Feature 3");
-    OptionsPanelHelpers::setupTitle(*this, title4, "Feature 4");
+    OptionsPanelHelpers::setupTitle(*this, title3, "Harmonic");
+    OptionsPanelHelpers::setupTitle(*this, title4, "Other");
 }
 
-//==============================================================================
-// Initialisation des blocs de voix
-//==============================================================================
 void OptionsPanel::setupVoiceBoxes()
 {
-    addAndMakeVisible(box1);
-    addAndMakeVisible(box2);
-    addAndMakeVisible(box3);
-    addAndMakeVisible(box4);
+    std::array<VoiceBox*, 4> boxes { &box1, &box2, &box3, &box4 };
+
+    for (auto* box : boxes)
+        addAndMakeVisible(*box);
 }
 
-//==============================================================================
-// Initialisation des boutons d'action
-//==============================================================================
 void OptionsPanel::setupButtons()
 {
-    addAndMakeVisible(generateButton);
-    addAndMakeVisible(cancel);
-
-    generateButton.setButtonText("Generate");
-    cancel.setButtonText("Cancel");
+    OptionsPanelHelpers::setupButton(*this, generateButton, "Generate");
+    OptionsPanelHelpers::setupButton(*this, cancel, "Cancel");
 
     generateButton.onClick = [this]()
     {
@@ -69,76 +61,58 @@ void OptionsPanel::setupButtons()
     };
 }
 
-
-
 void OptionsPanel::setupMelodicControls()
 {
-    // =========================
-    // Label
-    // =========================
-    addAndMakeVisible(melodicVarietyLabel);
-    melodicVarietyLabel.setText("Variety", juce::dontSendNotification);
+    auto* leapSlider = addParameter<juce::Slider>(
+        melodicColumn,
+        "Leap",
+        ParameterFactory::slider(0.0, 100.0, 10.0, 10.0)
+    );
 
-    // =========================
-    // Sliders
-    // =========================
-    addAndMakeVisible(melodicVarietySlider);
+    leapSlider->onValueChange = [this, leapSlider]()
+    {
+        if (appController == nullptr || appController->isGenerating())
+            return;
 
-    melodicVarietySlider.setRange(0, 100, 10);
-    melodicVarietySlider.setValue(10, juce::dontSendNotification);
-    melodicVarietySlider.setSliderStyle(juce::Slider::LinearHorizontal);
-    melodicVarietySlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 50, 20);
+        auto settings = appController->getProblem().getSettings();
+        settings.leapPenalty = static_cast<int>(leapSlider->getValue());
 
-
-    melodicVarietySlider.onValueChange = [this]() {
-    int value = static_cast<int>(melodicVarietySlider.getValue());
-
-    // Récupère les paramètres actuels
-    auto settings = appController->getProblem().getSettings();
-
-    // Met à jour leapPenalty
-    settings.leapPenalty = value;
-
-    // Met à jour les paramètres et recalcule les coûts
-    appController->updateSettings(settings);
+        appController->updateSettings(settings);
     };
 }
 
 //==============================================================================
-// Connexion des interactions de colonnes
+// Interactions des colonnes
 //==============================================================================
+
 void OptionsPanel::setupColumnInteractions()
 {
-    title1.onClick = [this]() { updateActiveColumn(1); };
-    title2.onClick = [this]() { updateActiveColumn(2); };
-    title3.onClick = [this]() { updateActiveColumn(3); };
-    title4.onClick = [this]() { updateActiveColumn(4); };
-
-    column1.onClick = [this]() { updateActiveColumn(1); };
-    column2.onClick = [this]() { updateActiveColumn(2); };
-    column3.onClick = [this]() { updateActiveColumn(3); };
-    column4.onClick = [this]() { updateActiveColumn(4); };
-
-    std::array<ClickableTitle*, 4> titles = { &title1, &title2, &title3, &title4 };
-    std::array<ColumnBox*, 4> columns = { &column1, &column2, &column3, &column4 };
+    std::array<ClickableTitle*, 4> titles { &title1, &title2, &title3, &title4 };
+    std::array<ColumnBox*, 4> columns { &column1, &column2, &column3, &column4 };
 
     for (int i = 0; i < 4; ++i)
-        setupHover(*titles[i], *columns[i], i + 1);
+    {
+        const int columnIndex = i + 1;
+
+        titles[i]->onClick  = [this, columnIndex]() { updateActiveColumn(columnIndex); };
+        columns[i]->onClick = [this, columnIndex]() { updateActiveColumn(columnIndex); };
+
+        setupHover(*titles[i], *columns[i], columnIndex);
+    }
 }
 
 void OptionsPanel::setupHover(ClickableTitle& title,
                               ColumnBox& column,
                               int index)
 {
-    //// Gestion du Hover Titre et colonne
-    title.onEnter = [this, &column, index]()
+    title.onEnter = column.onEnter = [this, &column, index]()
     {
         hoveredColumn = index;
         column.isHovered = true;
         repaint();
     };
 
-    title.onExit = [this, &column]()
+    title.onExit = column.onExit = [this, &column]()
     {
         hoveredColumn = 0;
         column.isHovered = false;
@@ -146,37 +120,46 @@ void OptionsPanel::setupHover(ClickableTitle& title,
     };
 }
 
+void OptionsPanel::updateActiveColumn(int index)
+{
+    activeColumn = index;
+
+    column1.isActive = index == 1;
+    column2.isActive = index == 2;
+    column3.isActive = index == 3;
+    column4.isActive = index == 4;
+
+    repaint();
+}
+
 //==============================================================================
-// Paint
+// Affichage
 //==============================================================================
 
 void OptionsPanel::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colours::darkgrey);
 
-    auto drawTitle = [&](juce::Label& title, int index)
+    auto drawTitleHighlight = [&](juce::Label& title, int index)
     {
-        auto bounds = title.getBounds().toFloat().reduced(2);
+        if (activeColumn != index && hoveredColumn != index)
+            return;
 
-        if (activeColumn == index)
-        {
-            // colonne active
-            g.setColour(juce::Colour(0xff2f4f4f));
-            g.fillRoundedRectangle(bounds, 6.0f);
-        }
-        else if (hoveredColumn == index)
-        {
-            // hover sur une autre colonne
-            g.setColour(juce::Colour(0xff2f4f4f).withAlpha(0.8f));
-            g.fillRoundedRectangle(bounds, 6.0f);
-        }
+        auto bounds = title.getBounds().toFloat().reduced(2.0f);
+
+        g.setColour(activeColumn == index
+                    ? juce::Colour(0xff2f4f4f)
+                    : juce::Colour(0xff2f4f4f).withAlpha(0.8f));
+
+        g.fillRoundedRectangle(bounds, 6.0f);
     };
 
-    drawTitle(title1, 1);
-    drawTitle(title2, 2);
-    drawTitle(title3, 3);
-    drawTitle(title4, 4);
+    drawTitleHighlight(title1, 1);
+    drawTitleHighlight(title2, 2);
+    drawTitleHighlight(title3, 3);
+    drawTitleHighlight(title4, 4);
 }
+
 //==============================================================================
 // Layout
 //==============================================================================
@@ -184,117 +167,87 @@ void OptionsPanel::paint(juce::Graphics& g)
 void OptionsPanel::resized()
 {
     auto fullArea = getLocalBounds().reduced(20);
-
-    // zone boutons en bas
     auto bottomArea = fullArea.removeFromBottom(80);
+    auto contentArea = fullArea.reduced(40, 30);
 
-    // =============================
-    // zone centrale volontairement plus petite
-    // pour que les colonnes soient moins larges et moins hautes
-    // =============================
-    auto area = fullArea.reduced(40, 30);
+    constexpr int columnCount = 4;
+    constexpr int columnWidth = 240;
+    constexpr int columnGap = 14;
+    constexpr int titleHeight = 28;
+    constexpr int titleGap = 6;
 
-    const int gap = 14;
-    const int titleHeight = 28;
+    const int totalWidth = columnCount * columnWidth
+                         + (columnCount - 1) * columnGap;
 
-    // colonnes un peu moins larges que toute la zone dispo
-    const int columnWidth = 240;
+    const int startX = contentArea.getX()
+                     + (contentArea.getWidth() - totalWidth) / 2;
 
-    // =============================
-    // calcul pour centrer les 4 colonnes
-    // =============================
-    const int totalColumnsWidth = 4 * columnWidth + 3 * gap;
-    int startX = area.getX() + (area.getWidth() - totalColumnsWidth) / 2;
+    const int titleY = contentArea.getY();
+    const int columnY = titleY + titleHeight + titleGap;
+    const int columnHeight = juce::jmin(500, contentArea.getHeight() - 30);
 
-    // hauteur volontairement réduite
-    const int columnHeight = juce::jmin(500, area.getHeight() - 30);
+    std::array<ClickableTitle*, 4> titles { &title1, &title2, &title3, &title4 };
+    std::array<ColumnBox*, 4> columns { &column1, &column2, &column3, &column4 };
 
-    // Y de départ commun
-    int titleY = area.getY();
-    int columnY = titleY + titleHeight + 6;
+    std::array<juce::Rectangle<int>, 4> columnBounds;
 
-    // =============================
-    // Colonne 1 : Basic Constraints
-    // =============================
-    juce::Rectangle<int> col1Bounds(startX, columnY, columnWidth, columnHeight);
-    title1.setBounds(startX, titleY, columnWidth, titleHeight);
-    column1.setBounds(col1Bounds);
+    for (int i = 0; i < columnCount; ++i)
+    {
+        const int x = startX + i * (columnWidth + columnGap);
 
-    auto inner = col1Bounds.reduced(10);
+        titles[i]->setBounds(x, titleY, columnWidth, titleHeight);
 
-    const int boxHeight = 60;
-    const int gapY = 8;
+        columnBounds[i] = { x, columnY, columnWidth, columnHeight };
+        columns[i]->setBounds(columnBounds[i]);
+    }
 
-    box1.setBounds(inner.removeFromTop(boxHeight));
-    inner.removeFromTop(gapY);
+    layoutVoiceColumn(columnBounds[0]);
+    melodicColumn.layout(columnBounds[1]);
+    harmonicColumn.layout(columnBounds[2]);
+    otherColumn.layout(columnBounds[3]);
 
-    box2.setBounds(inner.removeFromTop(boxHeight));
-    inner.removeFromTop(gapY);
-
-    box3.setBounds(inner.removeFromTop(boxHeight));
-    inner.removeFromTop(gapY);
-
-    box4.setBounds(inner.removeFromTop(boxHeight));
-
-    // =============================
-    // Colonne 2 : Melodic
-    // =============================
-    int col2X = startX + columnWidth + gap;
-    juce::Rectangle<int> col2Bounds(col2X, columnY, columnWidth, columnHeight);
-    title2.setBounds(col2X, titleY, columnWidth, titleHeight);
-    column2.setBounds(col2Bounds);
-
-    auto inner2 = col2Bounds.reduced(12);
-
-    const int rowHeight = 26;
-    const int spacingY = 10;
-    const int labelWidth = 95;
-    const int gapX = 12;
-
-    // ===== 1. Max Leap =====
-    auto row1 = inner2.removeFromTop(rowHeight);
-    auto left1 = row1.removeFromLeft(labelWidth);
-    row1.removeFromLeft(gapX);
-
-    melodicVarietyLabel.setBounds(left1);
-    melodicVarietySlider.setBounds(row1.reduced(0, 6));
-    inner2.removeFromTop(spacingY);
-
-    // =============================
-    // Colonne 3
-    // =============================
-    int col3X = col2X + columnWidth + gap;
-    juce::Rectangle<int> col3Bounds(col3X, columnY, columnWidth, columnHeight);
-    title3.setBounds(col3X, titleY, columnWidth, titleHeight);
-    column3.setBounds(col3Bounds);
-
-    // =============================
-    // Colonne 4
-    // =============================
-    int col4X = col3X + columnWidth + gap;
-    juce::Rectangle<int> col4Bounds(col4X, columnY, columnWidth, columnHeight);
-    title4.setBounds(col4X, titleY, columnWidth, titleHeight);
-    column4.setBounds(col4Bounds);
-
-    // =============================
-    // Bottom buttons
-    // on garde leur taille actuelle
-    // =============================
-    const int buttonWidth = 110;
-    const int buttonHeight = 28;
-    const int spacing = 12;
-
-    int totalWidth = 2 * buttonWidth + spacing;
-    int startButtonsX = (getWidth() - totalWidth) / 2;
-    int y = bottomArea.getY() + (bottomArea.getHeight() - buttonHeight) / 2;
-
-    cancel.setBounds(startButtonsX, y, buttonWidth, buttonHeight);
-    generateButton.setBounds(startButtonsX + buttonWidth + spacing, y, buttonWidth, buttonHeight);
+    layoutButtons(bottomArea);
 }
 
+void OptionsPanel::layoutVoiceColumn(juce::Rectangle<int> bounds)
+{
+    auto inner = bounds.reduced(10);
+
+    constexpr int boxHeight = 60;
+    constexpr int gapY = 8;
+
+    std::array<VoiceBox*, 4> boxes { &box1, &box2, &box3, &box4 };
+
+    for (size_t i = 0; i < boxes.size(); ++i)
+    {
+        boxes[i]->setBounds(inner.removeFromTop(boxHeight));
+
+        if (i + 1 < boxes.size())
+            inner.removeFromTop(gapY);
+    }
+}
+
+void OptionsPanel::layoutButtons(juce::Rectangle<int> bottomArea)
+{
+    constexpr int buttonWidth = 110;
+    constexpr int buttonHeight = 28;
+    constexpr int spacing = 12;
+
+    const int totalWidth = 2 * buttonWidth + spacing;
+    const int startX = (getWidth() - totalWidth) / 2;
+    const int y = bottomArea.getY()
+                + (bottomArea.getHeight() - buttonHeight) / 2;
+
+    cancel.setBounds(startX, y, buttonWidth, buttonHeight);
+
+    generateButton.setBounds(startX + buttonWidth + spacing,
+                             y,
+                             buttonWidth,
+                             buttonHeight);
+}
 
 //==============================================================================
-// Synchronisation : nombre de voix
+// Synchronisation des voix
 //==============================================================================
 
 void OptionsPanel::setNumVoices(int numVoices)
@@ -302,51 +255,34 @@ void OptionsPanel::setNumVoices(int numVoices)
     if (appController == nullptr)
         return;
 
-    std::vector<VoiceBox*> boxes = { &box1, &box2, &box3, &box4 };
+    const int numCounterpoints = juce::jmax(0, numVoices - 1);
+    appController->getVoiceSettings().resize(numCounterpoints);
 
-    // resize modèle
-    int numCP = juce::jmax(0, numVoices - 1);
-    appController->getVoiceSettings().resize(numCP);
+    std::array<VoiceBox*, 4> boxes { &box1, &box2, &box3, &box4 };
 
     for (size_t i = 0; i < boxes.size(); ++i)
     {
-        boxes[i]->setActive(i < (size_t)numVoices);
+        auto* box = boxes[i];
 
-        if (i == 0)
-        {
-            // CF
-            boxes[i]->speciesBox.setVisible(false);
-            boxes[i]->typeBox.setVisible(false);
-        }
-        else if (i >= 1 && i < (size_t)numVoices)
-        {
-            int cpIndex = i - 1;
-            //  CP
-            boxes[i]->speciesBox.setVisible(true);
-            boxes[i]->typeBox.setVisible(true);
+        const bool isVisibleVoice = i < static_cast<size_t>(numVoices);
+        const bool isCantusFirmus = i == 0;
+        const bool isCounterpoint = isVisibleVoice && !isCantusFirmus;
 
-            boxes[i]->connectToController(appController, cpIndex);
-        }
-        boxes[i]->repaint();
+        box->setActive(isVisibleVoice);
+
+        box->speciesBox.setVisible(isCounterpoint);
+        box->typeBox.setVisible(isCounterpoint);
+
+        if (isCounterpoint)
+            box->connectToController(appController, static_cast<int>(i) - 1);
+
+        box->repaint();
     }
 }
 
-
 //==============================================================================
-// Colonne active (UI only)
+// Connexions externes
 //==============================================================================
-
-void OptionsPanel::updateActiveColumn(int index)
-{
-    activeColumn = index;
-
-    column1.isActive = (index == 1);
-    column2.isActive = (index == 2);
-    column3.isActive = (index == 3);
-    column4.isActive = (index == 4);
-
-    repaint();
-}
 
 void OptionsPanel::setAppController(AppController* app_controller)
 {

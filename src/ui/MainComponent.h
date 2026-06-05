@@ -8,7 +8,6 @@
 #include "history/HistoryPanel.h"
 #include "keyboard/KeyboardComponent.h"
 #include "leftPanel/LeftPanel.h"
-#include "WorkArea/WorkAreaPanel.h"
 #include "optionsPanel/OptionsPanel.h"
 
 // ===== Core =====
@@ -55,7 +54,6 @@ private:
     // =========================
     HeaderPanel header;
     LeftPanel leftPanel { appController };
-    WorkAreaPanel workArea;
     OptionsPanel optionsPanel;
 
     HistoryPanel history;
