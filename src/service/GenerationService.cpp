@@ -509,6 +509,13 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
               << settings.getBorrowMode()
               << std::endl;
 
+    std::cout << "\n=== GENERAL COSTS SENT TO FUXCP ===\n";
+    for (int cost : generalStorage)
+        std::cout << cost << " ";
+    std::cout << "\n";
+
+    std::cout << "\n";
+
     // =========================
     //  Création du problème Fux
     // =========================

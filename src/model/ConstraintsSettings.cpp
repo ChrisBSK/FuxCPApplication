@@ -29,8 +29,6 @@ std::vector<int> ConstraintSettings::buildMelodicCosts() const
 {
     auto costs = buildDefaultMelodicCosts();
 
-    applyLeapSlider(costs);
-
     return costs;
 }
 
@@ -113,14 +111,18 @@ std::vector<int> ConstraintSettings::buildGeneralCosts() const
 {
     return
     {
-        4, // borrowCost
-        1, // h_fifthCost
-        1, // h_octaveCost
-        2, // succCost
-        2, // varietyCost
-        2, // triadCost
-        8, // directMoveCost
-        1  // penultCost
+        4,                           // borrowCost
+        1,                           // h_fifthCost
+        1,                           // h_octaveCost
+        2,                           // succCost
+
+        general.noteRepetitionValue, // varietyCost
+                                     // Utilisé dans M2_1_varietyCost().
+                                     // Pénalise les notes répétées dans une fenêtre courte.
+
+        2,                           // triadCost
+        8,                           // directMoveCost
+        1                            // penultCost
     };
 }
 
@@ -141,6 +143,13 @@ std::vector<int> ConstraintSettings::buildGeneralCosts() const
 */
 std::vector<int> ConstraintSettings::buildSpecificCosts() const
 {
+    auto costs = buildDefaultSpecificCosts();
+
+    return costs;
+}
+
+std::vector<int> ConstraintSettings::buildDefaultSpecificCosts() const
+{
     return
     {
         8,  // penultSixthCost
@@ -152,6 +161,7 @@ std::vector<int> ConstraintSettings::buildSpecificCosts() const
         50  // prefSlider
     };
 }
+
 
 //==============================================================================
 // IMPORTANCE COSTS

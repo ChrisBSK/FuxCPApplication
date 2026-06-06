@@ -63,24 +63,71 @@ void OptionsPanel::setupButtons()
 
 void OptionsPanel::setupMelodicControls()
 {
-    auto* leapSlider = addParameter<juce::Slider>(
+    //==========================================================================
+    // Borrow Mode
+    //==========================================================================
+    auto* borrowToggle = addParameter<juce::ToggleButton>(
         melodicColumn,
-        "Leap",
-        ParameterFactory::slider(0.0, 100.0, 10.0, 0.0)
+        "Borrow Mode",
+        std::make_unique<juce::ToggleButton>()
     );
 
-    leapSlider->onValueChange = [this, leapSlider]()
+    if (appController != nullptr)
+    {
+        borrowToggle->setToggleState(
+            appController->getProblem().getSettings().getBorrowMode() == 1,
+            juce::dontSendNotification
+        );
+    }
+
+    borrowToggle->onClick = [this, borrowToggle]()
     {
         if (appController == nullptr || appController->isGenerating())
             return;
 
         auto& problem = appController->getProblem();
 
-        problem.getSettings().setLeapSliderValue(
-            static_cast<int>(leapSlider->getValue())
-        );
+        const int value = borrowToggle->getToggleState() ? 1 : 0;
 
+        problem.getSettings().setBorrowMode(value);
         problem.recalculateCosts();
+
+        std::cout << "\n=== BORROW MODE CHANGED ===\n";
+        std::cout << "borrowMode = "
+                  << problem.getSettings().getBorrowMode()
+                  << "\n";
+    };
+
+    //==========================================================================
+    // Repetion slider
+    //==========================================================================
+    auto* repetitionSlider = addParameter<juce::Slider>(
+        melodicColumn,
+        "Melodic Variety",
+        ParameterFactory::slider(0.0, 1000.0, 10.0, 2.0)
+    );
+
+    repetitionSlider->onValueChange = [this, repetitionSlider]()
+    {
+        if (appController == nullptr || appController->isGenerating())
+            return;
+
+        auto& problem = appController->getProblem();
+
+        const int value = static_cast<int>(repetitionSlider->getValue());
+
+        problem.getSettings().setNoteRepetitionValue(value);
+        problem.recalculateCosts();
+
+        std::cout << "\n=== NOTE REPETITION SLIDER CHANGED ===\n";
+        std::cout << "noteRepetitionValue = "
+                  << problem.getSettings().getNoteRepetitionValue()
+                  << "\n";
+
+        std::cout << "General costs = ";
+        for (int c : problem.getGeneralCosts())
+            std::cout << c << " ";
+        std::cout << "\n";
     };
 }
 

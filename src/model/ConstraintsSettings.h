@@ -31,6 +31,17 @@ struct ConstraintSettings
         octaveCost
     };
 
+    enum SpecificCostIndex
+    {
+        penultSixthCost = 0,
+        cambiataCost,
+        mSkipCost,
+        triad3rdCost,
+        m2ZeroCost,
+        syncopationCost,
+        prefSlider
+    };
+
     //==========================================================================
     // UI PARAMETERS
     //==========================================================================
@@ -41,7 +52,14 @@ struct ConstraintSettings
 
     struct General
     {
-        // TODO
+        /*
+        Pénalité appliquée lorsque le contrepoint réutilise
+        plusieurs fois la même note dans une fenêtre courte.
+
+        Faible valeur  -> répétitions plus acceptées.
+        Grande valeur  -> répétitions fortement pénalisées.
+    */
+        int noteRepetitionValue = 2;
     };
 
     struct Specific
@@ -68,6 +86,11 @@ struct ConstraintSettings
     std::vector<int> buildMelodicCosts() const;
     std::vector<int> buildGeneralCosts() const;
     std::vector<int> buildSpecificCosts() const;
+
+    std::vector<int> buildDefaultSpecificCosts() const;
+
+    void applyRepetitionSlider(std::vector<int> &costs) const;
+
     std::vector<int> buildImportanceCosts() const;
 
     //==========================================================================
@@ -83,6 +106,15 @@ struct ConstraintSettings
         return melodic.leapSliderValue;
     }
 
+    void setNoteRepetitionValue(int value)
+    {
+        general.noteRepetitionValue = value;
+    }
+
+    int getNoteRepetitionValue() const
+    {
+        return general.noteRepetitionValue;
+    }
     void setBorrowMode(int value)
     {
         global.borrowMode = (value == 0 ? 0 : 1);
