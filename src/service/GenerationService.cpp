@@ -500,6 +500,15 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
         vTypeFux.push_back(cp.type);
     }
 
+    std::cout << "\n=== MELODIC COSTS SENT TO FUXCP ===\n";
+
+    for (int cost : melodicStorage)
+        std::cout << cost << " ";
+
+    std::cout << "\nborrowMode = "
+              << settings.getBorrowMode()
+              << std::endl;
+
     // =========================
     //  Création du problème Fux
     // =========================
@@ -511,7 +520,7 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
         generalStorage,
         specificStorage,
         importanceStorage,
-        settings.borrowMode
+        settings.getBorrowMode()
     );
 }
 

@@ -84,12 +84,23 @@ public:
     void updateVoice(int index, int species, int type);
     bool isGenerating() const;
 
-    void updateSettings(const ConstraintSettings &newSettings);
 
     juce::ValueTree& getGenerationState()
     {
         return generationState;
     }
+
+    ConstraintSettings& getConstraintSettings()
+    {
+        return problem.getSettings();
+    }
+
+    const ConstraintSettings& getConstraintSettings() const
+    {
+        return problem.getSettings();
+    }
+
+
 
 private:
     // =========================

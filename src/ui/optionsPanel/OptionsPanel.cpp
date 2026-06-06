@@ -66,7 +66,7 @@ void OptionsPanel::setupMelodicControls()
     auto* leapSlider = addParameter<juce::Slider>(
         melodicColumn,
         "Leap",
-        ParameterFactory::slider(0.0, 100.0, 10.0, 10.0)
+        ParameterFactory::slider(0.0, 100.0, 10.0, 0.0)
     );
 
     leapSlider->onValueChange = [this, leapSlider]()
@@ -74,10 +74,13 @@ void OptionsPanel::setupMelodicControls()
         if (appController == nullptr || appController->isGenerating())
             return;
 
-        auto settings = appController->getProblem().getSettings();
-        settings.leapPenalty = static_cast<int>(leapSlider->getValue());
+        auto& problem = appController->getProblem();
 
-        appController->updateSettings(settings);
+        problem.getSettings().setLeapSliderValue(
+            static_cast<int>(leapSlider->getValue())
+        );
+
+        problem.recalculateCosts();
     };
 }
 
