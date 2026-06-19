@@ -226,7 +226,7 @@ const std::vector<int>& CantusProblem::getImportanceCosts() const {
 // Synchronisation entre les paramètres et le solveur
 //==============================================================================
 void CantusProblem::recalculateCosts() {
-    melodicCosts = settings.buildMelodicCosts();
+    melodicCosts = settings.buildMelodicCosts(static_cast<int>(voices.cf.size()));
     generalCosts = settings.buildGeneralCosts();
     specificCosts = settings.buildSpecificCosts();
     importanceCosts = settings.buildImportanceCosts();

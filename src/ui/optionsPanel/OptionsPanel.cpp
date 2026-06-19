@@ -3,6 +3,7 @@
 #include "../leftPanel/LeftPanel.h"
 #include "../../controller/AppController.h"
 #include "OptionsPanelHelpers.h"
+#include "../../model/MelodicParameters.h"
 
 #include <array>
 
@@ -96,7 +97,49 @@ void OptionsPanel::setupMelodicControls()
         std::cout << "borrowMode = "
                   << problem.getSettings().getBorrowMode()
                   << "\n";
+
     };
+
+    //==========================================================================
+    // Melodic Leap Control
+    //==========================================================================
+    auto* leapSlider = addParameter<juce::Slider>(
+        melodicColumn,
+        "Melodic Leaps",
+        std::make_unique<juce::Slider>()
+    );
+
+    leapSlider->setSliderStyle(juce::Slider::LinearHorizontal);
+    leapSlider->setTextBoxStyle(juce::Slider::TextBoxRight, false, 50, 20);
+    leapSlider->setRange(0.0, 1.0, 0.01);
+    leapSlider->setValue(0.0, juce::dontSendNotification);
+
+    if (appController != nullptr)
+    {
+        leapSlider->setValue(
+            appController->getProblem().getSettings().getLargeLeapPenalty(),
+            juce::dontSendNotification
+        );
+    }
+
+    leapSlider->onValueChange = [this, leapSlider]()
+    {
+        if (appController == nullptr || appController->isGenerating())
+            return;
+
+        auto& problem = appController->getProblem();
+
+        const double largeLeapPenalty = leapSlider->getValue();
+
+        problem.getSettings().setLargeLeapPenalty(largeLeapPenalty);
+        problem.recalculateCosts();
+
+        std::cout << "\n=== MELODIC LEAPS CHANGED ===\n";
+        std::cout << "largeLeapPenalty = "
+                  << problem.getSettings().getLargeLeapPenalty()
+                  << "\n";
+    };
+
 
     //==========================================================================
     // Repetion slider

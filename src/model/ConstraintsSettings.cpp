@@ -1,5 +1,8 @@
 #include "ConstraintsSettings.h"
 
+#include <algorithm>
+#include <cmath>
+
 /*
 ==============================================================================
     ConstraintSettings.cpp
@@ -25,70 +28,104 @@
     1. Construire les coûts par défaut.
     2. Appliquer les paramètres UI.
 */
-std::vector<int> ConstraintSettings::buildMelodicCosts() const
+std::vector<int> ConstraintSettings::buildMelodicCosts(int cantusFirmusLength) const
 {
-    auto costs = buildDefaultMelodicCosts();
+    auto costs = buildDefaultMelodicCosts(cantusFirmusLength);
+
+    applyLargeLeapPenalty(costs);
 
     return costs;
 }
 
 /*
-    Coûts mélodiques par défaut de FuxCP.
+    Coûts mélodiques de base, avant pénalisation par le slider.
 
-    Correspondance avec Part.cpp :
-
-    secondCost   = m_costs[0];
-    thirdCost    = m_costs[1];
-    fourthCost   = m_costs[2];
-    tritoneCost  = m_costs[3];
-    fifthCost    = m_costs[4];
-    sixthCost    = m_costs[5];
-    seventhCost  = m_costs[6];
-    octaveCost   = m_costs[7];
+    Plus le nombre est petit, plus le solveur accepte facilement l'intervalle.
+    Le slider "Melodic Leaps" part de cette base, puis augmente les coûts des
+    grands sauts quand largeLeapPenalty se rapproche de 1.
 */
-std::vector<int> ConstraintSettings::buildDefaultMelodicCosts() const
+std::vector<int> ConstraintSettings::buildDefaultMelodicCosts(int cantusFirmusLength) const
 {
+    constexpr int freeMove = 0;
+    constexpr int preferredMove = 1;
+    constexpr int acceptedLeap = 1;
+    constexpr int lessPreferredLeap = 2;
+    constexpr int forbiddenPenaltyPerNote = 64;
+    constexpr int fallbackCantusFirmusLength = 9;
+
+    const int melodyLength = cantusFirmusLength > 0
+        ? cantusFirmusLength
+        : fallbackCantusFirmusLength;
+
+    const int almostForbidden = forbiddenPenaltyPerNote * melodyLength;
+
     return
     {
-        0,   // secondCost   : seconde mélodique
-        1,   // thirdCost    : tierce mélodique
-        1,   // fourthCost   : quarte mélodique
-        576, // tritoneCost  : triton mélodique
-        2,   // fifthCost    : quinte mélodique
-        2,   // sixthCost    : sixte mélodique
-        2,   // seventhCost  : septième mélodique
-        1    // octaveCost   : octave mélodique
+        freeMove,          // 0-2 demi-tons  : même note ou seconde ( 1-SecondeMineure/2-SecondeMajeure)
+        preferredMove,     // 3-4 demi-tons  : tierce (3-TierceMineure/4-TierceMajeure)
+        acceptedLeap,      // 5 demi-tons    : quarte (quarte juste)
+        almostForbidden,   // 6 demi-tons    : triton (triton)
+        acceptedLeap,      // 7 demi-tons    : quinte (juste)
+        acceptedLeap,      // 8-9 demi-tons  : sixte (8-SixteMineure/9-SixteMajeure)
+        lessPreferredLeap, // 10-11 demi-tons: septième (10-septièmeMineure/11-SetièmeMajeure)
+        acceptedLeap       // 12 demi-tons   : octave (12 octave)
     };
 }
 
 /*
-    Slider "Leap".
+    Slider "Melodic Leaps".
 
-    Plus la valeur est élevée,
-    plus les grands sauts mélodiques sont pénalisés.
+    0.0 = comportement permissif : les grands sauts coûtent peu.
+    1.0 = comportement strict : les grands sauts coûtent cher.
 
     Les intervalles concernés sont :
 
     - quarte
-    - triton
     - quinte
     - sixte
     - septième
     - octave
+
+    Le triton garde son coût d'interdit/dernier recours, conformément au mémoire.
 */
-void ConstraintSettings::applyLeapSlider(std::vector<int>& costs) const
+void ConstraintSettings::applyLargeLeapPenalty(std::vector<int>& costs) const
 {
-    const int value = melodic.leapSliderValue;
+    constexpr double minimumLeapPenalty = 0.0;
+    constexpr double maximumLeapPenalty = 1.0;
 
-    if (value <= 0)
-        return;
+    constexpr int lowCost = 1;
+    constexpr int mediumCost = 2;
+    constexpr int highCost = 4;
+    constexpr int lastResortCost = 8;
 
-    costs[fourthCost]  += value;
-    costs[tritoneCost] += value;
-    costs[fifthCost]   += value;
-    costs[sixthCost]   += value;
-    costs[seventhCost] += value;
-    costs[octaveCost]  += value;
+    //Force la valeur de largeLeapPenalty à rester entre min et max
+    const double largeLeapPenalty = std::clamp(
+        melodic.largeLeapPenalty,
+        minimumLeapPenalty,
+        maximumLeapPenalty
+    );
+
+    //Formule d'une interpolation linéraire
+    // permissiveCost = coût de départ (slider égal à 0)
+    // strictCost - permissiveCost = distance entre le coût fort et le coût faible
+    //                               défini dans (buildDefaultMelodicCosts)
+    // largeLeapPenalty = position du slider
+    const auto interpolateCost = [largeLeapPenalty](int permissiveCost, int strictCost)
+    {
+        const double cost = permissiveCost
+            + largeLeapPenalty * static_cast<double>(strictCost - permissiveCost);
+
+        return static_cast<int>(std::lround(cost));
+    };
+
+    // Dans la tthéorie de Fux on dit que les saut de fifth et octaves sont tolérés
+    // Le reste ne sonne pas forcément bien, du coup je pénalise les autres grands sauts
+    // avec lastResortCost
+    costs[fourthCost]  = interpolateCost(lowCost, lastResortCost);
+    costs[fifthCost]   = interpolateCost(lowCost, highCost);
+    costs[sixthCost]   = interpolateCost(lowCost, lastResortCost);
+    costs[seventhCost] = interpolateCost(mediumCost, lastResortCost);
+    costs[octaveCost]  = interpolateCost(lowCost, highCost);
 }
 
 //==============================================================================
@@ -193,19 +230,19 @@ std::vector<int> ConstraintSettings::buildImportanceCosts() const
 {
     return
     {
-        8,  // borrow       : importance des notes empruntées
-        7,  // fifth        : importance des quintes harmoniques
-        5,  // octave       : importance des octaves harmoniques
-        2,  // succ         : importance des mouvements successifs
-        9,  // variety      : importance de la variété mélodique
-        3,  // triad        : importance des accords complets
-        14, // direct       : importance des mouvements directs
-        12, // motion       : importance générale des mouvements
-        6,  // penult       : importance de la pénultième mesure
-        11, // cambiata     : importance des cambiatas
-        4,  // triad3       : importance de la tierce de l'accord
-        10, // m2           : importance des secondes mélodiques
-        1,  // syncopation  : importance des syncopes
-        13  // melodic      : importance globale des contraintes mélodiques
+        8,  // borrow
+        7,  // fifth
+        5,  // octave
+        3,  // succ
+        9,  // variety
+        4,  // triad
+        14, // direct
+        12, // motion
+        6,  // penult
+        11, // cambiata
+        5,  // triad3
+        10, // m2
+        13, // syncopation
+        1   // melodic
     };
 }

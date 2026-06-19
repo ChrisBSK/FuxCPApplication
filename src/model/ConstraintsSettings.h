@@ -47,7 +47,7 @@ struct ConstraintSettings
     //==========================================================================
     struct Melodic
     {
-        int leapSliderValue = 0;
+        double largeLeapPenalty = 0.0;
     };
 
     struct General
@@ -83,7 +83,7 @@ struct ConstraintSettings
     //==========================================================================
     // BUILD FUX COSTS
     //==========================================================================
-    std::vector<int> buildMelodicCosts() const;
+    std::vector<int> buildMelodicCosts(int cantusFirmusLength) const;
     std::vector<int> buildGeneralCosts() const;
     std::vector<int> buildSpecificCosts() const;
 
@@ -96,14 +96,14 @@ struct ConstraintSettings
     //==========================================================================
     // UI SETTERS / GETTERS
     //==========================================================================
-    void setLeapSliderValue(int value)
+    void setLargeLeapPenalty(double value)
     {
-        melodic.leapSliderValue = value;
+        melodic.largeLeapPenalty = value;
     }
 
-    int getLeapSliderValue() const
+    double getLargeLeapPenalty() const
     {
-        return melodic.leapSliderValue;
+        return melodic.largeLeapPenalty;
     }
 
     void setNoteRepetitionValue(int value)
@@ -129,10 +129,10 @@ private:
     //==========================================================================
     // DEFAULT COSTS
     //==========================================================================
-    std::vector<int> buildDefaultMelodicCosts() const;
+    std::vector<int> buildDefaultMelodicCosts(int cantusFirmusLength) const;
 
     //==========================================================================
     // UI MODIFIERS
     //==========================================================================
-    void applyLeapSlider(std::vector<int>& costs) const;
+    void applyLargeLeapPenalty(std::vector<int>& costs) const;
 };

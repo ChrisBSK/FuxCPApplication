@@ -152,6 +152,22 @@ namespace
 
         return false;
     }
+
+    void printMaxLeap(const std::vector<int>& notes)
+    {
+        int maxLeap = 0;
+
+        for (size_t i = 1; i < notes.size(); ++i)
+        {
+            maxLeap = std::max(
+                maxLeap,
+                std::abs(notes[i] - notes[i - 1]));
+        }
+
+        std::cout << "Max leap = "
+                  << maxLeap
+                  << "\n";
+    }
 }
 
 
@@ -406,6 +422,8 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
                 std::cout << note << " ";
 
             std::cout << "\n";
+
+            printMaxLeap(voices[v]);
         }
 
         // =========================
@@ -477,7 +495,7 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
     // =========================
     const auto& settings = problem.getSettings();
 
-    melodicStorage   = settings.buildMelodicCosts();
+    melodicStorage   = settings.buildMelodicCosts(static_cast<int>(cf.size()));
     generalStorage   = settings.buildGeneralCosts();
     specificStorage  = settings.buildSpecificCosts();
     importanceStorage = settings.buildImportanceCosts();
