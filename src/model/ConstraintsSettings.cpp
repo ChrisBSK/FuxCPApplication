@@ -10,12 +10,53 @@
     Centralise les paramètres de pondération du solveur.
 
     Principe :
-    - FuxCP possède des coûts par défaut.
-    - Les contrôles de l'interface (sliders, boutons, combobox...)
-      viennent modifier ces coûts.
-    - Chaque paramètre UI possède sa propre méthode d'application.
+    - chaque méthode publique construit un vecteur complet pour FuxCP
+    - chaque vecteur part d'une configuration de base lisible
+    - les sliders modifient ensuite uniquement les coûts qui les concernent
 ==============================================================================
 */
+
+namespace
+{
+    constexpr double minimumSliderValue = 0.0;
+    constexpr double maximumSliderValue = 1.0;
+
+    /*
+        Garde une valeur de slider dans sa plage normale.
+    */
+    double clampSlider(double value)
+    {
+        return std::clamp(value, minimumSliderValue, maximumSliderValue);
+    }
+
+    /*
+        Calcule une valeur progressive entre deux coûts.
+
+        slider = 0.0 -> coût permissif
+        slider = 1.0 -> coût strict
+    */
+    int interpolateCost(double sliderValue, int permissiveCost, int strictCost)
+    {
+        const double sliderPosition = clampSlider(sliderValue);
+
+        const double cost = permissiveCost
+            + sliderPosition * static_cast<double>(strictCost - permissiveCost);
+
+        return static_cast<int>(std::lround(cost));
+    }
+
+    /*
+        Calcule un coût très élevé pour le triton.
+        Il augmente avec la longueur du Cantus Firmus pour rester dissuasif.
+    */
+    int buildTritoneCost(int cantusFirmusLength)
+    {
+        constexpr int penaltyPerNote = 64;
+        constexpr int minimumLength = 1;
+
+        return penaltyPerNote * std::max(cantusFirmusLength, minimumLength);
+    }
+}
 
 //==============================================================================
 // MELODIC COSTS
@@ -30,11 +71,11 @@
 */
 std::vector<int> ConstraintSettings::buildMelodicCosts(int cantusFirmusLength) const
 {
-    auto costs = buildDefaultMelodicCosts(cantusFirmusLength);
+    auto melodicCosts = buildDefaultMelodicCosts(cantusFirmusLength);
 
-    applyLargeLeapPenalty(costs);
+    applyLargeLeapPenalty(melodicCosts);
 
-    return costs;
+    return melodicCosts;
 }
 
 /*
@@ -46,29 +87,20 @@ std::vector<int> ConstraintSettings::buildMelodicCosts(int cantusFirmusLength) c
 */
 std::vector<int> ConstraintSettings::buildDefaultMelodicCosts(int cantusFirmusLength) const
 {
-    constexpr int freeMove = 0;
-    constexpr int preferredMove = 1;
-    constexpr int acceptedLeap = 1;
-    constexpr int lessPreferredLeap = 2;
-    constexpr int forbiddenPenaltyPerNote = 64;
-    constexpr int fallbackCantusFirmusLength = 9;
-
-    const int melodyLength = cantusFirmusLength > 0
-        ? cantusFirmusLength
-        : fallbackCantusFirmusLength;
-
-    const int almostForbidden = forbiddenPenaltyPerNote * melodyLength;
+    constexpr int freeCost = 0;
+    constexpr int lowCost = 1;
+    constexpr int mediumCost = 2;
 
     return
     {
-        freeMove,          // 0-2 demi-tons  : même note ou seconde ( 1-SecondeMineure/2-SecondeMajeure)
-        preferredMove,     // 3-4 demi-tons  : tierce (3-TierceMineure/4-TierceMajeure)
-        acceptedLeap,      // 5 demi-tons    : quarte (quarte juste)
-        almostForbidden,   // 6 demi-tons    : triton (triton)
-        acceptedLeap,      // 7 demi-tons    : quinte (juste)
-        acceptedLeap,      // 8-9 demi-tons  : sixte (8-SixteMineure/9-SixteMajeure)
-        lessPreferredLeap, // 10-11 demi-tons: septième (10-septièmeMineure/11-SetièmeMajeure)
-        acceptedLeap       // 12 demi-tons   : octave (12 octave)
+        freeCost,                            // Même note ou seconde
+        lowCost,                             // Tierce
+        lowCost,                             // Quarte
+        buildTritoneCost(cantusFirmusLength), // Triton
+        lowCost,                             // Quinte
+        lowCost,                             // Sixte
+        mediumCost,                          // Septième
+        lowCost                              // Octave
     };
 }
 
@@ -90,42 +122,16 @@ std::vector<int> ConstraintSettings::buildDefaultMelodicCosts(int cantusFirmusLe
 */
 void ConstraintSettings::applyLargeLeapPenalty(std::vector<int>& costs) const
 {
-    constexpr double minimumLeapPenalty = 0.0;
-    constexpr double maximumLeapPenalty = 1.0;
-
     constexpr int lowCost = 1;
     constexpr int mediumCost = 2;
     constexpr int highCost = 4;
-    constexpr int lastResortCost = 8;
+    constexpr int veryHighCost = 8;
 
-    //Force la valeur de largeLeapPenalty à rester entre min et max
-    const double largeLeapPenalty = std::clamp(
-        melodic.largeLeapPenalty,
-        minimumLeapPenalty,
-        maximumLeapPenalty
-    );
-
-    //Formule d'une interpolation linéraire
-    // permissiveCost = coût de départ (slider égal à 0)
-    // strictCost - permissiveCost = distance entre le coût fort et le coût faible
-    //                               défini dans (buildDefaultMelodicCosts)
-    // largeLeapPenalty = position du slider
-    const auto interpolateCost = [largeLeapPenalty](int permissiveCost, int strictCost)
-    {
-        const double cost = permissiveCost
-            + largeLeapPenalty * static_cast<double>(strictCost - permissiveCost);
-
-        return static_cast<int>(std::lround(cost));
-    };
-
-    // Dans la tthéorie de Fux on dit que les saut de fifth et octaves sont tolérés
-    // Le reste ne sonne pas forcément bien, du coup je pénalise les autres grands sauts
-    // avec lastResortCost
-    costs[fourthCost]  = interpolateCost(lowCost, lastResortCost);
-    costs[fifthCost]   = interpolateCost(lowCost, highCost);
-    costs[sixthCost]   = interpolateCost(lowCost, lastResortCost);
-    costs[seventhCost] = interpolateCost(mediumCost, lastResortCost);
-    costs[octaveCost]  = interpolateCost(lowCost, highCost);
+    costs[fourthCost]  = interpolateCost(melodic.largeLeapPenalty, lowCost, veryHighCost);
+    costs[fifthCost]   = interpolateCost(melodic.largeLeapPenalty, lowCost, highCost);
+    costs[sixthCost]   = interpolateCost(melodic.largeLeapPenalty, lowCost, veryHighCost);
+    costs[seventhCost] = interpolateCost(melodic.largeLeapPenalty, mediumCost, veryHighCost);
+    costs[octaveCost]  = interpolateCost(melodic.largeLeapPenalty, lowCost, highCost);
 }
 
 //==============================================================================
@@ -146,21 +152,47 @@ void ConstraintSettings::applyLargeLeapPenalty(std::vector<int>& costs) const
 */
 std::vector<int> ConstraintSettings::buildGeneralCosts() const
 {
+    auto generalCosts = buildDefaultGeneralCosts();
+
+    applyNoteRepetitionPenalty(generalCosts);
+
+    return generalCosts;
+}
+
+/*
+    Coûts généraux de base, avant action des sliders.
+
+    Ils correspondent à g_costs dans FuxCP.
+*/
+std::vector<int> ConstraintSettings::buildDefaultGeneralCosts() const
+{
+    constexpr int lowCost = 1;
+    constexpr int mediumCost = 2;
+    constexpr int highCost = 4;
+    constexpr int veryHighCost = 8;
+
     return
     {
-        4,                           // borrowCost
-        1,                           // h_fifthCost
-        1,                           // h_octaveCost
-        2,                           // succCost
-
-        general.noteRepetitionValue, // varietyCost
-                                     // Utilisé dans M2_1_varietyCost().
-                                     // Pénalise les notes répétées dans une fenêtre courte.
-
-        2,                           // triadCost
-        8,                           // directMoveCost
-        1                            // penultCost
+        highCost,      // borrowCost
+        lowCost,       // h_fifthCost
+        lowCost,       // h_octaveCost
+        mediumCost,    // succCost
+        mediumCost,    // varietyCost
+        mediumCost,    // triadCost
+        veryHighCost,  // directMoveCost
+        lowCost        // penultCost
     };
+}
+
+/*
+    Slider "Melodic Variety".
+
+    Modifie varietyCost, utilisé par FuxCP pour limiter les répétitions
+    dans une fenêtre mélodique courte.
+*/
+void ConstraintSettings::applyNoteRepetitionPenalty(std::vector<int>& costs) const
+{
+    costs[varietyCost] = general.noteRepetitionValue;
 }
 
 //==============================================================================
@@ -180,11 +212,16 @@ std::vector<int> ConstraintSettings::buildGeneralCosts() const
 */
 std::vector<int> ConstraintSettings::buildSpecificCosts() const
 {
-    auto costs = buildDefaultSpecificCosts();
+    auto specificCosts = buildDefaultSpecificCosts();
 
-    return costs;
+    return specificCosts;
 }
 
+/*
+    Coûts spécifiques de base, avant action de futurs sliders.
+
+    Ils correspondent à s_costs dans FuxCP.
+*/
 std::vector<int> ConstraintSettings::buildDefaultSpecificCosts() const
 {
     return
@@ -228,6 +265,17 @@ std::vector<int> ConstraintSettings::buildDefaultSpecificCosts() const
 */
 std::vector<int> ConstraintSettings::buildImportanceCosts() const
 {
+    return buildDefaultImportanceCosts();
+}
+
+/*
+    Ordre d'importance des critères pendant l'optimisation.
+
+    Plus le nombre est petit, plus le critère est prioritaire.
+*/
+std::vector<int> ConstraintSettings::buildDefaultImportanceCosts() const
+{
+
     return
     {
         8,  // borrow

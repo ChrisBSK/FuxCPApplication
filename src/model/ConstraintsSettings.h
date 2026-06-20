@@ -42,23 +42,39 @@ struct ConstraintSettings
         prefSlider
     };
 
+    enum GeneralCostIndex
+    {
+        borrowCost = 0,
+        harmonicFifthCost,
+        harmonicOctaveCost,
+        successiveCost,
+        varietyCost,
+        triadCost,
+        directMotionCost,
+        penultCost
+    };
+
     //==========================================================================
     // UI PARAMETERS
     //==========================================================================
     struct Melodic
     {
+        /*
+            0.0 = grands sauts plus libres.
+            1.0 = grands sauts fortement pénalisés.
+        */
         double largeLeapPenalty = 0.0;
     };
 
     struct General
     {
         /*
-        Pénalité appliquée lorsque le contrepoint réutilise
-        plusieurs fois la même note dans une fenêtre courte.
+            Pénalité appliquée lorsque le contrepoint réutilise
+            plusieurs fois la même note dans une fenêtre courte.
 
-        Faible valeur  -> répétitions plus acceptées.
-        Grande valeur  -> répétitions fortement pénalisées.
-    */
+            Faible valeur  -> répétitions plus acceptées.
+            Grande valeur  -> répétitions fortement pénalisées.
+        */
         int noteRepetitionValue = 2;
     };
 
@@ -86,11 +102,6 @@ struct ConstraintSettings
     std::vector<int> buildMelodicCosts(int cantusFirmusLength) const;
     std::vector<int> buildGeneralCosts() const;
     std::vector<int> buildSpecificCosts() const;
-
-    std::vector<int> buildDefaultSpecificCosts() const;
-
-    void applyRepetitionSlider(std::vector<int> &costs) const;
-
     std::vector<int> buildImportanceCosts() const;
 
     //==========================================================================
@@ -130,9 +141,13 @@ private:
     // DEFAULT COSTS
     //==========================================================================
     std::vector<int> buildDefaultMelodicCosts(int cantusFirmusLength) const;
+    std::vector<int> buildDefaultGeneralCosts() const;
+    std::vector<int> buildDefaultSpecificCosts() const;
+    std::vector<int> buildDefaultImportanceCosts() const;
 
     //==========================================================================
     // UI MODIFIERS
     //==========================================================================
     void applyLargeLeapPenalty(std::vector<int>& costs) const;
+    void applyNoteRepetitionPenalty(std::vector<int>& costs) const;
 };

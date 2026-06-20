@@ -3,7 +3,6 @@
 #include "../leftPanel/LeftPanel.h"
 #include "../../controller/AppController.h"
 #include "OptionsPanelHelpers.h"
-#include "../../model/MelodicParameters.h"
 
 #include <array>
 
@@ -147,7 +146,7 @@ void OptionsPanel::setupMelodicControls()
     auto* repetitionSlider = addParameter<juce::Slider>(
         melodicColumn,
         "Melodic Variety",
-        ParameterFactory::slider(0.0, 1000.0, 10.0, 2.0)
+        ParameterFactory::slider(0.0, 1.0, 1.0, 0.0)
     );
 
     repetitionSlider->onValueChange = [this, repetitionSlider]()
