@@ -69,13 +69,13 @@ struct ConstraintSettings
     struct General
     {
         /*
-            Pénalité appliquée lorsque le contrepoint réutilise
-            plusieurs fois la même note dans une fenêtre courte.
+            Contrôle binaire de la variété mélodique FuxCP.
 
-            Faible valeur  -> répétitions plus acceptées.
-            Grande valeur  -> répétitions fortement pénalisées.
+            0 = aucune pénalité de variété.
+            1 = pénalité forte sur les notes répétées dans la fenêtre de variété
+                déjà définie par FuxCP.
         */
-        int noteRepetitionValue = 2;
+        int avoidRepeatedNotes = 0;
     };
 
     struct Specific
@@ -117,14 +117,14 @@ struct ConstraintSettings
         return melodic.largeLeapPenalty;
     }
 
-    void setNoteRepetitionValue(int value)
+    void setAvoidRepeatedNotes(int value)
     {
-        general.noteRepetitionValue = value;
+        general.avoidRepeatedNotes = value == 0 ? 0 : 1;
     }
 
-    int getNoteRepetitionValue() const
+    int getAvoidRepeatedNotes() const
     {
-        return general.noteRepetitionValue;
+        return general.avoidRepeatedNotes;
     }
     void setBorrowMode(int value)
     {

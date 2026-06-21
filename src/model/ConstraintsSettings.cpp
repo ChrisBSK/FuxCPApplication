@@ -56,6 +56,25 @@ namespace
 
         return penaltyPerNote * std::max(cantusFirmusLength, minimumLength);
     }
+
+    /*
+        Convertit un choix binaire de l'interface en coût FuxCP.
+
+        L'utilisateur choisit seulement ON/OFF.
+        Le modèle traduit ce choix en un coût assez fort pour influencer
+        réellement l'optimisation.
+    */
+    int buildBinaryCost(int enabled)
+    {
+        constexpr int noCost = 0;
+        constexpr int strongCost = 10000; // Grands coût pour pénaliser les notes qui se répètent trop souvent
+
+        //CP 2 : 48 51 46 48 48 48 46 48 46 52
+        // devient
+        //CP 2 : 48 51 47 52 53 48 47 49 46 52
+
+        return enabled == 0 ? noCost : strongCost;
+    }
 }
 
 //==============================================================================
@@ -185,14 +204,18 @@ std::vector<int> ConstraintSettings::buildDefaultGeneralCosts() const
 }
 
 /*
-    Slider "Melodic Variety".
+    Contrôle "Avoid Repeated Notes".
 
-    Modifie varietyCost, utilisé par FuxCP pour limiter les répétitions
-    dans une fenêtre mélodique courte.
+    Le solveur FuxCP n'est pas modifié ici.
+    On pilote uniquement varietyCost, le coût déjà prévu par FuxCP pour
+    décourager les notes répétées dans sa fenêtre de variété.
+
+    0 = contrainte relâchée.
+    1 = contrainte fortement pondérée.
 */
 void ConstraintSettings::applyNoteRepetitionPenalty(std::vector<int>& costs) const
 {
-    costs[varietyCost] = general.noteRepetitionValue;
+    costs[varietyCost] = buildBinaryCost(general.avoidRepeatedNotes);
 }
 
 //==============================================================================
@@ -277,20 +300,20 @@ std::vector<int> ConstraintSettings::buildDefaultImportanceCosts() const
 {
 
     return
-    {
-        8,  // borrow
-        7,  // fifth
-        5,  // octave
-        3,  // succ
-        9,  // variety
-        4,  // triad
-        14, // direct
-        12, // motion
-        6,  // penult
-        11, // cambiata
-        5,  // triad3
-        10, // m2
-        13, // syncopation
-        1   // melodic
-    };
+{
+    8,  // borrow
+    7,  // fifth
+    5,  // octave
+    3,  // succ
+    1,  // variety
+    4,  // triad
+    14, // direct
+    12, // motion
+    6,  // penult
+    11, // cambiata
+    9,  // triad3
+    10, // m2
+    13, // syncopation
+    2   // melodic
+};
 }

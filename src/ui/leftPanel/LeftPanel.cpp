@@ -98,13 +98,13 @@ void LeftPanel::paint(juce::Graphics& g)
 
     auto area = getLocalBounds();
 
-    const int spacing = 40;
+    const int spacing = juce::jlimit(12, 40, area.getHeight() / 16);
     const int numSections = 3;
 
     int totalSpacing = spacing * (numSections - 1);
-    int sectionHeight = (area.getHeight() - totalSpacing) / numSections;
+    int sectionHeight = juce::jmax(1, (area.getHeight() - totalSpacing) / numSections);
 
-    const int titleHeight = 24;
+    const int titleHeight = juce::jlimit(20, 24, area.getHeight() / 22);
 
     juce::Colour darkGreen = juce::Colour(0xff2f4f4f);
 
@@ -307,12 +307,13 @@ void LeftPanel::resized()
 {
     auto area = getLocalBounds();
 
-    const int spacing = 40;
-    const float widthRatio = 0.6f;
-    const int titleReservedHeight = 30;
+    const int spacing = juce::jlimit(12, 40, area.getHeight() / 16);
+    const float widthRatio = 0.78f;
+    const int titleReservedHeight = juce::jlimit(24, 30, area.getHeight() / 18);
+    const int rowHeight = juce::jlimit(20, 24, area.getHeight() / 28);
 
     int totalSpacing = spacing * 2;
-    int sectionHeight = (area.getHeight() - totalSpacing) / 3;
+    int sectionHeight = juce::jmax(1, (area.getHeight() - totalSpacing) / 3);
 
     // ===== SECTION 1 : CF =====
     auto section1 = area.removeFromTop(sectionHeight);
@@ -320,16 +321,12 @@ void LeftPanel::resized()
     content1.removeFromTop(titleReservedHeight);
 
     {
-        auto row = content1.removeFromTop(22);
-        bool canShowText = row.getBottom() <= section1.getBottom() && sectionHeight > 50;
-        cfInput.setVisible(canShowText);
+        auto row = content1.removeFromTop(rowHeight);
+        cfInput.setVisible(true);
 
-        if (canShowText)
-        {
-            int width = static_cast<int>(row.getWidth() * widthRatio);
-            int x = row.getX() + 10;
-            cfInput.setBounds(x, row.getY(), width, row.getHeight());
-        }
+        int width = static_cast<int>(row.getWidth() * widthRatio);
+        int x = row.getX() + juce::jlimit(0, 10, row.getWidth() / 20);
+        cfInput.setBounds(x, row.getY(), width, row.getHeight());
     }
 
     area.removeFromTop(spacing);
@@ -343,20 +340,13 @@ void LeftPanel::resized()
     content2.removeFromTop(titleReservedHeight);
 
     {
-        auto row = content2.removeFromTop(22);
+        auto row = content2.removeFromTop(rowHeight);
+        numVoicesCB.setVisible(true);
 
-        bool canShowVoices = row.getBottom() <= section2.getBottom()
-                             && sectionHeight > 50;
+        int width = static_cast<int>(row.getWidth() * widthRatio);
+        int x = row.getX() + juce::jlimit(0, 10, row.getWidth() / 20);
 
-        numVoicesCB.setVisible(canShowVoices);
-
-        if (canShowVoices)
-        {
-            int width = static_cast<int>(row.getWidth() * widthRatio);
-            int x = row.getX() + 10;
-
-            numVoicesCB.setBounds(x, row.getY(), width, row.getHeight());
-        }
+        numVoicesCB.setBounds(x, row.getY(), width, row.getHeight());
     }
 
     content2.removeFromTop(10);

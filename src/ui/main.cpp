@@ -13,6 +13,7 @@ public:
         setResizable(true, true);
 
         setContentOwned(new MainComponent(), true);
+        setResizeLimits(900, 560, 2560, 1600);
 
         centreWithSize(getWidth(), getHeight());
         setVisible(true);

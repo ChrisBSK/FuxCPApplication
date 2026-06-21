@@ -76,6 +76,7 @@ private:
     void setupTitles();
     void setupVoiceBoxes();
     void setupButtons();
+    void setupBasicControls();
     void setupMelodicControls();
 
     // Interactions utilisateur

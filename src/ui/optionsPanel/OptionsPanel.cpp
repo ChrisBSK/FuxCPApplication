@@ -18,6 +18,7 @@ OptionsPanel::OptionsPanel()
     setupButtons();
 
     setupColumnInteractions();
+    setupBasicControls();
     setupMelodicControls();
 }
 
@@ -61,13 +62,13 @@ void OptionsPanel::setupButtons()
     };
 }
 
-void OptionsPanel::setupMelodicControls()
+void OptionsPanel::setupBasicControls()
 {
     //==========================================================================
     // Borrow Mode
     //==========================================================================
     auto* borrowToggle = addParameter<juce::ToggleButton>(
-        melodicColumn,
+        basicColumn,
         "Borrow Mode",
         std::make_unique<juce::ToggleButton>()
     );
@@ -98,7 +99,10 @@ void OptionsPanel::setupMelodicControls()
                   << "\n";
 
     };
+}
 
+void OptionsPanel::setupMelodicControls()
+{
     //==========================================================================
     // Melodic Leap Control
     //==========================================================================
@@ -141,13 +145,21 @@ void OptionsPanel::setupMelodicControls()
 
 
     //==========================================================================
-    // Repetion slider
+    // Avoid repeated notes
     //==========================================================================
     auto* repetitionSlider = addParameter<juce::Slider>(
         melodicColumn,
-        "Melodic Variety",
+        "Avoid Repeated Notes",
         ParameterFactory::slider(0.0, 1.0, 1.0, 0.0)
     );
+
+    if (appController != nullptr)
+    {
+        repetitionSlider->setValue(
+            appController->getProblem().getSettings().getAvoidRepeatedNotes(),
+            juce::dontSendNotification
+        );
+    }
 
     repetitionSlider->onValueChange = [this, repetitionSlider]()
     {
@@ -158,12 +170,12 @@ void OptionsPanel::setupMelodicControls()
 
         const int value = static_cast<int>(repetitionSlider->getValue());
 
-        problem.getSettings().setNoteRepetitionValue(value);
+        problem.getSettings().setAvoidRepeatedNotes(value);
         problem.recalculateCosts();
 
-        std::cout << "\n=== NOTE REPETITION SLIDER CHANGED ===\n";
-        std::cout << "noteRepetitionValue = "
-                  << problem.getSettings().getNoteRepetitionValue()
+        std::cout << "\n=== AVOID REPEATED NOTES CHANGED ===\n";
+        std::cout << "avoidRepeatedNotes = "
+                  << problem.getSettings().getAvoidRepeatedNotes()
                   << "\n";
 
         std::cout << "General costs = ";
@@ -258,16 +270,29 @@ void OptionsPanel::paint(juce::Graphics& g)
 
 void OptionsPanel::resized()
 {
-    auto fullArea = getLocalBounds().reduced(20);
-    auto bottomArea = fullArea.removeFromBottom(80);
-    auto contentArea = fullArea.reduced(40, 30);
+    const int panelWidth = getWidth();
+    const int panelHeight = getHeight();
+
+    // Les dimensions suivent la taille disponible.
+    // Les quatre colonnes restent donc visibles quand la fenêtre est réduite.
+    const int outerMargin = juce::jlimit(6, 20, panelWidth / 80);
+    const int horizontalInset = juce::jlimit(8, 40, panelWidth / 45);
+    const int verticalInset = juce::jlimit(8, 30, panelHeight / 35);
+    const int bottomHeight = juce::jlimit(52, 80, panelHeight / 9);
+
+    auto fullArea = getLocalBounds().reduced(outerMargin);
+    auto bottomArea = fullArea.removeFromBottom(bottomHeight);
+    auto contentArea = fullArea.reduced(horizontalInset, verticalInset);
 
     constexpr int columnCount = 4;
-    constexpr int columnWidth = 240;
-    constexpr int columnGap = 14;
-    constexpr int titleHeight = 28;
-    constexpr int titleGap = 6;
+    const int columnGap = juce::jlimit(6, 14, panelWidth / 90);
+    const int titleHeight = juce::jlimit(22, 28, panelHeight / 30);
+    const int titleGap = juce::jlimit(4, 6, panelHeight / 140);
 
+    const int availableWidth = contentArea.getWidth()
+                             - (columnCount - 1) * columnGap;
+
+    const int columnWidth = juce::jmax(1, availableWidth / columnCount);
     const int totalWidth = columnCount * columnWidth
                          + (columnCount - 1) * columnGap;
 
@@ -276,7 +301,7 @@ void OptionsPanel::resized()
 
     const int titleY = contentArea.getY();
     const int columnY = titleY + titleHeight + titleGap;
-    const int columnHeight = juce::jmin(500, contentArea.getHeight() - 30);
+    const int columnHeight = juce::jmax(1, contentArea.getBottom() - columnY);
 
     std::array<ClickableTitle*, 4> titles { &title1, &title2, &title3, &title4 };
     std::array<ColumnBox*, 4> columns { &column1, &column2, &column3, &column4 };
@@ -303,10 +328,17 @@ void OptionsPanel::resized()
 
 void OptionsPanel::layoutVoiceColumn(juce::Rectangle<int> bounds)
 {
-    auto inner = bounds.reduced(10);
+    const int inset = juce::jlimit(6, 10, bounds.getWidth() / 24);
+    auto inner = bounds.reduced(inset);
 
-    constexpr int boxHeight = 60;
-    constexpr int gapY = 8;
+    const int gapY = juce::jlimit(4, 8, bounds.getHeight() / 70);
+    const int controlsGapY = juce::jlimit(8, 14, bounds.getHeight() / 35);
+    const int basicControlsHeight = juce::jlimit(40, 50, bounds.getHeight() / 9);
+    const int availableForVoices = inner.getHeight()
+                                - basicControlsHeight
+                                - controlsGapY
+                                - 3 * gapY;
+    const int boxHeight = juce::jlimit(42, 60, availableForVoices / 4);
 
     std::array<VoiceBox*, 4> boxes { &box1, &box2, &box3, &box4 };
 
@@ -317,6 +349,9 @@ void OptionsPanel::layoutVoiceColumn(juce::Rectangle<int> bounds)
         if (i + 1 < boxes.size())
             inner.removeFromTop(gapY);
     }
+
+    inner.removeFromTop(controlsGapY);
+    basicColumn.layout(inner);
 }
 
 void OptionsPanel::layoutButtons(juce::Rectangle<int> bottomArea)

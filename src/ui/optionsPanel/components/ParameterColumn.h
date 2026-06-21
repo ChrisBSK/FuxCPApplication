@@ -28,10 +28,18 @@ public:
 
     void layout(juce::Rectangle<int> bounds)
     {
-        auto inner = bounds.reduced(12);
+        const int inset = juce::jlimit(6, 12, bounds.getWidth() / 18);
+        auto inner = bounds.reduced(inset);
 
-        constexpr int rowHeight = 28;
-        constexpr int spacingY = 10;
+        // Lignes compactes :
+        // les paramètres restent lisibles sans former de gros blocs visuels.
+        const int rowCount = static_cast<int>(rows.size());
+        const int spacingY = juce::jlimit(4, 7, bounds.getHeight() / 90);
+        const int availableHeight = inner.getHeight()
+                                  - juce::jmax(0, rowCount - 1) * spacingY;
+        const int rowHeight = rowCount > 0
+            ? juce::jlimit(34, 44, availableHeight / rowCount)
+            : 34;
 
         for (auto& row : rows)
         {

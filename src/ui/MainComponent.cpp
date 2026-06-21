@@ -6,7 +6,7 @@
 
 MainComponent::MainComponent()
 {
-    setSize(1900, 1900);
+    setSize(1280, 780);
 
     // =========================
     // UI : ajout des composants
@@ -120,14 +120,26 @@ void MainComponent::paintOverChildren(juce::Graphics& g)
 
 void MainComponent::resized()
 {
-    auto area = getLocalBounds();
+    const int windowWidth = getWidth();
+    const int windowHeight = getHeight();
+
+    // Marges et zones calculées à partir de la fenêtre.
+    // Cette version privilégie la visibilité complète des composants
+    // quand l'utilisateur réduit l'application.
+    const int margin = juce::jlimit(6, 16, windowWidth / 120);
+    const int leftPanelWidth = juce::jlimit(180, 280, static_cast<int>(windowWidth * 0.22f));
+    const int historyHeight = juce::jlimit(75, 120, static_cast<int>(windowHeight * 0.15f));
+    const int headerHeight = juce::jlimit(42, 60, static_cast<int>(windowHeight * 0.08f));
+    const int keyboardHeight = juce::jlimit(70, 100, static_cast<int>(windowHeight * 0.13f));
+
+    auto area = getLocalBounds().reduced(margin);
 
     // =========================
     // LEFT PANEL + HISTORY
     // =========================
-    auto leftArea = area.removeFromLeft(280);
+    auto leftArea = area.removeFromLeft(leftPanelWidth);
 
-    history.setBounds(leftArea.removeFromBottom(120));
+    history.setBounds(leftArea.removeFromBottom(historyHeight));
     leftPanel.setBounds(leftArea);
 
     // =========================
@@ -135,8 +147,8 @@ void MainComponent::resized()
     // =========================
     auto rightArea = area;
 
-    header.setBounds(rightArea.removeFromTop(60));
-    keyboard.setBounds(rightArea.removeFromBottom(100));
+    header.setBounds(rightArea.removeFromTop(headerHeight));
+    keyboard.setBounds(rightArea.removeFromBottom(keyboardHeight));
 
     // centre = OptionsPanel
     optionsPanel.setBounds(rightArea);

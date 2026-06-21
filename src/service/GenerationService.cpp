@@ -319,7 +319,7 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
         // Timeout Gecode
         // =========================
         Gecode::Search::Options opts;
-        Gecode::Search::TimeStop timeout(1000); // 1000ms = 1secondes
+        Gecode::Search::TimeStop timeout(1000); // Laisse le BAB optimiser les coûts, pas seulement trouver une solution.
         opts.stop = &timeout;
         opts.threads = 1;
 
@@ -529,6 +529,11 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
 
     std::cout << "\n=== GENERAL COSTS SENT TO FUXCP ===\n";
     for (int cost : generalStorage)
+        std::cout << cost << " ";
+    std::cout << "\n";
+
+    std::cout << "\n=== IMPORTANCE COSTS SENT TO FUXCP ===\n";
+    for (int cost : importanceStorage)
         std::cout << cost << " ";
     std::cout << "\n";
 
