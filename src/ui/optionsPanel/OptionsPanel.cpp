@@ -37,9 +37,9 @@ void OptionsPanel::setupColumns()
 void OptionsPanel::setupTitles()
 {
     OptionsPanelHelpers::setupTitle(*this, title1, "Basic Constraints");
-    OptionsPanelHelpers::setupTitle(*this, title2, "Melodic");
-    OptionsPanelHelpers::setupTitle(*this, title3, "Harmonic");
-    OptionsPanelHelpers::setupTitle(*this, title4, "Other");
+    OptionsPanelHelpers::setupTitle(*this, title2, "Melodic Lines");
+    OptionsPanelHelpers::setupTitle(*this, title3, "Harmonic Relations");
+    OptionsPanelHelpers::setupTitle(*this, title4, "Structural Preferences");
 }
 
 void OptionsPanel::setupVoiceBoxes()
