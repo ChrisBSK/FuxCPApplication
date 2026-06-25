@@ -88,6 +88,32 @@ struct ConstraintSettings
         int borrowMode = 1;
     };
 
+    struct Importance
+    {
+        /*
+            Chaque valeur est le rang d'une contrainte dans l'optimisation.
+
+            1 = priorité la plus forte.
+            14 = priorité la plus faible.
+        */
+        std::vector<int> costs {
+            8,  // borrow
+            7,  // fifth
+            5,  // octave
+            3,  // succ
+            1,  // variety
+            4,  // triad
+            14, // direct
+            12, // motion
+            6,  // penult
+            11, // cambiata
+            9,  // triad3
+            10, // m2
+            13, // syncopation
+            2   // melodic
+        };
+    };
+
     //==========================================================================
     // SETTINGS INSTANCES
     //==========================================================================
@@ -95,6 +121,7 @@ struct ConstraintSettings
     General general;
     Specific specific;
     Global global;
+    Importance importance;
 
     //==========================================================================
     // BUILD FUX COSTS
@@ -134,6 +161,17 @@ struct ConstraintSettings
     int getBorrowMode() const
     {
         return global.borrowMode;
+    }
+
+    void setImportanceCosts(const std::vector<int>& values)
+    {
+        if (values.size() == importance.costs.size())
+            importance.costs = values;
+    }
+
+    const std::vector<int>& getImportanceCosts() const
+    {
+        return importance.costs;
     }
 
 private:

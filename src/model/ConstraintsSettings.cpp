@@ -288,7 +288,7 @@ std::vector<int> ConstraintSettings::buildDefaultSpecificCosts() const
 */
 std::vector<int> ConstraintSettings::buildImportanceCosts() const
 {
-    return buildDefaultImportanceCosts();
+    return importance.costs;
 }
 
 /*
@@ -298,22 +298,5 @@ std::vector<int> ConstraintSettings::buildImportanceCosts() const
 */
 std::vector<int> ConstraintSettings::buildDefaultImportanceCosts() const
 {
-
-    return
-{
-    8,  // borrow
-    7,  // fifth
-    5,  // octave
-    3,  // succ
-    1,  // variety
-    4,  // triad
-    14, // direct
-    12, // motion
-    6,  // penult
-    11, // cambiata
-    9,  // triad3
-    10, // m2
-    13, // syncopation
-    2   // melodic
-};
+    return Importance{}.costs;
 }

@@ -7,6 +7,8 @@
 #include "components/ClickableTitle.h"
 #include "components/ParameterColumn.h"
 #include "components/ParameterFactory.h"
+#include "components/SolverPriorityList.h"
+#include "components/ArrowIconButton.h"
 
 class LeftPanel;
 class AppController;
@@ -48,8 +50,8 @@ private:
     AppController* appController = nullptr;
 
     // Colonnes principales
-    ColumnBox column1, column2, column3, column4;
-    ClickableTitle title1, title2, title3, title4;
+    ColumnBox column1, column2, column3, column4, column5;
+    ClickableTitle title1, title2, title3, title4, title5;
 
     // Voix affichées dans la première colonne
     VoiceBox box1 { "Cantus Firmus" };
@@ -62,6 +64,12 @@ private:
     ParameterColumn melodicColumn;
     ParameterColumn harmonicColumn;
     ParameterColumn otherColumn;
+    ParameterColumn solverColumn;
+
+    // Repères visuels du vecteur importance envoyé au solveur
+    SolverPriorityList solverPriorityList;
+    ArrowIconButton movePriorityUpButton { ArrowIconButton::Direction::up };
+    ArrowIconButton movePriorityDownButton { ArrowIconButton::Direction::down };
 
     // Boutons d'action
     juce::TextButton generateButton;
@@ -78,6 +86,7 @@ private:
     void setupButtons();
     void setupBasicControls();
     void setupMelodicControls();
+    void setupSolverPriorities();
 
     // Interactions utilisateur
     void setupColumnInteractions();
@@ -89,6 +98,8 @@ private:
 
     // Layout interne
     void layoutVoiceColumn(juce::Rectangle<int> bounds);
+    void layoutSolverPriorities(juce::Rectangle<int> listBounds,
+                                juce::Rectangle<int> arrowBounds);
     void layoutButtons(juce::Rectangle<int> bottomArea);
 
     // Ajoute un paramètre UI dans une colonne donnée
