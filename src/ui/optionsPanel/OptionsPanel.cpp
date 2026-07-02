@@ -187,6 +187,46 @@ void OptionsPanel::setupMelodicControls()
             std::cout << c << " ";
         std::cout << "\n";
     };
+
+    //==========================================================================
+    // Avoid octave leaps
+    //==========================================================================
+    auto* octaveLeapSlider = addParameter<juce::Slider>(
+        melodicColumn,
+        "Avoid Octave Leaps",
+        ParameterFactory::slider(0.0, 1.0, 1.0, 0.0)
+    );
+
+    if (appController != nullptr)
+    {
+        octaveLeapSlider->setValue(
+            appController->getProblem().getSettings().getAllowOctaveLeap(),
+            juce::dontSendNotification
+        );
+    }
+
+    octaveLeapSlider->onValueChange = [this, octaveLeapSlider]()
+    {
+        if (appController == nullptr || appController->isGenerating())
+            return;
+
+        auto& problem = appController->getProblem();
+
+        const int value = static_cast<int>(octaveLeapSlider->getValue());
+
+        problem.getSettings().setAllowOctaveLeap(value);
+        problem.recalculateCosts();
+
+        std::cout << "\n=== AVOID OCTAVE LEAPS CHANGED ===\n";
+        std::cout << "avoidOctaveLeaps = "
+                  << problem.getSettings().getAllowOctaveLeap()
+                  << "\n";
+
+        std::cout << "Melodic costs = ";
+        for (int c : problem.getMelodicCosts())
+            std::cout << c << " ";
+        std::cout << "\n";
+    };
 }
 
 void OptionsPanel::setupSolverPriorities()

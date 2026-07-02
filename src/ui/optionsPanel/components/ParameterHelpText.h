@@ -80,6 +80,24 @@ namespace ParameterHelpText
             );
         }
 
+        if (label == "Avoid Octave Leaps")
+        {
+            return text(
+                "Contraintes liées : M1_1_3v_melodicIntervalsNotExceedMinorSixth "
+                "et M1_2_octaveLeap.\n\n"
+                "En trois et quatre voix, FuxCP autorise les sauts d'octave comme exception "
+                "aux limites normales des intervalles mélodiques.\n\n"
+                "Ce paramètre ne supprime pas la contrainte dans le solveur. "
+                "Il pilote uniquement octaveCost, le coût mélodique associé aux sauts de "
+                "12 demi-tons.\n\n"
+                "0 = octaveCost vaut 0, donc les sauts d'octave sont acceptés plus librement.\n\n"
+                "1 = octaveCost reçoit une valeur forte, donc les sauts d'octave sont fortement "
+                "pénalisés.\n\n"
+                "Effet attendu : à 1, les contrepoints devraient éviter les grands bonds "
+                "d'une octave lorsque d'autres solutions restent possibles."
+            );
+        }
+
         return {};
     }
 }

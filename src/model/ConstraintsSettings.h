@@ -64,6 +64,12 @@ struct ConstraintSettings
             1.0 = grands sauts fortement pénalisés.
         */
         double largeLeapPenalty = 0.0;
+
+        /*
+            0.0 = grands sauts d'octaves autorisés (12 demi-tons).
+            1.0 = grands sauts d'octaves pénalisés (12 demi-tons).
+        */
+        int allowOctaveLeap = 0;
     };
 
     struct General
@@ -76,6 +82,7 @@ struct ConstraintSettings
                 déjà définie par FuxCP.
         */
         int avoidRepeatedNotes = 0;
+
     };
 
     struct Specific
@@ -153,6 +160,17 @@ struct ConstraintSettings
     {
         return general.avoidRepeatedNotes;
     }
+
+    void setAllowOctaveLeap(int value)
+    {
+        melodic.allowOctaveLeap = value == 0 ? 0 : 1;
+    }
+
+    int getAllowOctaveLeap() const
+    {
+        return melodic.allowOctaveLeap;
+    }
+
     void setBorrowMode(int value)
     {
         global.borrowMode = (value == 0 ? 0 : 1);
@@ -187,5 +205,6 @@ private:
     // UI MODIFIERS
     //==========================================================================
     void applyLargeLeapPenalty(std::vector<int>& costs) const;
+    void applyAllowOctaveLeap(std::vector<int>& costs) const;
     void applyNoteRepetitionPenalty(std::vector<int>& costs) const;
 };

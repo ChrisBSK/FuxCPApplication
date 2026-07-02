@@ -58,20 +58,16 @@ namespace
     }
 
     /*
-        Convertit un choix binaire de l'interface en coût FuxCP.
+        Convertit un réglage ON/OFF de l'interface en coût FuxCP.
 
-        L'utilisateur choisit seulement ON/OFF.
-        Le modèle traduit ce choix en un coût assez fort pour influencer
-        réellement l'optimisation.
+        Cette fonction sert aux paramètres binaires qui changent un seul coût :
+        - 0 = coût nul, la préférence est relâchée
+        - 1 = coût fort, la préférence devient très prioritaire
     */
     int buildBinaryCost(int enabled)
     {
         constexpr int noCost = 0;
-        constexpr int strongCost = 10000; // Grands coût pour pénaliser les notes qui se répètent trop souvent
-
-        //CP 2 : 48 51 46 48 48 48 46 48 46 52
-        // devient
-        //CP 2 : 48 51 47 52 53 48 47 49 46 52
+        constexpr int strongCost = 10000;
 
         return enabled == 0 ? noCost : strongCost;
     }
@@ -93,6 +89,7 @@ std::vector<int> ConstraintSettings::buildMelodicCosts(int cantusFirmusLength) c
     auto melodicCosts = buildDefaultMelodicCosts(cantusFirmusLength);
 
     applyLargeLeapPenalty(melodicCosts);
+    applyAllowOctaveLeap(melodicCosts);
 
     return melodicCosts;
 }
@@ -216,6 +213,21 @@ std::vector<int> ConstraintSettings::buildDefaultGeneralCosts() const
 void ConstraintSettings::applyNoteRepetitionPenalty(std::vector<int>& costs) const
 {
     costs[varietyCost] = buildBinaryCost(general.avoidRepeatedNotes);
+}
+
+/*
+    Contrôle "Allow Octave Leaps".
+
+    Le solveur FuxCP n'est pas modifié ici.
+    On pilote uniquement octaveCost, le coût déjà prévu par FuxCP pour
+    décourager les sauts d'octave.
+
+    0 = contrainte relâchée.
+    1 = contrainte fortement pondérée.
+*/
+void ConstraintSettings::applyAllowOctaveLeap(std::vector<int>& costs) const
+{
+    costs[octaveCost] = buildBinaryCost(melodic.allowOctaveLeap);
 }
 
 //==============================================================================
