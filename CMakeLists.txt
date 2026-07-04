@@ -10,7 +10,6 @@ set(CMAKE_CXX_STANDARD 17)
 add_subdirectory(externals/JUCE)
 add_subdirectory(externals/FuxCP/FuxCP/c++)
 
-
 juce_add_gui_app(myproject
         PRODUCT_NAME "myproject"
 )
@@ -29,8 +28,6 @@ target_sources(myproject PRIVATE
         src/model/ConstraintsSettings.h
         src/model/ConstraintsSettings.cpp
         src/model/ConstraintsDefinition.h
-
-
 
         src/ui/footer/FooterPanel.cpp
         src/ui/footer/FooterPanel.h
@@ -65,14 +62,11 @@ target_sources(myproject PRIVATE
 
         src/controller/AppController.cpp
         src/controller/AppController.h
-
 )
 
 target_include_directories(myproject PRIVATE
-        externals/FuxCP/FuxCP/c++/headers
-        #externals/JUCE/modules
+        ${CMAKE_CURRENT_SOURCE_DIR}/externals/FuxCP/FuxCP/c++/headers
 )
-
 
 target_link_libraries(myproject PRIVATE
         juce::juce_gui_basics
@@ -88,13 +82,11 @@ target_link_libraries(myproject PRIVATE
         juce::juce_core
         juce::juce_data_structures
 
-
-
-        damien
+        FuxCPLib
 )
-
 # Optionnel, pour éviter dépendances web/curl au début
 target_compile_definitions(myproject PRIVATE
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
 )
+

@@ -3,7 +3,7 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_events/juce_events.h>
 
-#include "CounterpointUtils.hpp"
+#include "CounterpointProblems/CounterpointUtils.hpp"
 #include "CounterpointProblems/CounterpointProblem.hpp"
 #include "Utilities.hpp"
 
