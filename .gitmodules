@@ -2,3 +2,7 @@
 	path = externals/FuxCP
 	url = https://github.com/AarnorDeDardaliel/FuxCP5.git
 	branch = dorian
+
+[submodule "externals/JUCE"]
+	path = externals/JUCE
+	url = https://github.com/juce-framework/JUCE.git
