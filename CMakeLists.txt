@@ -8,7 +8,7 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 
 add_subdirectory(externals/JUCE)
-add_subdirectory(externals/FuxCP4/FuxCP/c++)
+add_subdirectory(externals/FuxCP/FuxCP/c++)
 
 
 juce_add_gui_app(myproject
@@ -69,7 +69,7 @@ target_sources(myproject PRIVATE
 )
 
 target_include_directories(myproject PRIVATE
-        externals/FuxCP4/FuxCP/c++/headers
+        externals/FuxCP/FuxCP/c++/headers
         #externals/JUCE/modules
 )
 
