@@ -112,7 +112,7 @@ void OptionsPanel::setupMelodicControls()
     //==========================================================================
     auto* leapSlider = addParameter<juce::Slider>(
         melodicColumn,
-        "Melodic Leaps",
+        "Avoid Large Melodic Leaps",
         std::make_unique<juce::Slider>()
     );
 
@@ -142,7 +142,7 @@ void OptionsPanel::setupMelodicControls()
         problem.recalculateCosts();
 
         std::cout << "\n=== MELODIC LEAPS CHANGED ===\n";
-        std::cout << "largeLeapPenalty = "
+        std::cout << "avoidLargeMelodicLeap = "
                   << problem.getSettings().getLargeLeapPenalty()
                   << "\n";
     };
@@ -151,7 +151,7 @@ void OptionsPanel::setupMelodicControls()
     //==========================================================================
     // Avoid repeated notes
     //==========================================================================
-    auto* repetitionSlider = addParameter<juce::Slider>(
+    auto* varietySlider = addParameter<juce::Slider>(
         melodicColumn,
         "Avoid Repeated Notes",
         ParameterFactory::slider(0.0, 1.0, 1.0, 0.0)
@@ -159,20 +159,20 @@ void OptionsPanel::setupMelodicControls()
 
     if (appController != nullptr)
     {
-        repetitionSlider->setValue(
+        varietySlider->setValue(
             appController->getProblem().getSettings().getAvoidRepeatedNotes(),
             juce::dontSendNotification
         );
     }
 
-    repetitionSlider->onValueChange = [this, repetitionSlider]()
+    varietySlider->onValueChange = [this, varietySlider]()
     {
         if (appController == nullptr || appController->isGenerating())
             return;
 
         auto& problem = appController->getProblem();
 
-        const int value = static_cast<int>(repetitionSlider->getValue());
+        const int value = static_cast<int>(varietySlider->getValue());
 
         problem.getSettings().setAvoidRepeatedNotes(value);
         problem.recalculateCosts();
@@ -227,6 +227,47 @@ void OptionsPanel::setupMelodicControls()
             std::cout << c << " ";
         std::cout << "\n";
     };
+
+    //==========================================================================
+    // Avoid Tritons
+    //==========================================================================
+    auto* avoidTritonSlider = addParameter<juce::Slider>(
+        melodicColumn,
+        "Avoid Tritons",
+        ParameterFactory::slider(0.0, 1.0, 1.0, 0.0)
+    );
+
+    if (appController != nullptr)
+    {
+        octaveLeapSlider->setValue(
+            appController->getProblem().getSettings().getAvoidTritons(),
+            juce::dontSendNotification
+        );
+    }
+
+    avoidTritonSlider->onValueChange = [this, avoidTritonSlider]()
+    {
+        if (appController == nullptr || appController->isGenerating())
+            return;
+
+        auto& problem = appController->getProblem();
+
+        const int value = static_cast<int>(avoidTritonSlider->getValue());
+
+        problem.getSettings().setAllowOctaveLeap(value);
+        problem.recalculateCosts();
+
+        std::cout << "\n=== AVOID TRITON SLIDER CHANGED ===\n";
+        std::cout << "avoidTritons = "
+                  << problem.getSettings().getAvoidTritons()
+                  << "\n";
+
+        std::cout << "Melodic costs = ";
+        for (int c : problem.getMelodicCosts())
+            std::cout << c << " ";
+        std::cout << "\n";
+    };
+
 }
 
 void OptionsPanel::setupSolverPriorities()

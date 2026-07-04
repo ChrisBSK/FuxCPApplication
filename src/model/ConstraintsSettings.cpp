@@ -89,7 +89,8 @@ std::vector<int> ConstraintSettings::buildMelodicCosts(int cantusFirmusLength) c
     auto melodicCosts = buildDefaultMelodicCosts(cantusFirmusLength);
 
     applyLargeLeapPenalty(melodicCosts);
-    applyAllowOctaveLeap(melodicCosts);
+    applyAvoidOctaveLeap(melodicCosts);
+    applyAvoidTritons(melodicCosts);
 
     return melodicCosts;
 }
@@ -143,11 +144,11 @@ void ConstraintSettings::applyLargeLeapPenalty(std::vector<int>& costs) const
     constexpr int highCost = 4;
     constexpr int veryHighCost = 8;
 
-    costs[fourthCost]  = interpolateCost(melodic.largeLeapPenalty, lowCost, veryHighCost);
-    costs[fifthCost]   = interpolateCost(melodic.largeLeapPenalty, lowCost, highCost);
-    costs[sixthCost]   = interpolateCost(melodic.largeLeapPenalty, lowCost, veryHighCost);
-    costs[seventhCost] = interpolateCost(melodic.largeLeapPenalty, mediumCost, veryHighCost);
-    costs[octaveCost]  = interpolateCost(melodic.largeLeapPenalty, lowCost, highCost);
+    costs[fourthCost]  = interpolateCost(melodic.avoidLargeLeap, lowCost, veryHighCost);
+    costs[fifthCost]   = interpolateCost(melodic.avoidLargeLeap, lowCost, highCost);
+    costs[sixthCost]   = interpolateCost(melodic.avoidLargeLeap, lowCost, veryHighCost);
+    costs[seventhCost] = interpolateCost(melodic.avoidLargeLeap, mediumCost, veryHighCost);
+    costs[octaveCost]  = interpolateCost(melodic.avoidLargeLeap, lowCost, highCost);
 }
 
 //==============================================================================
@@ -170,7 +171,7 @@ std::vector<int> ConstraintSettings::buildGeneralCosts() const
 {
     auto generalCosts = buildDefaultGeneralCosts();
 
-    applyNoteRepetitionPenalty(generalCosts);
+    applyAvoidRepeatedNotes(generalCosts);
 
     return generalCosts;
 }
@@ -210,7 +211,7 @@ std::vector<int> ConstraintSettings::buildDefaultGeneralCosts() const
     0 = contrainte relâchée.
     1 = contrainte fortement pondérée.
 */
-void ConstraintSettings::applyNoteRepetitionPenalty(std::vector<int>& costs) const
+void ConstraintSettings::applyAvoidRepeatedNotes(std::vector<int>& costs) const
 {
     costs[varietyCost] = buildBinaryCost(general.avoidRepeatedNotes);
 }
@@ -225,10 +226,26 @@ void ConstraintSettings::applyNoteRepetitionPenalty(std::vector<int>& costs) con
     0 = contrainte relâchée.
     1 = contrainte fortement pondérée.
 */
-void ConstraintSettings::applyAllowOctaveLeap(std::vector<int>& costs) const
+void ConstraintSettings::applyAvoidOctaveLeap(std::vector<int>& costs) const
 {
-    costs[octaveCost] = buildBinaryCost(melodic.allowOctaveLeap);
+    costs[octaveCost] = buildBinaryCost(melodic.avoidOctaveLeap);
 }
+
+/*
+    Contrôle "Avoid Tritons".
+
+    Le solveur FuxCP n'est pas modifié ici.
+    On pilote uniquement tritoneCost, le coût déjà prévu par FuxCP pour
+    décourager les tritons.
+
+    0 = contrainte relâchée.
+    1 = contrainte fortement pondérée.
+*/
+void ConstraintSettings::applyAvoidTritons(std::vector<int>& costs) const
+{
+    costs[tritoneCost] = buildBinaryCost(melodic.avoidOctaveLeap);
+}
+
 
 //==============================================================================
 // SPECIFIC COSTS

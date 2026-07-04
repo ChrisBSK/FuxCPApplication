@@ -63,13 +63,19 @@ struct ConstraintSettings
             0.0 = grands sauts plus libres.
             1.0 = grands sauts fortement pénalisés.
         */
-        double largeLeapPenalty = 0.0;
+        double avoidLargeLeap = 0.0;
 
         /*
             0.0 = grands sauts d'octaves autorisés (12 demi-tons).
             1.0 = grands sauts d'octaves pénalisés (12 demi-tons).
         */
-        int allowOctaveLeap = 0;
+        int avoidOctaveLeap = 0;
+
+        /*
+            0.0 = ON ne pénalise pas le coût des tritons
+            1.0 = On pénalise le coûts des tritons
+        */
+        int avoidTriton = 0;
     };
 
     struct General
@@ -143,12 +149,12 @@ struct ConstraintSettings
     //==========================================================================
     void setLargeLeapPenalty(double value)
     {
-        melodic.largeLeapPenalty = value;
+        melodic.avoidLargeLeap = value;
     }
 
     double getLargeLeapPenalty() const
     {
-        return melodic.largeLeapPenalty;
+        return melodic.avoidLargeLeap;
     }
 
     void setAvoidRepeatedNotes(int value)
@@ -163,12 +169,22 @@ struct ConstraintSettings
 
     void setAllowOctaveLeap(int value)
     {
-        melodic.allowOctaveLeap = value == 0 ? 0 : 1;
+        melodic.avoidOctaveLeap = value == 0 ? 0 : 1;
     }
 
     int getAllowOctaveLeap() const
     {
-        return melodic.allowOctaveLeap;
+        return melodic.avoidOctaveLeap;
+    }
+
+    void setTritons(int value)
+    {
+        melodic.avoidTriton = value == 0 ? 0 : 1;
+    }
+
+    int getAvoidTritons() const
+    {
+        return melodic.avoidTriton;
     }
 
     void setBorrowMode(int value)
@@ -205,6 +221,8 @@ private:
     // UI MODIFIERS
     //==========================================================================
     void applyLargeLeapPenalty(std::vector<int>& costs) const;
-    void applyAllowOctaveLeap(std::vector<int>& costs) const;
-    void applyNoteRepetitionPenalty(std::vector<int>& costs) const;
+    void applyAvoidOctaveLeap(std::vector<int>& costs) const;
+    void applyAvoidRepeatedNotes(std::vector<int>& costs) const;
+    void applyAvoidTritons(std::vector<int>& costs) const;
+
 };
