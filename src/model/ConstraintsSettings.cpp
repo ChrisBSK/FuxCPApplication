@@ -1,7 +1,6 @@
 #include "ConstraintsSettings.h"
 
-#include <algorithm>
-#include <cmath>
+#include "CostModel.hpp"
 
 /*
 ==============================================================================
@@ -16,63 +15,6 @@
 ==============================================================================
 */
 
-namespace
-{
-    constexpr double minimumSliderValue = 0.0;
-    constexpr double maximumSliderValue = 1.0;
-
-    /*
-        Garde une valeur de slider dans sa plage normale.
-    */
-    double clampSlider(double value)
-    {
-        return std::clamp(value, minimumSliderValue, maximumSliderValue);
-    }
-
-    /*
-        Calcule une valeur progressive entre deux coûts.
-
-        slider = 0.0 -> coût permissif
-        slider = 1.0 -> coût strict
-    */
-    int interpolateCost(double sliderValue, int permissiveCost, int strictCost)
-    {
-        const double sliderPosition = clampSlider(sliderValue);
-
-        const double cost = permissiveCost
-            + sliderPosition * static_cast<double>(strictCost - permissiveCost);
-
-        return static_cast<int>(std::lround(cost));
-    }
-
-    /*
-        Calcule un coût très élevé pour le triton.
-        Il augmente avec la longueur du Cantus Firmus pour rester dissuasif.
-    */
-    int buildTritoneCost(int cantusFirmusLength)
-    {
-        constexpr int penaltyPerNote = 64;
-        constexpr int minimumLength = 1;
-
-        return penaltyPerNote * std::max(cantusFirmusLength, minimumLength);
-    }
-
-    /*
-        Convertit un réglage ON/OFF de l'interface en coût FuxCP.
-
-        Cette fonction sert aux paramètres binaires qui changent un seul coût :
-        - 0 = coût nul, la préférence est relâchée
-        - 1 = coût fort, la préférence devient très prioritaire
-    */
-    int buildBinaryCost(int enabled)
-    {
-        constexpr int noCost = 0;
-        constexpr int strongCost = 10000;
-
-        return enabled == 0 ? noCost : strongCost;
-    }
-}
-
 //==============================================================================
 // MELODIC COSTS
 //==============================================================================
@@ -80,76 +22,31 @@ namespace
 /*
     Construit le vecteur des coûts mélodiques utilisé par FuxCP.
 
-    Étapes :
-    1. Construire les coûts par défaut.
-    2. Appliquer les paramètres UI.
+    Le slider "Melody movement" pilote directement la fonction steps1(s)
+    définie par Dorian dans FuxCP :
+
+    - s = 0 favorise les mouvements conjoints.
+    - s = 1 favorise les sauts.
 */
 std::vector<int> ConstraintSettings::buildMelodicCosts(int cantusFirmusLength) const
 {
-    auto melodicCosts = buildDefaultMelodicCosts(cantusFirmusLength);
+    (void) cantusFirmusLength;
 
-    applyLargeLeapPenalty(melodicCosts);
-    applyAvoidOctaveLeap(melodicCosts);
-    applyAvoidTritons(melodicCosts);
-
-    return melodicCosts;
+    return steps1(melodic.avoidLargeLeap);
 }
 
 /*
-    Coûts mélodiques de base, avant pénalisation par le slider.
-
-    Plus le nombre est petit, plus le solveur accepte facilement l'intervalle.
-    Le slider "Melodic Leaps" part de cette base, puis augmente les coûts des
-    grands sauts quand largeLeapPenalty se rapproche de 1.
+    Coûts mélodiques par défaut de FuxCP/Dorian.
 */
 std::vector<int> ConstraintSettings::buildDefaultMelodicCosts(int cantusFirmusLength) const
 {
-    constexpr int freeCost = 0;
-    constexpr int lowCost = 1;
-    constexpr int mediumCost = 2;
+    (void) cantusFirmusLength;
 
-    return
-    {
-        freeCost,                            // Même note ou seconde
-        lowCost,                             // Tierce
-        lowCost,                             // Quarte
-        buildTritoneCost(cantusFirmusLength), // Triton
-        lowCost,                             // Quinte
-        lowCost,                             // Sixte
-        mediumCost,                          // Septième
-        lowCost                              // Octave
-    };
+    return steps1(0.0);
 }
 
-/*
-    Slider "Melodic Leaps".
 
-    0.0 = comportement permissif : les grands sauts coûtent peu.
-    1.0 = comportement strict : les grands sauts coûtent cher.
 
-    Les intervalles concernés sont :
-
-    - quarte
-    - quinte
-    - sixte
-    - septième
-    - octave
-
-    Le triton garde son coût d'interdit/dernier recours, conformément au mémoire.
-*/
-void ConstraintSettings::applyLargeLeapPenalty(std::vector<int>& costs) const
-{
-    constexpr int lowCost = 1;
-    constexpr int mediumCost = 2;
-    constexpr int highCost = 4;
-    constexpr int veryHighCost = 8;
-
-    costs[fourthCost]  = interpolateCost(melodic.avoidLargeLeap, lowCost, veryHighCost);
-    costs[fifthCost]   = interpolateCost(melodic.avoidLargeLeap, lowCost, highCost);
-    costs[sixthCost]   = interpolateCost(melodic.avoidLargeLeap, lowCost, veryHighCost);
-    costs[seventhCost] = interpolateCost(melodic.avoidLargeLeap, mediumCost, veryHighCost);
-    costs[octaveCost]  = interpolateCost(melodic.avoidLargeLeap, lowCost, highCost);
-}
 
 //==============================================================================
 // GENERAL COSTS
@@ -170,8 +67,6 @@ void ConstraintSettings::applyLargeLeapPenalty(std::vector<int>& costs) const
 std::vector<int> ConstraintSettings::buildGeneralCosts() const
 {
     auto generalCosts = buildDefaultGeneralCosts();
-
-    applyAvoidRepeatedNotes(generalCosts);
 
     return generalCosts;
 }
@@ -201,50 +96,7 @@ std::vector<int> ConstraintSettings::buildDefaultGeneralCosts() const
     };
 }
 
-/*
-    Contrôle "Avoid Repeated Notes".
 
-    Le solveur FuxCP n'est pas modifié ici.
-    On pilote uniquement varietyCost, le coût déjà prévu par FuxCP pour
-    décourager les notes répétées dans sa fenêtre de variété.
-
-    0 = contrainte relâchée.
-    1 = contrainte fortement pondérée.
-*/
-void ConstraintSettings::applyAvoidRepeatedNotes(std::vector<int>& costs) const
-{
-    costs[varietyCost] = buildBinaryCost(general.avoidRepeatedNotes);
-}
-
-/*
-    Contrôle "Allow Octave Leaps".
-
-    Le solveur FuxCP n'est pas modifié ici.
-    On pilote uniquement octaveCost, le coût déjà prévu par FuxCP pour
-    décourager les sauts d'octave.
-
-    0 = contrainte relâchée.
-    1 = contrainte fortement pondérée.
-*/
-void ConstraintSettings::applyAvoidOctaveLeap(std::vector<int>& costs) const
-{
-    costs[octaveCost] = buildBinaryCost(melodic.avoidOctaveLeap);
-}
-
-/*
-    Contrôle "Avoid Tritons".
-
-    Le solveur FuxCP n'est pas modifié ici.
-    On pilote uniquement tritoneCost, le coût déjà prévu par FuxCP pour
-    décourager les tritons.
-
-    0 = contrainte relâchée.
-    1 = contrainte fortement pondérée.
-*/
-void ConstraintSettings::applyAvoidTritons(std::vector<int>& costs) const
-{
-    costs[tritoneCost] = buildBinaryCost(melodic.avoidOctaveLeap);
-}
 
 
 //==============================================================================

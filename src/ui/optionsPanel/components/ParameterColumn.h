@@ -1,7 +1,7 @@
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
-#include "ParameterRow.h"
+#include "BoxParameter.h"
 
 /*
 //==============================================================================
@@ -13,11 +13,14 @@
 class ParameterColumn
 {
 public:
-    ParameterRow* addParameter(juce::Component& parent,
+    BoxParameter* addParameter(juce::Component& parent,
                                const juce::String& label,
-                               std::unique_ptr<juce::Component> control)
+                               std::unique_ptr<juce::Component> control,
+                               std::optional<BoxParameter::EndpointLabels> endpointLabels = std::nullopt)
     {
-        auto row = std::make_unique<ParameterRow>(label, std::move(control));
+        auto row = std::make_unique<BoxParameter>(label,
+                                                  std::move(control),
+                                                  std::move(endpointLabels));
         auto* rowPtr = row.get();
 
         parent.addAndMakeVisible(*row);
@@ -26,9 +29,9 @@ public:
         return rowPtr;
     }
 
-    void layout(juce::Rectangle<int> bounds)
+    void layout(juce::Rectangle<int> bounds, bool useInset = true)
     {
-        const int inset = juce::jlimit(6, 12, bounds.getWidth() / 18);
+        const int inset = useInset ? juce::jlimit(6, 12, bounds.getWidth() / 18) : 0;
         auto inner = bounds.reduced(inset);
 
         // Lignes compactes :
@@ -43,11 +46,11 @@ public:
 
         for (auto& row : rows)
         {
-            row->setBounds(inner.removeFromTop(rowHeight));
+            row->setBounds(inner.removeFromTop(juce::jmax(rowHeight, row->getPreferredHeight())));
             inner.removeFromTop(spacingY);
         }
     }
 
 private:
-    std::vector<std::unique_ptr<ParameterRow>> rows;
+    std::vector<std::unique_ptr<BoxParameter>> rows;
 };

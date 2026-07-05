@@ -49,7 +49,7 @@ namespace ParameterHelpText
             );
         }
 
-        if (label == "Melodic Leaps")
+        if (label == "Melody movement")
         {
             return text(
                 "Contraintes liées : G7_melodicIntervalsShouldBeSmall, "

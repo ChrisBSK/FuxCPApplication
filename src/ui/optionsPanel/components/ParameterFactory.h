@@ -2,6 +2,8 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+#include "OnOffSwitchButton.h"
+
 /*
 //==============================================================================
    ParameterFactory
@@ -32,6 +34,13 @@ public:
         auto toggle = std::make_unique<juce::ToggleButton>();
         toggle->setButtonText(text);
         return toggle;
+    }
+
+    static std::unique_ptr<OnOffSwitchButton> onOffSwitch(bool defaultValue)
+    {
+        auto button = std::make_unique<OnOffSwitchButton>();
+        button->setOn(defaultValue, juce::dontSendNotification);
+        return button;
     }
 
     static std::unique_ptr<juce::TextButton> button(const juce::String& text)

@@ -10,6 +10,7 @@
 #include "../controller/AppController.h"
 
 #include <gecode/search.hh>
+#include <algorithm>
 #include <memory>
 
 //==============================================================================
@@ -51,6 +52,11 @@ namespace
             case 5: return FIFTH_SPECIES;
             default: return FIRST_SPECIES;
         }
+    }
+
+    void activateDefaultFuxConstraints()
+    {
+        std::fill(activeConstraints.begin(), activeConstraints.end(), true);
     }
 
     std::vector<std::vector<int>> splitVoices(const std::vector<int>& solution,
@@ -164,9 +170,9 @@ namespace
                 std::abs(notes[i] - notes[i - 1]));
         }
 
-        std::cout << "Max leap = "
+        /*std::cout << "Max leap = "
                   << maxLeap
-                  << "\n";
+                  << "\n";*/
     }
 }
 
@@ -493,6 +499,8 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
     // =========================
     //  Paramètres du solveur
     // =========================
+    activateDefaultFuxConstraints();
+
     const auto& settings = problem.getSettings();
 
     melodicStorage   = settings.buildMelodicCosts(static_cast<int>(cf.size()));

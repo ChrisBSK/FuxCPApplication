@@ -71,28 +71,28 @@ void OptionsPanel::setupBasicControls()
     //==========================================================================
     // Borrow Mode
     //==========================================================================
-    auto* borrowToggle = addParameter<juce::ToggleButton>(
+    auto* borrowSwitch = addSwitchParameter(
         basicColumn,
         "Borrow Mode",
-        std::make_unique<juce::ToggleButton>()
+        false
     );
 
     if (appController != nullptr)
     {
-        borrowToggle->setToggleState(
+        borrowSwitch->setOn(
             appController->getProblem().getSettings().getBorrowMode() == 1,
             juce::dontSendNotification
         );
     }
 
-    borrowToggle->onClick = [this, borrowToggle]()
+    borrowSwitch->onClick = [this, borrowSwitch]()
     {
         if (appController == nullptr || appController->isGenerating())
             return;
 
         auto& problem = appController->getProblem();
 
-        const int value = borrowToggle->getToggleState() ? 1 : 0;
+        const int value = borrowSwitch->isOn() ? 1 : 0;
 
         problem.getSettings().setBorrowMode(value);
         problem.recalculateCosts();
@@ -110,16 +110,16 @@ void OptionsPanel::setupMelodicControls()
     //==========================================================================
     // Melodic Leap Control
     //==========================================================================
-    auto* leapSlider = addParameter<juce::Slider>(
+    auto* leapSlider = addSliderParameter(
         melodicColumn,
-        "Avoid Large Melodic Leaps",
-        std::make_unique<juce::Slider>()
+        "Melody movement",
+        0.0,
+        1.0,
+        0.01,
+        0.5,
+        "Smooth",
+        "Jumpy"
     );
-
-    leapSlider->setSliderStyle(juce::Slider::LinearHorizontal);
-    leapSlider->setTextBoxStyle(juce::Slider::TextBoxRight, false, 50, 20);
-    leapSlider->setRange(0.0, 1.0, 0.01);
-    leapSlider->setValue(0.0, juce::dontSendNotification);
 
     if (appController != nullptr)
     {
@@ -147,126 +147,6 @@ void OptionsPanel::setupMelodicControls()
                   << "\n";
     };
 
-
-    //==========================================================================
-    // Avoid repeated notes
-    //==========================================================================
-    auto* varietySlider = addParameter<juce::Slider>(
-        melodicColumn,
-        "Avoid Repeated Notes",
-        ParameterFactory::slider(0.0, 1.0, 1.0, 0.0)
-    );
-
-    if (appController != nullptr)
-    {
-        varietySlider->setValue(
-            appController->getProblem().getSettings().getAvoidRepeatedNotes(),
-            juce::dontSendNotification
-        );
-    }
-
-    varietySlider->onValueChange = [this, varietySlider]()
-    {
-        if (appController == nullptr || appController->isGenerating())
-            return;
-
-        auto& problem = appController->getProblem();
-
-        const int value = static_cast<int>(varietySlider->getValue());
-
-        problem.getSettings().setAvoidRepeatedNotes(value);
-        problem.recalculateCosts();
-
-        std::cout << "\n=== AVOID REPEATED NOTES CHANGED ===\n";
-        std::cout << "avoidRepeatedNotes = "
-                  << problem.getSettings().getAvoidRepeatedNotes()
-                  << "\n";
-
-        std::cout << "General costs = ";
-        for (int c : problem.getGeneralCosts())
-            std::cout << c << " ";
-        std::cout << "\n";
-    };
-
-    //==========================================================================
-    // Avoid octave leaps
-    //==========================================================================
-    auto* octaveLeapSlider = addParameter<juce::Slider>(
-        melodicColumn,
-        "Avoid Octave Leaps",
-        ParameterFactory::slider(0.0, 1.0, 1.0, 0.0)
-    );
-
-    if (appController != nullptr)
-    {
-        octaveLeapSlider->setValue(
-            appController->getProblem().getSettings().getAllowOctaveLeap(),
-            juce::dontSendNotification
-        );
-    }
-
-    octaveLeapSlider->onValueChange = [this, octaveLeapSlider]()
-    {
-        if (appController == nullptr || appController->isGenerating())
-            return;
-
-        auto& problem = appController->getProblem();
-
-        const int value = static_cast<int>(octaveLeapSlider->getValue());
-
-        problem.getSettings().setAllowOctaveLeap(value);
-        problem.recalculateCosts();
-
-        std::cout << "\n=== AVOID OCTAVE LEAPS CHANGED ===\n";
-        std::cout << "avoidOctaveLeaps = "
-                  << problem.getSettings().getAllowOctaveLeap()
-                  << "\n";
-
-        std::cout << "Melodic costs = ";
-        for (int c : problem.getMelodicCosts())
-            std::cout << c << " ";
-        std::cout << "\n";
-    };
-
-    //==========================================================================
-    // Avoid Tritons
-    //==========================================================================
-    auto* avoidTritonSlider = addParameter<juce::Slider>(
-        melodicColumn,
-        "Avoid Tritons",
-        ParameterFactory::slider(0.0, 1.0, 1.0, 0.0)
-    );
-
-    if (appController != nullptr)
-    {
-        octaveLeapSlider->setValue(
-            appController->getProblem().getSettings().getAvoidTritons(),
-            juce::dontSendNotification
-        );
-    }
-
-    avoidTritonSlider->onValueChange = [this, avoidTritonSlider]()
-    {
-        if (appController == nullptr || appController->isGenerating())
-            return;
-
-        auto& problem = appController->getProblem();
-
-        const int value = static_cast<int>(avoidTritonSlider->getValue());
-
-        problem.getSettings().setAllowOctaveLeap(value);
-        problem.recalculateCosts();
-
-        std::cout << "\n=== AVOID TRITON SLIDER CHANGED ===\n";
-        std::cout << "avoidTritons = "
-                  << problem.getSettings().getAvoidTritons()
-                  << "\n";
-
-        std::cout << "Melodic costs = ";
-        for (int c : problem.getMelodicCosts())
-            std::cout << c << " ";
-        std::cout << "\n";
-    };
 
 }
 
@@ -487,8 +367,8 @@ void OptionsPanel::layoutVoiceColumn(juce::Rectangle<int> bounds)
     auto inner = bounds.reduced(inset);
 
     const int gapY = juce::jlimit(4, 8, bounds.getHeight() / 70);
-    const int controlsGapY = juce::jlimit(8, 14, bounds.getHeight() / 35);
-    const int basicControlsHeight = juce::jlimit(40, 50, bounds.getHeight() / 9);
+    const int controlsGapY = gapY;
+    const int basicControlsHeight = juce::jlimit(54, 60, bounds.getHeight() / 8);
     const int availableForVoices = inner.getHeight()
                                 - basicControlsHeight
                                 - controlsGapY
@@ -506,7 +386,7 @@ void OptionsPanel::layoutVoiceColumn(juce::Rectangle<int> bounds)
     }
 
     inner.removeFromTop(controlsGapY);
-    basicColumn.layout(inner);
+    basicColumn.layout(inner, false);
 }
 
 void OptionsPanel::layoutSolverPriorities(juce::Rectangle<int> listBounds,

@@ -60,8 +60,10 @@ struct ConstraintSettings
     struct Melodic
     {
         /*
-            0.0 = grands sauts plus libres.
-            1.0 = grands sauts fortement pénalisés.
+            Paramètre s de steps1(s), défini dans FuxCP par Dorian.
+
+            0.0 = favorise les mouvements conjoints.
+            1.0 = favorise les sauts.
         */
         double avoidLargeLeap = 0.0;
 
@@ -110,20 +112,20 @@ struct ConstraintSettings
             14 = priorité la plus faible.
         */
         std::vector<int> costs {
-            8,  // borrow
-            7,  // fifth
+            14,  // borrow
+            6,  // fifth
             5,  // octave
-            3,  // succ
-            1,  // variety
-            4,  // triad
-            14, // direct
-            12, // motion
-            6,  // penult
+            2,  // succ
+            9,  // variety
+            3,  // triad
+            8, // direct
+            10, // motion
+            12,  // penult
             11, // cambiata
-            9,  // triad3
-            10, // m2
-            13, // syncopation
-            2   // melodic
+            4,  // triad3
+            13, // m2
+            1, // syncopation
+            7   // melodic
         };
     };
 
@@ -216,13 +218,5 @@ private:
     std::vector<int> buildDefaultGeneralCosts() const;
     std::vector<int> buildDefaultSpecificCosts() const;
     std::vector<int> buildDefaultImportanceCosts() const;
-
-    //==========================================================================
-    // UI MODIFIERS
-    //==========================================================================
-    void applyLargeLeapPenalty(std::vector<int>& costs) const;
-    void applyAvoidOctaveLeap(std::vector<int>& costs) const;
-    void applyAvoidRepeatedNotes(std::vector<int>& costs) const;
-    void applyAvoidTritons(std::vector<int>& costs) const;
 
 };

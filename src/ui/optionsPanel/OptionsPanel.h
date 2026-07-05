@@ -115,5 +115,37 @@ private:
         return controlPtr;
     }
 
+    juce::Slider* addSliderParameter(ParameterColumn& column,
+                                     const juce::String& label,
+                                     double min,
+                                     double max,
+                                     double interval,
+                                     double defaultValue,
+                                     const juce::String& leftEndpoint,
+                                     const juce::String& rightEndpoint)
+    {
+        auto slider = ParameterFactory::slider(min, max, interval, defaultValue);
+        auto* sliderPtr = slider.get();
+
+        column.addParameter(*this,
+                            label,
+                            std::move(slider),
+                            BoxParameter::EndpointLabels { leftEndpoint, rightEndpoint });
+
+        return sliderPtr;
+    }
+
+    OnOffSwitchButton* addSwitchParameter(ParameterColumn& column,
+                                          const juce::String& label,
+                                          bool defaultValue)
+    {
+        auto button = ParameterFactory::onOffSwitch(defaultValue);
+        auto* buttonPtr = button.get();
+
+        column.addParameter(*this, label, std::move(button));
+
+        return buttonPtr;
+    }
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OptionsPanel)
 };
