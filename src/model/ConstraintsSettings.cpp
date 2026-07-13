@@ -2,6 +2,9 @@
 
 #include "CostModel.hpp"
 
+#include <algorithm>
+#include <cstddef>
+
 /*
 ==============================================================================
     ConstraintSettings.cpp
@@ -14,6 +17,20 @@
     - les sliders modifient ensuite uniquement les coûts qui les concernent
 ==============================================================================
 */
+
+namespace
+{
+    constexpr int maximumMelodicCost = 576;
+
+    void addMelodicCosts(std::vector<int>& target,
+                         const std::vector<int>& source)
+    {
+        const auto size = std::min(target.size(), source.size());
+
+        for (std::size_t i = 0; i < size; ++i)
+            target[i] = std::min(target[i] + source[i], maximumMelodicCost);
+    }
+}
 
 //==============================================================================
 // MELODIC COSTS
@@ -32,7 +49,11 @@ std::vector<int> ConstraintSettings::buildMelodicCosts(int cantusFirmusLength) c
 {
     (void) cantusFirmusLength;
 
-    return steps1(melodic.avoidLargeLeap);
+    auto melodicCosts = steps1(melodic.avoidLargeLeap);
+
+    addMelodicCosts(melodicCosts, steps2(melodic.melodicIntervalColor));
+
+    return melodicCosts;
 }
 
 /*
@@ -42,7 +63,11 @@ std::vector<int> ConstraintSettings::buildDefaultMelodicCosts(int cantusFirmusLe
 {
     (void) cantusFirmusLength;
 
-    return steps1(0.0);
+    auto melodicCosts = steps1(0.0);
+
+    addMelodicCosts(melodicCosts, steps2(0.0));
+
+    return melodicCosts;
 }
 
 
@@ -67,6 +92,10 @@ std::vector<int> ConstraintSettings::buildDefaultMelodicCosts(int cantusFirmusLe
 std::vector<int> ConstraintSettings::buildGeneralCosts() const
 {
     auto generalCosts = buildDefaultGeneralCosts();
+    const auto harmonicCosts = harmo(harmonic.perfectIntervalBalance);
+
+    generalCosts[harmonicFifthCost] = harmonicCosts[0];
+    generalCosts[harmonicOctaveCost] = harmonicCosts[1];
 
     return generalCosts;
 }
@@ -78,21 +107,17 @@ std::vector<int> ConstraintSettings::buildGeneralCosts() const
 */
 std::vector<int> ConstraintSettings::buildDefaultGeneralCosts() const
 {
-    constexpr int lowCost = 1;
-    constexpr int mediumCost = 2;
-    constexpr int highCost = 4;
-    constexpr int veryHighCost = 8;
 
     return
     {
-        highCost,      // borrowCost
-        lowCost,       // h_fifthCost
-        lowCost,       // h_octaveCost
-        mediumCost,    // succCost
-        mediumCost,    // varietyCost
-        mediumCost,    // triadCost
-        veryHighCost,  // directMoveCost
-        lowCost        // penultCost
+        4,       // borrowCost
+        1,       // h_fifthCost
+        1,       // h_octaveCost
+        2,       // succCost
+        2,       // varietyCost
+        2,       // triadCost
+        8,       // directMoveCost
+        1        // penultCost
     };
 }
 

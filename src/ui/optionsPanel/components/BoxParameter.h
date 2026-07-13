@@ -61,12 +61,24 @@ public:
         return usesBoxLayout() ? 84 : 38;
     }
 
+    // Indique que ce paramètre appartient à la voix sélectionnée.
+    void setLinkedToSelectedVoice(bool linked)
+    {
+        if (isLinkedToSelectedVoice != linked)
+        {
+            isLinkedToSelectedVoice = linked;
+            repaint();
+        }
+    }
+
     void paint(juce::Graphics& g) override
     {
         if (! usesBoxLayout())
             return;
 
-        g.setColour(juce::Colour(0xff2f5f57));
+        g.setColour(isLinkedToSelectedVoice
+                    ? juce::Colour(0xff4b3b67)
+                    : juce::Colour(0xff2f5f57));
         g.fillRoundedRectangle(getLocalBounds().toFloat(), 7.0f);
     }
 
@@ -84,6 +96,8 @@ public:
     }
 
 private:
+    bool isLinkedToSelectedVoice = false;
+
     bool usesBoxLayout() const
     {
         return endpointLabels.has_value() || isSwitchControl();

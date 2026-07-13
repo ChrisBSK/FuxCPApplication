@@ -19,7 +19,9 @@ public:
 
     // Gestion de l'état visuel.
     void setActive(bool active);
+    void setSelected(bool selected);
     bool isActive = false;
+    bool isSelected = false;
 
     // Contrôles de configuration de la voix.
     juce::ComboBox speciesBox;
@@ -31,6 +33,12 @@ public:
 
     // Connecte la voix à l'AppController.
     void connectToController(AppController* controller, int index);
+
+    // Fonction appelée quand l'utilisateur double-clique sur cette voix.
+    std::function<void()> onClick;
+
+    // Détecte le double-clic sur la VoiceBox et ses enfants.
+    void mouseDoubleClick(const juce::MouseEvent&) override;
 
 private:
     // Titre affiché en haut de la box.

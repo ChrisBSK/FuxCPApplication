@@ -51,6 +51,13 @@ public:
         }
     }
 
+    // Applique la couleur de sélection à tous les paramètres de la colonne.
+        void setLinkedToSelectedVoice(bool linked)
+        {
+            for (auto& row : rows)
+                row->setLinkedToSelectedVoice(linked);
+        }
+
 private:
     std::vector<std::unique_ptr<BoxParameter>> rows;
 };

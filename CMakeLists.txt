@@ -53,7 +53,6 @@ target_sources(myproject PRIVATE
         src/ui/optionsPanel/components/VoiceBox.cpp
         src/ui/optionsPanel/OptionsPanelHelpers.cpp
         src/ui/optionsPanel/OptionsPanelHelpers.h
-        src/ui/optionsPanel/components/ParameterRow.h
         src/ui/optionsPanel/components/ParameterColumn.h
         src/ui/optionsPanel/components/ParameterFactory.h
 
@@ -89,4 +88,3 @@ target_compile_definitions(myproject PRIVATE
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
 )
-

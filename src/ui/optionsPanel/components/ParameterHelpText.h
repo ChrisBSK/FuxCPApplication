@@ -56,12 +56,35 @@ namespace ParameterHelpText
                 "M1_1_2v_melodicIntervalsNotExceedMinorSixth, "
                 "M1_1_3v_melodicIntervalsNotExceedMinorSixth et M1_2_octaveLeap.\n\n"
                 "Le slider ne change pas les interdictions strictes de M1. "
-                "Il modifie seulement les coûts mélodiques envoyés à G7.\n\n"
-                "0 = quartes, quintes, sixtes, septièmes et octaves coûtent peu.\n\n"
-                "1 = ces grands sauts coûtent davantage, surtout la quarte, la sixte et la "
-                "septième.\n\n"
-                "Effet attendu : plus la valeur monte, plus la mélodie devrait privilégier les "
-                "mouvements conjoints et éviter les grands écarts audibles."
+                "Il modifie seulement les coûts mélodiques envoyés à G7 via steps1(s).\n\n"
+                "0 = favorise les mouvements conjoints.\n\n"
+                "1 = favorise les sauts.\n\n"
+                "Effet attendu : plus la valeur monte, plus la mélodie accepte les grands "
+                "écarts audibles."
+            );
+        }
+
+        if (label == "Interval colour")
+        {
+            return text(
+                "Contrainte liée : G7_melodicIntervalsShouldBeSmall.\n\n"
+                "Ce slider pilote steps2(s), défini dans FuxCP.\n\n"
+                "0 = les dissonances mélodiques sont fortement pénalisées.\n\n"
+                "1 = les consonances parfaites sont fortement pénalisées.\n\n"
+                "Effet attendu : déplacer la couleur mélodique entre un profil plus parfait "
+                "et un profil plus tendu."
+            );
+        }
+
+        if (label == "Perfect intervals")
+        {
+            return text(
+                "Contraintes liées : coûts harmoniques h_fifthCost et h_octaveCost.\n\n"
+                "Ce slider pilote harmo(s), défini dans FuxCP.\n\n"
+                "0 = les octaves harmoniques sont davantage pénalisées.\n\n"
+                "1 = les quintes harmoniques sont davantage pénalisées.\n\n"
+                "Effet attendu : déplacer l'équilibre entre éviter les octaves parfaites "
+                "et éviter les quintes parfaites."
             );
         }
 

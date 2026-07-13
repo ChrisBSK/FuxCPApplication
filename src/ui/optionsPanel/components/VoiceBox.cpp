@@ -18,6 +18,7 @@ VoiceBox::VoiceBox(const juce::String& name)
     title.setText(name, juce::dontSendNotification);
     title.setJustificationType(juce::Justification::centred);
     title.setColour(juce::Label::textColourId, juce::Colours::white);
+    title.setInterceptsMouseClicks(true, false);
 
     //  choix de l'espèce
     addAndMakeVisible(speciesBox);
@@ -34,6 +35,8 @@ VoiceBox::VoiceBox(const juce::String& name)
 
     typeBox.setSelectedId(1);
 
+    // Reçoit aussi les doubles-clics venant des éléments internes.
+    addMouseListener(this, true);
 }
 
 /*
@@ -45,14 +48,25 @@ VoiceBox::VoiceBox(const juce::String& name)
 */
 void VoiceBox::paint(juce::Graphics& g)
 {
-    //  Highlight actif
-    if (isActive)
+    // La sélection est temporaire : elle s'ajoute à l'état actif.
+    if (isSelected)
+        g.setColour(juce::Colour(0xff4b3b67));
+
+    else if (isActive)
         g.setColour(juce::Colour(0xff2f4f4f));
 
     else
         g.setColour(juce::Colours::darkgrey.brighter());
 
     g.fillRoundedRectangle(getLocalBounds().toFloat(), 6.0f);
+
+    if (isSelected)
+    {
+        g.setColour(juce::Colour(0xff8a79aa));
+        g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(1.0f),
+                               6.0f,
+                               2.0f);
+    }
 }
 
 /*
@@ -77,6 +91,12 @@ void VoiceBox::resized()
 
 
 }
+// Déclenche l'action associée au double-clic sur cette voix.
+void VoiceBox::mouseDoubleClick(const juce::MouseEvent&)
+{
+    if (onClick != nullptr)
+        onClick();
+}
 
 //==============================================================================
 // Active ou désactive la mise en évidence de la voix.
@@ -86,6 +106,16 @@ void VoiceBox::setActive(bool active)
     if (isActive != active)
     {
         isActive = active;
+        repaint();
+    }
+}
+
+// Active ou désactive la sélection utilisateur de la voix.
+void VoiceBox::setSelected(bool selected)
+{
+    if (isSelected != selected)
+    {
+        isSelected = selected;
         repaint();
     }
 }

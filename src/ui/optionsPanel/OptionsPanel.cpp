@@ -20,6 +20,7 @@ OptionsPanel::OptionsPanel()
     setupColumnInteractions();
     setupBasicControls();
     setupMelodicControls();
+    setupHarmonicControls();
     setupSolverPriorities();
 }
 
@@ -50,8 +51,31 @@ void OptionsPanel::setupVoiceBoxes()
 {
     std::array<VoiceBox*, 4> boxes { &box1, &box2, &box3, &box4 };
 
-    for (auto* box : boxes)
+    for (size_t i = 0; i < boxes.size(); ++i)
+    {
+        auto* box = boxes[i];
+
         addAndMakeVisible(*box);
+
+        box->onClick = [this, i, box]()
+        {
+            if (! box->isActive)
+                return;
+
+            const int clickedVoiceIndex = static_cast<int>(i);
+
+            if (selectedVoiceIndex == clickedVoiceIndex)
+                selectedVoiceIndex = -1;
+            else
+                selectedVoiceIndex = clickedVoiceIndex;
+
+            updateSelectedVoiceVisuals();
+            resized();
+
+            // Plus tard :
+            // refreshParameterControls();
+        };
+    }
 }
 
 void OptionsPanel::setupButtons()
@@ -147,7 +171,90 @@ void OptionsPanel::setupMelodicControls()
                   << "\n";
     };
 
+    //==========================================================================
+    // Melodic Interval Colour Control
+    //==========================================================================
+    auto* intervalColorSlider = addSliderParameter(
+        melodicColumn,
+        "Interval colour",
+        0.0,
+        1.0,
+        0.01,
+        0.0,
+        "Consonant",
+        "Dissonant"
+    );
 
+    if (appController != nullptr)
+    {
+        intervalColorSlider->setValue(
+            appController->getProblem().getSettings().getMelodicIntervalColor(),
+            juce::dontSendNotification
+        );
+    }
+
+    intervalColorSlider->onValueChange = [this, intervalColorSlider]()
+    {
+        if (appController == nullptr || appController->isGenerating())
+            return;
+
+        auto& problem = appController->getProblem();
+
+        const double melodicIntervalColor = intervalColorSlider->getValue();
+
+        problem.getSettings().setMelodicIntervalColor(melodicIntervalColor);
+        problem.recalculateCosts();
+
+        std::cout << "\n=== MELODIC INTERVAL COLOR CHANGED ===\n";
+        std::cout << "melodicIntervalColor = "
+                  << problem.getSettings().getMelodicIntervalColor()
+                  << "\n";
+    };
+
+
+}
+
+void OptionsPanel::setupHarmonicControls()
+{
+    //==========================================================================
+    // Perfect Harmonic Interval Control
+    //==========================================================================
+    auto* perfectIntervalSlider = addSliderParameter(
+        harmonicColumn,
+        "Perfect intervals",
+        0.0,
+        1.0,
+        0.01,
+        0.0,
+        "Avoid octaves",
+        "Avoid fifths"
+    );
+
+    if (appController != nullptr)
+    {
+        perfectIntervalSlider->setValue(
+            appController->getProblem().getSettings().getPerfectIntervalBalance(),
+            juce::dontSendNotification
+        );
+    }
+
+    perfectIntervalSlider->onValueChange = [this, perfectIntervalSlider]()
+    {
+        if (appController == nullptr || appController->isGenerating())
+            return;
+
+        auto& problem = appController->getProblem();
+
+        const double perfectIntervalBalance = perfectIntervalSlider->getValue();
+
+        problem.getSettings().setPerfectIntervalBalance(perfectIntervalBalance);
+        problem.recalculateCosts();
+
+        std::cout << "\n=== PERFECT INTERVAL BALANCE CHANGED ===\n";
+        std::cout << "perfectIntervalBalance = "
+                  << problem.getSettings().getPerfectIntervalBalance()
+                  << "\n";
+    };
 }
 
 void OptionsPanel::setupSolverPriorities()
@@ -250,6 +357,21 @@ void OptionsPanel::updateActiveColumn(int index)
     column5.isActive = index == 5;
 
     repaint();
+}
+
+void OptionsPanel::updateSelectedVoiceVisuals()
+{
+    // Une voix peut être active sans être sélectionnée.
+    box1.setSelected(selectedVoiceIndex == 0);
+    box2.setSelected(selectedVoiceIndex == 1);
+    box3.setSelected(selectedVoiceIndex == 2);
+    box4.setSelected(selectedVoiceIndex == 3);
+
+    // Pour l'instant, les réglages par voix concernent les contrepoints.
+    const bool hasSelectedCounterpoint = selectedVoiceIndex > 0;
+
+    melodicColumn.setLinkedToSelectedVoice(hasSelectedCounterpoint);
+    harmonicColumn.setLinkedToSelectedVoice(hasSelectedCounterpoint);
 }
 
 //==============================================================================
@@ -369,17 +491,26 @@ void OptionsPanel::layoutVoiceColumn(juce::Rectangle<int> bounds)
     const int gapY = juce::jlimit(4, 8, bounds.getHeight() / 70);
     const int controlsGapY = gapY;
     const int basicControlsHeight = juce::jlimit(54, 60, bounds.getHeight() / 8);
+    const int selectedVoiceExtraHeight = selectedVoiceIndex >= 0 ? juce::jlimit(8, 16, bounds.getHeight() / 45) : 0;
     const int availableForVoices = inner.getHeight()
                                 - basicControlsHeight
                                 - controlsGapY
-                                - 3 * gapY;
+                                - 3 * gapY
+                                - selectedVoiceExtraHeight;
     const int boxHeight = juce::jlimit(42, 60, availableForVoices / 4);
 
     std::array<VoiceBox*, 4> boxes { &box1, &box2, &box3, &box4 };
 
     for (size_t i = 0; i < boxes.size(); ++i)
     {
-        boxes[i]->setBounds(inner.removeFromTop(boxHeight));
+        const bool isSelectedVoice = selectedVoiceIndex == static_cast<int>(i);
+        const int currentBoxHeight = boxHeight + (isSelectedVoice ? selectedVoiceExtraHeight : 0);
+        auto boxBounds = inner.removeFromTop(currentBoxHeight);
+
+        if (isSelectedVoice)
+            boxBounds = boxBounds.reduced(-3, 0);
+
+        boxes[i]->setBounds(boxBounds);
 
         if (i + 1 < boxes.size())
             inner.removeFromTop(gapY);
@@ -446,6 +577,9 @@ void OptionsPanel::setNumVoices(int numVoices)
     const int numCounterpoints = juce::jmax(0, numVoices - 1);
     appController->getVoiceSettings().resize(numCounterpoints);
 
+    if (selectedVoiceIndex >= numVoices)
+        selectedVoiceIndex = -1;
+
     std::array<VoiceBox*, 4> boxes { &box1, &box2, &box3, &box4 };
 
     for (size_t i = 0; i < boxes.size(); ++i)
@@ -466,6 +600,8 @@ void OptionsPanel::setNumVoices(int numVoices)
 
         box->repaint();
     }
+
+    updateSelectedVoiceVisuals();
 }
 
 //==============================================================================
@@ -481,6 +617,7 @@ void OptionsPanel::setAppController(AppController* app_controller)
         solverPriorityList.setImportanceCosts(
             appController->getProblem().getSettings().getImportanceCosts()
         );
+
     }
 }
 

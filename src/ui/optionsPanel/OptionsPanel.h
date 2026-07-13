@@ -79,6 +79,9 @@ private:
     int activeColumn = 0;
     int hoveredColumn = 0;
 
+    // -1 = aucune voix sélectionnée.
+    int selectedVoiceIndex = -1;
+
     // Initialisation de l'interface
     void setupColumns();
     void setupTitles();
@@ -86,6 +89,7 @@ private:
     void setupButtons();
     void setupBasicControls();
     void setupMelodicControls();
+    void setupHarmonicControls();
     void setupSolverPriorities();
 
     // Interactions utilisateur
@@ -95,6 +99,7 @@ private:
                     int index);
 
     void updateActiveColumn(int index);
+    void updateSelectedVoiceVisuals();
 
     // Layout interne
     void layoutVoiceColumn(juce::Rectangle<int> bounds);

@@ -68,16 +68,14 @@ struct ConstraintSettings
         double avoidLargeLeap = 0.0;
 
         /*
-            0.0 = grands sauts d'octaves autorisés (12 demi-tons).
-            1.0 = grands sauts d'octaves pénalisés (12 demi-tons).
-        */
-        int avoidOctaveLeap = 0;
+            Paramètre s de steps2(s), défini dans FuxCP par Dorian.
 
-        /*
-            0.0 = ON ne pénalise pas le coût des tritons
-            1.0 = On pénalise le coûts des tritons
+            0.0 = pénalise fortement les dissonances mélodiques.
+            1.0 = pénalise fortement les consonances parfaites.
         */
-        int avoidTriton = 0;
+        double melodicIntervalColor = 0.0;
+
+
     };
 
     struct General
@@ -91,6 +89,17 @@ struct ConstraintSettings
         */
         int avoidRepeatedNotes = 0;
 
+    };
+
+    struct Harmonic
+    {
+        /*
+            Paramètre s de harmo(s), défini dans FuxCP par Dorian.
+
+            0.0 = pénalise les octaves.
+            1.0 = pénalise les quintes.
+        */
+        double perfectIntervalBalance = 0.0;
     };
 
     struct Specific
@@ -134,6 +143,7 @@ struct ConstraintSettings
     //==========================================================================
     Melodic melodic;
     General general;
+    Harmonic harmonic;
     Specific specific;
     Global global;
     Importance importance;
@@ -159,6 +169,16 @@ struct ConstraintSettings
         return melodic.avoidLargeLeap;
     }
 
+    void setMelodicIntervalColor(double value)
+    {
+        melodic.melodicIntervalColor = value;
+    }
+
+    double getMelodicIntervalColor() const
+    {
+        return melodic.melodicIntervalColor;
+    }
+
     void setAvoidRepeatedNotes(int value)
     {
         general.avoidRepeatedNotes = value == 0 ? 0 : 1;
@@ -169,24 +189,14 @@ struct ConstraintSettings
         return general.avoidRepeatedNotes;
     }
 
-    void setAllowOctaveLeap(int value)
+    void setPerfectIntervalBalance(double value)
     {
-        melodic.avoidOctaveLeap = value == 0 ? 0 : 1;
+        harmonic.perfectIntervalBalance = value;
     }
 
-    int getAllowOctaveLeap() const
+    double getPerfectIntervalBalance() const
     {
-        return melodic.avoidOctaveLeap;
-    }
-
-    void setTritons(int value)
-    {
-        melodic.avoidTriton = value == 0 ? 0 : 1;
-    }
-
-    int getAvoidTritons() const
-    {
-        return melodic.avoidTriton;
+        return harmonic.perfectIntervalBalance;
     }
 
     void setBorrowMode(int value)
