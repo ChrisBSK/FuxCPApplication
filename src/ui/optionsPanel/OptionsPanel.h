@@ -9,6 +9,7 @@
 #include "components/ParameterFactory.h"
 #include "components/SolverPriorityList.h"
 #include "components/ArrowIconButton.h"
+#include "components/ShapeColumnControls.h"
 
 class LeftPanel;
 class AppController;
@@ -63,7 +64,7 @@ private:
     ParameterColumn basicColumn;
     ParameterColumn melodicColumn;
     ParameterColumn harmonicColumn;
-    ParameterColumn otherColumn;
+    ShapeColumnControls shapeColumnControls;
     ParameterColumn solverColumn;
 
     // Repères visuels du vecteur importance envoyé au solveur
@@ -90,6 +91,7 @@ private:
     void setupBasicControls();
     void setupMelodicControls();
     void setupHarmonicControls();
+    void setupShapeControls();
     void setupSolverPriorities();
 
     // Interactions utilisateur

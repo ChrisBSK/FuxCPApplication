@@ -10,6 +10,7 @@ public:
     // État visuel de la colonne.
     bool isActive = false;
     bool isHovered = false;
+    juce::Colour activeColour = juce::Colour(0xff2f4f4f);
 
     // État visuel de la colonne.
     std::function<void()> onEnter;
@@ -48,14 +49,14 @@ public:
         // hover
         if (!isActive && isHovered)
         {
-            g.setColour(juce::Colour(0xff2f4f4f).withAlpha(0.5f));
+            g.setColour(activeColour.withAlpha(0.5f));
             g.fillRoundedRectangle(bounds, 10.0f);
         }
 
         // contour
         if (isActive)
         {
-            g.setColour(juce::Colour(0xff2f4f4f));
+            g.setColour(activeColour);
             g.drawRoundedRectangle(bounds, 10.0f, 3.5f); // contour épais (colonne active)
         }
         else

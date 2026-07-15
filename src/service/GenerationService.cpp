@@ -11,6 +11,7 @@
 
 #include <gecode/search.hh>
 #include <algorithm>
+#include <functional>
 #include <memory>
 
 //==============================================================================
@@ -173,6 +174,158 @@ namespace
         /*std::cout << "Max leap = "
                   << maxLeap
                   << "\n";*/
+    }
+
+    // Ajoute source dans target en gardant le plafond utilisé par FuxCP.
+    std::vector<int> addMelodicCostVectors(std::vector<int> target,
+                                           const std::vector<int>& source)
+    {
+        const auto size = std::min(target.size(), source.size());
+
+        for (std::size_t i = 0; i < size; ++i)
+            target[i] = std::min(target[i] + source[i], 576);
+
+        return target;
+    }
+
+    std::vector<double> buildShapeValues(ConstraintSettings::ShapeType type, int size)
+    {
+        switch (type)
+        {
+            case ConstraintSettings::ShapeType::fixedZero:       return build_constant_zero_shape(size);
+            case ConstraintSettings::ShapeType::fixedOne:        return build_constant_one_shape(size);
+            case ConstraintSettings::ShapeType::linear:          return build_linear_shape(size);
+            case ConstraintSettings::ShapeType::linearDescending:return build_linear_shape_desc(size);
+            case ConstraintSettings::ShapeType::invertedV:       return build_inverted_v_shape(size);
+            case ConstraintSettings::ShapeType::v:               return build_v_shape(size);
+            case ConstraintSettings::ShapeType::m:               return build_M_shape(size);
+            case ConstraintSettings::ShapeType::step:            return build_step_shape(size);
+            case ConstraintSettings::ShapeType::stepDescending:  return build_step_desc_shape(size);
+        }
+
+        return build_inverted_v_shape(size);
+    }
+
+    // Construit une shape complète :
+    // - valeur du slider partout
+    // - shape choisie seulement entre startMeasure et endMeasure.
+    std::vector<double> buildLocalShape(double baseValue,
+                                        const ConstraintSettings::ShapeAssignment& assignment,
+                                        int measureCount)
+    {
+        std::vector<double> result(measureCount, baseValue);
+
+        const int start = std::max(0, assignment.startMeasure - 1);
+        const int end = std::min(measureCount - 1, assignment.endMeasure - 1);
+
+        if (start > end)
+            return result;
+
+        const int localSize = end - start + 1;
+        const auto localShape = buildShapeValues(assignment.shape, localSize);
+
+        for (int i = 0; i < localSize; ++i)
+            result[start + i] = localShape[static_cast<std::size_t>(i)];
+
+        return result;
+    }
+
+    void setCostModelDefaults(CostModel& costModel,
+                              const std::vector<int>& melodicCosts,
+                              const std::vector<int>& generalCosts,
+                              const std::vector<int>& specificCosts)
+    {
+        costModel.melodicDefaultCosts = melodicCosts;
+
+        costModel.defaultCosts[COST_BORROW] = generalCosts[ConstraintSettings::borrowCost];
+        costModel.defaultCosts[COST_FIFTH] = generalCosts[ConstraintSettings::harmonicFifthCost];
+        costModel.defaultCosts[COST_OCTAVE] = generalCosts[ConstraintSettings::harmonicOctaveCost];
+        costModel.defaultCosts[COST_SUCC] = generalCosts[ConstraintSettings::successiveCost];
+        costModel.defaultCosts[COST_VARIETY] = generalCosts[ConstraintSettings::varietyCost];
+        costModel.defaultCosts[COST_TRIAD] = generalCosts[ConstraintSettings::triadCost];
+        costModel.defaultCosts[COST_DIRECT] = generalCosts[ConstraintSettings::directMotionCost];
+        costModel.defaultCosts[COST_PENULT] = generalCosts[ConstraintSettings::penultCost];
+
+        costModel.defaultCosts[COST_CAMBIATA] = specificCosts[ConstraintSettings::cambiataCost];
+        costModel.defaultCosts[COST_TRIAD3] = specificCosts[ConstraintSettings::triad3rdCost];
+        costModel.defaultCosts[COST_M2] = specificCosts[ConstraintSettings::m2ZeroCost];
+        costModel.defaultCosts[COST_SYNCOPATION] = specificCosts[ConstraintSettings::syncopationCost];
+    }
+
+    CostGroup makeShapeCostGroup(const ConstraintSettings& settings,
+                                 const ConstraintSettings::ShapeAssignment& assignment,
+                                 int measureCount,
+                                 int counterpointCount)
+    {
+        CostGroup group;
+        group.shapePerVoice.resize(static_cast<std::size_t>(counterpointCount));
+
+        if (assignment.target == ConstraintSettings::ShapeCostTarget::melodyMovement)
+        {
+            const double intervalColour = settings.getMelodicIntervalColor();
+
+            group.costIndices = { COST_MELODIC };
+            group.fn = [intervalColour](double s)
+            {
+                return addMelodicCostVectors(steps1(s),
+                                             steps2(intervalColour));
+            };
+
+            group.shapePerVoice[static_cast<std::size_t>(assignment.voiceIndex)] =
+                buildLocalShape(settings.getLargeLeapPenalty(), assignment, measureCount);
+        }
+        else if (assignment.target == ConstraintSettings::ShapeCostTarget::intervalColour)
+        {
+            const double melodyMovement = settings.getLargeLeapPenalty();
+
+            group.costIndices = { COST_MELODIC };
+            group.fn = [melodyMovement](double s)
+            {
+                return addMelodicCostVectors(steps1(melodyMovement),
+                                             steps2(s));
+            };
+
+            group.shapePerVoice[static_cast<std::size_t>(assignment.voiceIndex)] =
+                buildLocalShape(settings.getMelodicIntervalColor(), assignment, measureCount);
+        }
+        else
+        {
+            group.costIndices = { COST_FIFTH, COST_OCTAVE };
+            group.fn = harmo;
+
+            group.shapePerVoice[static_cast<std::size_t>(assignment.voiceIndex)] =
+                buildLocalShape(settings.getPerfectIntervalBalance(), assignment, measureCount);
+        }
+
+        return group;
+    }
+
+    CostModel buildCostModelFromSettings(const ConstraintSettings& settings,
+                                         const std::vector<int>& melodicCosts,
+                                         const std::vector<int>& generalCosts,
+                                         const std::vector<int>& specificCosts,
+                                         int measureCount,
+                                         int counterpointCount)
+    {
+        CostModel costModel;
+
+        setCostModelDefaults(costModel,
+                             melodicCosts,
+                             generalCosts,
+                             specificCosts);
+
+        for (const auto& assignment : settings.getShapeAssignments())
+        {
+            if (assignment.voiceIndex < 0 || assignment.voiceIndex >= counterpointCount)
+                continue;
+
+            costModel.addGroup(makeShapeCostGroup(settings,
+                                                  assignment,
+                                                  measureCount,
+                                                  counterpointCount));
+        }
+
+        return costModel;
     }
 }
 
@@ -550,6 +703,36 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
     // =========================
     //  Création du problème Fux
     // =========================
+    if (! settings.getShapeAssignments().empty())
+    {
+        const CostModel costModel = buildCostModelFromSettings(
+            settings,
+            melodicStorage,
+            generalStorage,
+            specificStorage,
+            static_cast<int>(cf.size()),
+            static_cast<int>(counterpoints.size())
+        );
+
+        std::cout << "\n=== COST MODEL SHAPES SENT TO FUXCP ===\n";
+        for (const auto& assignment : settings.getShapeAssignments())
+        {
+            std::cout << "voice=" << assignment.voiceIndex
+                      << " start=" << assignment.startMeasure
+                      << " end=" << assignment.endMeasure
+                      << "\n";
+        }
+
+        return create_problem(
+            cf,
+            spListFux,
+            vTypeFux,
+            costModel,
+            importanceStorage,
+            settings.getBorrowMode()
+        );
+    }
+
     return create_problem(
         cf,
         spListFux,

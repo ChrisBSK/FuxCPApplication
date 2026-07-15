@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include <vector>
 
 /*
@@ -52,6 +53,42 @@ struct ConstraintSettings
         triadCost,
         directMotionCost,
         penultCost
+    };
+
+    enum class ShapeCostTarget
+    {
+        melodyMovement = 0,
+        intervalColour,
+        perfectIntervals
+    };
+
+    enum class ShapeType
+    {
+        fixedZero = 0,
+        fixedOne,
+        linear,
+        linearDescending,
+        invertedV,
+        v,
+        m,
+        step,
+        stepDescending
+    };
+
+    struct ShapeAssignment
+    {
+        // 0 = Contrepoint 1, 1 = Contrepoint 2, etc.
+        int voiceIndex = 0;
+
+        // Fonction de coût pilotée par la shape.
+        ShapeCostTarget target = ShapeCostTarget::melodyMovement;
+
+        // Forme choisie dans l'interface.
+        ShapeType shape = ShapeType::invertedV;
+
+        // Mesures 1-based, comme affiché dans l'interface.
+        int startMeasure = 1;
+        int endMeasure = 1;
     };
 
     //==========================================================================
@@ -147,6 +184,7 @@ struct ConstraintSettings
     Specific specific;
     Global global;
     Importance importance;
+    std::vector<ShapeAssignment> shapeAssignments;
 
     //==========================================================================
     // BUILD FUX COSTS
@@ -218,6 +256,16 @@ struct ConstraintSettings
     const std::vector<int>& getImportanceCosts() const
     {
         return importance.costs;
+    }
+
+    void setShapeAssignments(std::vector<ShapeAssignment> values)
+    {
+        shapeAssignments = std::move(values);
+    }
+
+    const std::vector<ShapeAssignment>& getShapeAssignments() const
+    {
+        return shapeAssignments;
     }
 
 private:

@@ -55,6 +55,7 @@ target_sources(myproject PRIVATE
         src/ui/optionsPanel/OptionsPanelHelpers.h
         src/ui/optionsPanel/components/ParameterColumn.h
         src/ui/optionsPanel/components/ParameterFactory.h
+        src/ui/optionsPanel/components/ShapeColumnControls.h
 
         src/audio/synth/SimpleSynth.cpp
         src/audio/synth/SimpleSynth.h

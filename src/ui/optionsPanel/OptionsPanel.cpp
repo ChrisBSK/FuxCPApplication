@@ -21,6 +21,7 @@ OptionsPanel::OptionsPanel()
     setupBasicControls();
     setupMelodicControls();
     setupHarmonicControls();
+    setupShapeControls();
     setupSolverPriorities();
 }
 
@@ -30,6 +31,8 @@ OptionsPanel::OptionsPanel()
 
 void OptionsPanel::setupColumns()
 {
+    column4.activeColour = juce::Colour(0xff2f5f57);
+
     std::array<ColumnBox*, 5> columns {
         &column1, &column2, &column3, &column4, &column5
     };
@@ -43,7 +46,7 @@ void OptionsPanel::setupTitles()
     OptionsPanelHelpers::setupTitle(*this, title1, "Basic Constraints");
     OptionsPanelHelpers::setupTitle(*this, title2, "Melodic Lines");
     OptionsPanelHelpers::setupTitle(*this, title3, "Harmonic Relations");
-    OptionsPanelHelpers::setupTitle(*this, title4, "Structural Preferences");
+    OptionsPanelHelpers::setupTitle(*this, title4, "Shapes");
     OptionsPanelHelpers::setupTitle(*this, title5, "Solver Priorities");
 }
 
@@ -257,6 +260,26 @@ void OptionsPanel::setupHarmonicControls()
     };
 }
 
+void OptionsPanel::setupShapeControls()
+{
+    addAndMakeVisible(shapeColumnControls);
+
+    shapeColumnControls.onShapeAssignmentsChanged =
+        [this](const std::vector<ConstraintSettings::ShapeAssignment>& assignments)
+        {
+            if (appController == nullptr || appController->isGenerating())
+                return;
+
+            auto& problem = appController->getProblem();
+
+            problem.getSettings().setShapeAssignments(assignments);
+            problem.recalculateCosts();
+
+            std::cout << "\n=== SHAPES CHANGED ===\n";
+            std::cout << "shape count = " << assignments.size() << "\n";
+        };
+}
+
 void OptionsPanel::setupSolverPriorities()
 {
     //==========================================================================
@@ -372,6 +395,9 @@ void OptionsPanel::updateSelectedVoiceVisuals()
 
     melodicColumn.setLinkedToSelectedVoice(hasSelectedCounterpoint);
     harmonicColumn.setLinkedToSelectedVoice(hasSelectedCounterpoint);
+    shapeColumnControls.setSelectedCounterpointIndex(
+        hasSelectedCounterpoint ? selectedVoiceIndex - 1 : -1
+    );
 }
 
 //==============================================================================
@@ -476,7 +502,10 @@ void OptionsPanel::resized()
     layoutVoiceColumn(columnBounds[0]);
     melodicColumn.layout(columnBounds[1]);
     harmonicColumn.layout(columnBounds[2]);
-    otherColumn.layout(columnBounds[3]);
+    auto shapeControlsBounds = columnBounds[3].reduced(
+        juce::jlimit(6, 12, columnBounds[3].getWidth() / 18)
+    );
+    shapeColumnControls.setBounds(shapeControlsBounds);
     solverColumn.layout(columnBounds[4]);
     layoutSolverPriorities(columnBounds[4], solverArrowBounds);
 
