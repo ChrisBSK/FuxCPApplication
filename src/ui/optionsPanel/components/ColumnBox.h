@@ -2,7 +2,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 /**
- * Colonne interactive (hover / click / active)
+ * Colonne interactive.
  */
 class ColumnBox : public juce::Component
 {
@@ -37,7 +37,7 @@ public:
         if (onClick) onClick();
     }
 
-    // Dessine le fond, le survol et le contour de la colonne.
+    // Dessine le fond et le contour de la colonne.
     void paint(juce::Graphics& g) override
     {
         auto bounds = getLocalBounds().toFloat().reduced(2.0f);
@@ -45,13 +45,6 @@ public:
         // fond normal
         g.setColour(juce::Colours::darkgrey.darker(0.3f));
         g.fillRoundedRectangle(bounds, 10.0f);
-
-        // hover
-        if (!isActive && isHovered)
-        {
-            g.setColour(activeColour.withAlpha(0.5f));
-            g.fillRoundedRectangle(bounds, 10.0f);
-        }
 
         // contour
         if (isActive)

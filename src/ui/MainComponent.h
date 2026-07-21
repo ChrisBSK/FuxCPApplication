@@ -5,7 +5,6 @@
 // ===== UI =====
 #include "footer/FooterPanel.h"
 #include "header/HeaderPanel.h"
-#include "history/HistoryPanel.h"
 #include "keyboard/KeyboardComponent.h"
 #include "leftPanel/LeftPanel.h"
 #include "optionsPanel/OptionsPanel.h"
@@ -56,7 +55,6 @@ private:
     LeftPanel leftPanel { appController };
     OptionsPanel optionsPanel;
 
-    HistoryPanel history;
     FooterPanel footer;
 
     // =========================

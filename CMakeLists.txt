@@ -14,6 +14,11 @@ juce_add_gui_app(myproject
         PRODUCT_NAME "myproject"
 )
 
+juce_add_binary_data(AppAssets
+        SOURCES
+        assets/logoApp.png
+)
+
 target_sources(myproject PRIVATE
         src/ui/main.cpp
         src/ui/MainComponent.cpp
@@ -27,16 +32,12 @@ target_sources(myproject PRIVATE
         src/model/CantusProblem.h
         src/model/ConstraintsSettings.h
         src/model/ConstraintsSettings.cpp
-        src/model/ConstraintsDefinition.h
 
         src/ui/footer/FooterPanel.cpp
         src/ui/footer/FooterPanel.h
 
         src/ui/header/HeaderPanel.cpp
         src/ui/header/HeaderPanel.h
-
-        src/ui/history/HistoryPanel.cpp
-        src/ui/history/HistoryPanel.h
 
         src/ui/keyboard/KeyboardComponent.cpp
         src/ui/keyboard/KeyboardComponent.h
@@ -46,16 +47,13 @@ target_sources(myproject PRIVATE
 
         src/ui/optionsPanel/OptionsPanel.cpp
         src/ui/optionsPanel/OptionsPanel.h
-        src/ui/optionsPanel/components/ClickableTitle.h
-        src/ui/optionsPanel/components/ColumnBox.h
-        src/ui/optionsPanel/components/StyledLabel.h
-        src/ui/optionsPanel/components/VoiceBox.h
-        src/ui/optionsPanel/components/VoiceBox.cpp
         src/ui/optionsPanel/OptionsPanelHelpers.cpp
         src/ui/optionsPanel/OptionsPanelHelpers.h
-        src/ui/optionsPanel/components/ParameterColumn.h
-        src/ui/optionsPanel/components/ParameterFactory.h
-        src/ui/optionsPanel/components/ShapeColumnControls.h
+        src/ui/optionsPanel/components/ClickableTitle.h
+        src/ui/optionsPanel/components/ColumnBox.h
+        src/ui/optionsPanel/components/SolverPriorityList.h
+        src/ui/optionsPanel/components/ArrowIconButton.h
+        src/ui/optionsPanel/components/VoiceWorkspace.h
 
         src/audio/synth/SimpleSynth.cpp
         src/audio/synth/SimpleSynth.h
@@ -82,6 +80,7 @@ target_link_libraries(myproject PRIVATE
         juce::juce_core
         juce::juce_data_structures
 
+        AppAssets
         FuxCPLib
 )
 # Optionnel, pour éviter dépendances web/curl au début

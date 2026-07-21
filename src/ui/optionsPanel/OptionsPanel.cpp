@@ -14,14 +14,9 @@ OptionsPanel::OptionsPanel()
 {
     setupColumns();
     setupTitles();
-    setupVoiceBoxes();
     setupButtons();
 
     setupColumnInteractions();
-    setupBasicControls();
-    setupMelodicControls();
-    setupHarmonicControls();
-    setupShapeControls();
     setupSolverPriorities();
 }
 
@@ -31,253 +26,59 @@ OptionsPanel::OptionsPanel()
 
 void OptionsPanel::setupColumns()
 {
-    column4.activeColour = juce::Colour(0xff2f5f57);
+    addAndMakeVisible(column1);
+    addAndMakeVisible(column5);
+    addAndMakeVisible(voiceWorkspace);
 
-    std::array<ColumnBox*, 5> columns {
-        &column1, &column2, &column3, &column4, &column5
+    voiceWorkspace.onSpeciesChanged = [this](int counterpointIndex, int species)
+    {
+        if (appController == nullptr)
+            return;
+
+        auto& voiceSettings = appController->getVoiceSettings();
+        if (counterpointIndex >= (int) voiceSettings.size())
+            return;
+
+        appController->updateVoice(counterpointIndex,
+                                   species,
+                                   voiceSettings[counterpointIndex].type);
     };
 
-    for (auto* column : columns)
-        addAndMakeVisible(*column);
+    voiceWorkspace.onTypeChanged = [this](int counterpointIndex, int type)
+    {
+        if (appController == nullptr)
+            return;
+
+        auto& voiceSettings = appController->getVoiceSettings();
+        if (counterpointIndex >= (int) voiceSettings.size())
+            return;
+
+        appController->updateVoice(counterpointIndex,
+                                   voiceSettings[counterpointIndex].species,
+                                   type);
+    };
 }
 
 void OptionsPanel::setupTitles()
 {
-    OptionsPanelHelpers::setupTitle(*this, title1, "Basic Constraints");
-    OptionsPanelHelpers::setupTitle(*this, title2, "Melodic Lines");
-    OptionsPanelHelpers::setupTitle(*this, title3, "Harmonic Relations");
-    OptionsPanelHelpers::setupTitle(*this, title4, "Shapes");
-    OptionsPanelHelpers::setupTitle(*this, title5, "Solver Priorities");
-}
-
-void OptionsPanel::setupVoiceBoxes()
-{
-    std::array<VoiceBox*, 4> boxes { &box1, &box2, &box3, &box4 };
-
-    for (size_t i = 0; i < boxes.size(); ++i)
-    {
-        auto* box = boxes[i];
-
-        addAndMakeVisible(*box);
-
-        box->onClick = [this, i, box]()
-        {
-            if (! box->isActive)
-                return;
-
-            const int clickedVoiceIndex = static_cast<int>(i);
-
-            if (selectedVoiceIndex == clickedVoiceIndex)
-                selectedVoiceIndex = -1;
-            else
-                selectedVoiceIndex = clickedVoiceIndex;
-
-            updateSelectedVoiceVisuals();
-            resized();
-
-            // Plus tard :
-            // refreshParameterControls();
-        };
-    }
+    OptionsPanelHelpers::setupTitle(*this, title5, "");
 }
 
 void OptionsPanel::setupButtons()
 {
     OptionsPanelHelpers::setupButton(*this, generateButton, "Generate");
-    OptionsPanelHelpers::setupButton(*this, cancel, "Cancel");
+    OptionsPanelHelpers::setupButton(*this, clearButton, "Clear");
 
     generateButton.onClick = [this]()
     {
         if (leftPanel != nullptr)
             leftPanel->triggerGeneration();
     };
-}
 
-void OptionsPanel::setupBasicControls()
-{
-    //==========================================================================
-    // Borrow Mode
-    //==========================================================================
-    auto* borrowSwitch = addSwitchParameter(
-        basicColumn,
-        "Borrow Mode",
-        false
-    );
-
-    if (appController != nullptr)
+    clearButton.onClick = [this]()
     {
-        borrowSwitch->setOn(
-            appController->getProblem().getSettings().getBorrowMode() == 1,
-            juce::dontSendNotification
-        );
-    }
-
-    borrowSwitch->onClick = [this, borrowSwitch]()
-    {
-        if (appController == nullptr || appController->isGenerating())
-            return;
-
-        auto& problem = appController->getProblem();
-
-        const int value = borrowSwitch->isOn() ? 1 : 0;
-
-        problem.getSettings().setBorrowMode(value);
-        problem.recalculateCosts();
-
-        std::cout << "\n=== BORROW MODE CHANGED ===\n";
-        std::cout << "borrowMode = "
-                  << problem.getSettings().getBorrowMode()
-                  << "\n";
-
+        clearGenerationInputs();
     };
-}
-
-void OptionsPanel::setupMelodicControls()
-{
-    //==========================================================================
-    // Melodic Leap Control
-    //==========================================================================
-    auto* leapSlider = addSliderParameter(
-        melodicColumn,
-        "Melody movement",
-        0.0,
-        1.0,
-        0.01,
-        0.5,
-        "Smooth",
-        "Jumpy"
-    );
-
-    if (appController != nullptr)
-    {
-        leapSlider->setValue(
-            appController->getProblem().getSettings().getLargeLeapPenalty(),
-            juce::dontSendNotification
-        );
-    }
-
-    leapSlider->onValueChange = [this, leapSlider]()
-    {
-        if (appController == nullptr || appController->isGenerating())
-            return;
-
-        auto& problem = appController->getProblem();
-
-        const double largeLeapPenalty = leapSlider->getValue();
-
-        problem.getSettings().setLargeLeapPenalty(largeLeapPenalty);
-        problem.recalculateCosts();
-
-        std::cout << "\n=== MELODIC LEAPS CHANGED ===\n";
-        std::cout << "avoidLargeMelodicLeap = "
-                  << problem.getSettings().getLargeLeapPenalty()
-                  << "\n";
-    };
-
-    //==========================================================================
-    // Melodic Interval Colour Control
-    //==========================================================================
-    auto* intervalColorSlider = addSliderParameter(
-        melodicColumn,
-        "Interval colour",
-        0.0,
-        1.0,
-        0.01,
-        0.0,
-        "Consonant",
-        "Dissonant"
-    );
-
-    if (appController != nullptr)
-    {
-        intervalColorSlider->setValue(
-            appController->getProblem().getSettings().getMelodicIntervalColor(),
-            juce::dontSendNotification
-        );
-    }
-
-    intervalColorSlider->onValueChange = [this, intervalColorSlider]()
-    {
-        if (appController == nullptr || appController->isGenerating())
-            return;
-
-        auto& problem = appController->getProblem();
-
-        const double melodicIntervalColor = intervalColorSlider->getValue();
-
-        problem.getSettings().setMelodicIntervalColor(melodicIntervalColor);
-        problem.recalculateCosts();
-
-        std::cout << "\n=== MELODIC INTERVAL COLOR CHANGED ===\n";
-        std::cout << "melodicIntervalColor = "
-                  << problem.getSettings().getMelodicIntervalColor()
-                  << "\n";
-    };
-
-
-}
-
-void OptionsPanel::setupHarmonicControls()
-{
-    //==========================================================================
-    // Perfect Harmonic Interval Control
-    //==========================================================================
-    auto* perfectIntervalSlider = addSliderParameter(
-        harmonicColumn,
-        "Perfect intervals",
-        0.0,
-        1.0,
-        0.01,
-        0.0,
-        "Avoid octaves",
-        "Avoid fifths"
-    );
-
-    if (appController != nullptr)
-    {
-        perfectIntervalSlider->setValue(
-            appController->getProblem().getSettings().getPerfectIntervalBalance(),
-            juce::dontSendNotification
-        );
-    }
-
-    perfectIntervalSlider->onValueChange = [this, perfectIntervalSlider]()
-    {
-        if (appController == nullptr || appController->isGenerating())
-            return;
-
-        auto& problem = appController->getProblem();
-
-        const double perfectIntervalBalance = perfectIntervalSlider->getValue();
-
-        problem.getSettings().setPerfectIntervalBalance(perfectIntervalBalance);
-        problem.recalculateCosts();
-
-        std::cout << "\n=== PERFECT INTERVAL BALANCE CHANGED ===\n";
-        std::cout << "perfectIntervalBalance = "
-                  << problem.getSettings().getPerfectIntervalBalance()
-                  << "\n";
-    };
-}
-
-void OptionsPanel::setupShapeControls()
-{
-    addAndMakeVisible(shapeColumnControls);
-
-    shapeColumnControls.onShapeAssignmentsChanged =
-        [this](const std::vector<ConstraintSettings::ShapeAssignment>& assignments)
-        {
-            if (appController == nullptr || appController->isGenerating())
-                return;
-
-            auto& problem = appController->getProblem();
-
-            problem.getSettings().setShapeAssignments(assignments);
-            problem.recalculateCosts();
-
-            std::cout << "\n=== SHAPES CHANGED ===\n";
-            std::cout << "shape count = " << assignments.size() << "\n";
-        };
 }
 
 void OptionsPanel::setupSolverPriorities()
@@ -290,6 +91,11 @@ void OptionsPanel::setupSolverPriorities()
     addAndMakeVisible(solverPriorityList);
     addAndMakeVisible(movePriorityUpButton);
     addAndMakeVisible(movePriorityDownButton);
+
+    // Conservé pour plus tard, mais masqué pendant que la colonne sert à Search.
+    solverPriorityList.setVisible(false);
+    movePriorityUpButton.setVisible(false);
+    movePriorityDownButton.setVisible(false);
 
     solverPriorityList.onPriorityOrderChanged = [this](const std::vector<int>& importanceCosts)
     {
@@ -331,73 +137,17 @@ void OptionsPanel::setupSolverPriorities()
 
 void OptionsPanel::setupColumnInteractions()
 {
-    std::array<ClickableTitle*, 5> titles {
-        &title1, &title2, &title3, &title4, &title5
-    };
-
-    std::array<ColumnBox*, 5> columns {
-        &column1, &column2, &column3, &column4, &column5
-    };
-
-    for (int i = 0; i < static_cast<int>(columns.size()); ++i)
-    {
-        const int columnIndex = i + 1;
-
-        titles[i]->onClick  = [this, columnIndex]() { updateActiveColumn(columnIndex); };
-        columns[i]->onClick = [this, columnIndex]() { updateActiveColumn(columnIndex); };
-
-        setupHover(*titles[i], *columns[i], columnIndex);
-    }
-}
-
-void OptionsPanel::setupHover(ClickableTitle& title,
-                              ColumnBox& column,
-                              int index)
-{
-    title.onEnter = column.onEnter = [this, &column, index]()
-    {
-        hoveredColumn = index;
-        column.isHovered = true;
-        repaint();
-    };
-
-    title.onExit = column.onExit = [this, &column]()
-    {
-        hoveredColumn = 0;
-        column.isHovered = false;
-        repaint();
-    };
+    title5.onClick = nullptr;
+    column5.onClick = nullptr;
 }
 
 void OptionsPanel::updateActiveColumn(int index)
 {
-    activeColumn = index;
+    (void) index;
 
-    column1.isActive = index == 1;
-    column2.isActive = index == 2;
-    column3.isActive = index == 3;
-    column4.isActive = index == 4;
-    column5.isActive = index == 5;
-
+    activeColumn = 0;
+    column5.isActive = false;
     repaint();
-}
-
-void OptionsPanel::updateSelectedVoiceVisuals()
-{
-    // Une voix peut être active sans être sélectionnée.
-    box1.setSelected(selectedVoiceIndex == 0);
-    box2.setSelected(selectedVoiceIndex == 1);
-    box3.setSelected(selectedVoiceIndex == 2);
-    box4.setSelected(selectedVoiceIndex == 3);
-
-    // Pour l'instant, les réglages par voix concernent les contrepoints.
-    const bool hasSelectedCounterpoint = selectedVoiceIndex > 0;
-
-    melodicColumn.setLinkedToSelectedVoice(hasSelectedCounterpoint);
-    harmonicColumn.setLinkedToSelectedVoice(hasSelectedCounterpoint);
-    shapeColumnControls.setSelectedCounterpointIndex(
-        hasSelectedCounterpoint ? selectedVoiceIndex - 1 : -1
-    );
 }
 
 //==============================================================================
@@ -407,26 +157,6 @@ void OptionsPanel::updateSelectedVoiceVisuals()
 void OptionsPanel::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colours::darkgrey);
-
-    auto drawTitleHighlight = [&](juce::Label& title, int index)
-    {
-        if (activeColumn != index && hoveredColumn != index)
-            return;
-
-        auto bounds = title.getBounds().toFloat().reduced(2.0f);
-
-        g.setColour(activeColumn == index
-                    ? juce::Colour(0xff2f4f4f)
-                    : juce::Colour(0xff2f4f4f).withAlpha(0.8f));
-
-        g.fillRoundedRectangle(bounds, 6.0f);
-    };
-
-    drawTitleHighlight(title1, 1);
-    drawTitleHighlight(title2, 2);
-    drawTitleHighlight(title3, 3);
-    drawTitleHighlight(title4, 4);
-    drawTitleHighlight(title5, 5);
 }
 
 //==============================================================================
@@ -438,141 +168,68 @@ void OptionsPanel::resized()
     const int panelWidth = getWidth();
     const int panelHeight = getHeight();
 
-    // Les dimensions suivent la taille disponible.
-    // Les cinq colonnes restent donc visibles quand la fenêtre est réduite.
-    const int outerMargin = juce::jlimit(6, 20, panelWidth / 80);
-    const int horizontalInset = juce::jlimit(8, 40, panelWidth / 45);
-    const int verticalInset = juce::jlimit(8, 30, panelHeight / 35);
-    const int bottomHeight = juce::jlimit(52, 80, panelHeight / 9);
+    // Les marges restent proportionnelles à la fenêtre.
+    // La répartition des grandes zones est ensuite confiée à FlexBox.
+    const int outerMargin = juce::jlimit(2, 6, panelWidth / 220);
+    const int horizontalInset = juce::jlimit(4, 10, panelWidth / 130);
+    const int verticalInset = juce::jlimit(3, 8, panelHeight / 110);
+    const int bottomHeight = juce::jlimit(36, 48, panelHeight / 15);
 
     auto fullArea = getLocalBounds().reduced(outerMargin);
     auto bottomArea = fullArea.removeFromBottom(bottomHeight);
     auto contentArea = fullArea.reduced(horizontalInset, verticalInset);
 
-    constexpr int columnCount = 5;
-    const int columnGap = juce::jlimit(6, 14, panelWidth / 90);
-    const int solverArrowGap = juce::jlimit(5, 8, panelWidth / 150);
-    const int solverArrowWidth = juce::jlimit(24, 32, panelWidth / 45);
-    const int titleHeight = juce::jlimit(22, 28, panelHeight / 30);
-    const int titleGap = juce::jlimit(4, 6, panelHeight / 140);
+    const int columnGap = juce::jlimit(5, 10, panelWidth / 120);
+    const int titleHeight = juce::jlimit(18, 24, panelHeight / 42);
+    const int titleGap = juce::jlimit(2, 4, panelHeight / 220);
 
-    const int availableWidth = contentArea.getWidth()
-                             - (columnCount - 1) * columnGap
-                             - solverArrowGap
-                             - solverArrowWidth;
+    auto titleRow = contentArea.removeFromTop(titleHeight);
+    contentArea.removeFromTop(titleGap);
 
-    const int columnWidth = juce::jmax(1, availableWidth / columnCount);
-    const int totalWidth = columnCount * columnWidth
-                         + (columnCount - 1) * columnGap;
+    // FlexBox garde les proportions visuelles quand la fenêtre change :
+    // - colonne d'entrée : largeur bornée
+    // - workspace : prend tout l'espace restant
+    // - Search : largeur bornée, vide pour l'instant
+    juce::FlexBox mainRow;
+    mainRow.flexDirection = juce::FlexBox::Direction::row;
+    mainRow.alignItems = juce::FlexBox::AlignItems::stretch;
+    mainRow.justifyContent = juce::FlexBox::JustifyContent::center;
 
-    const int startX = contentArea.getX()
-                     + (contentArea.getWidth() - totalWidth) / 2;
-
-    const int titleY = contentArea.getY();
-    const int columnY = titleY + titleHeight + titleGap;
-    const int columnHeight = juce::jmax(1, contentArea.getBottom() - columnY);
-
-    std::array<ClickableTitle*, 5> titles {
-        &title1, &title2, &title3, &title4, &title5
-    };
-
-    std::array<ColumnBox*, 5> columns {
-        &column1, &column2, &column3, &column4, &column5
-    };
-
-    std::array<juce::Rectangle<int>, 5> columnBounds;
-
-    for (int i = 0; i < columnCount; ++i)
+    if (leftPanel != nullptr)
     {
-        const int x = startX + i * (columnWidth + columnGap);
-
-        titles[i]->setBounds(x, titleY, columnWidth, titleHeight);
-
-        columnBounds[i] = { x, columnY, columnWidth, columnHeight };
-        columns[i]->setBounds(columnBounds[i]);
+        mainRow.items.add(juce::FlexItem(*leftPanel)
+            .withFlex(0.0f, 1.0f, 220.0f)
+            .withMinWidth(175.0f)
+            .withMaxWidth(245.0f)
+            .withMargin(juce::FlexItem::Margin(0.0f, (float) columnGap, 0.0f, 0.0f)));
     }
 
-    const juce::Rectangle<int> solverArrowBounds {
-        columnBounds[4].getRight() + solverArrowGap,
-        columnY,
-        solverArrowWidth,
-        columnHeight
-    };
+    mainRow.items.add(juce::FlexItem(column1)
+        .withFlex(1.25f, 1.0f, 640.0f)
+        .withMinWidth(390.0f)
+        .withMargin(juce::FlexItem::Margin(0.0f, (float) columnGap, 0.0f, 0.0f)));
 
-    layoutVoiceColumn(columnBounds[0]);
-    melodicColumn.layout(columnBounds[1]);
-    harmonicColumn.layout(columnBounds[2]);
-    auto shapeControlsBounds = columnBounds[3].reduced(
-        juce::jlimit(6, 12, columnBounds[3].getWidth() / 18)
-    );
-    shapeColumnControls.setBounds(shapeControlsBounds);
-    solverColumn.layout(columnBounds[4]);
-    layoutSolverPriorities(columnBounds[4], solverArrowBounds);
+    mainRow.items.add(juce::FlexItem(column5)
+        .withFlex(0.0f, 1.0f, 180.0f)
+        .withMinWidth(150.0f)
+        .withMaxWidth(210.0f)
+        .withMargin(juce::FlexItem::Margin(0.0f)));
+    mainRow.performLayout(contentArea);
+
+    workspaceBounds = column1.getBounds();
+    column1.setBounds(workspaceBounds);
+    voiceWorkspace.setBounds(workspaceBounds.reduced(3));
+
+    const auto solverBounds = column5.getBounds();
+    title5.setBounds(solverBounds.getX(), titleRow.getY(), solverBounds.getWidth(), titleHeight);
 
     layoutButtons(bottomArea);
 }
 
-void OptionsPanel::layoutVoiceColumn(juce::Rectangle<int> bounds)
-{
-    const int inset = juce::jlimit(6, 10, bounds.getWidth() / 24);
-    auto inner = bounds.reduced(inset);
-
-    const int gapY = juce::jlimit(4, 8, bounds.getHeight() / 70);
-    const int controlsGapY = gapY;
-    const int basicControlsHeight = juce::jlimit(54, 60, bounds.getHeight() / 8);
-    const int selectedVoiceExtraHeight = selectedVoiceIndex >= 0 ? juce::jlimit(8, 16, bounds.getHeight() / 45) : 0;
-    const int availableForVoices = inner.getHeight()
-                                - basicControlsHeight
-                                - controlsGapY
-                                - 3 * gapY
-                                - selectedVoiceExtraHeight;
-    const int boxHeight = juce::jlimit(42, 60, availableForVoices / 4);
-
-    std::array<VoiceBox*, 4> boxes { &box1, &box2, &box3, &box4 };
-
-    for (size_t i = 0; i < boxes.size(); ++i)
-    {
-        const bool isSelectedVoice = selectedVoiceIndex == static_cast<int>(i);
-        const int currentBoxHeight = boxHeight + (isSelectedVoice ? selectedVoiceExtraHeight : 0);
-        auto boxBounds = inner.removeFromTop(currentBoxHeight);
-
-        if (isSelectedVoice)
-            boxBounds = boxBounds.reduced(-3, 0);
-
-        boxes[i]->setBounds(boxBounds);
-
-        if (i + 1 < boxes.size())
-            inner.removeFromTop(gapY);
-    }
-
-    inner.removeFromTop(controlsGapY);
-    basicColumn.layout(inner, false);
-}
-
-void OptionsPanel::layoutSolverPriorities(juce::Rectangle<int> listBounds,
-                                          juce::Rectangle<int> arrowBounds)
+void OptionsPanel::layoutSolverPriorities(juce::Rectangle<int> listBounds)
 {
     // La liste occupe toute la colonne.
-    // Les flèches vivent dans une bande externe à droite.
-    const int gap = juce::jlimit(4, 7, arrowBounds.getWidth() / 4);
-    const int buttonWidth = juce::jlimit(22, 30, arrowBounds.getWidth());
-    const int buttonHeight = juce::jlimit(22, 30, arrowBounds.getHeight() / 14);
-
     solverPriorityList.setBounds(listBounds);
-
-    const int totalButtonHeight = 2 * buttonHeight + gap;
-    const int buttonY = arrowBounds.getY()
-                    + (arrowBounds.getHeight() - totalButtonHeight) / 2;
-
-    movePriorityUpButton.setBounds(arrowBounds.getX(),
-                                   buttonY,
-                                   buttonWidth,
-                                   buttonHeight);
-
-    movePriorityDownButton.setBounds(arrowBounds.getX(),
-                                     buttonY + buttonHeight + gap,
-                                     buttonWidth,
-                                     buttonHeight);
 }
 
 void OptionsPanel::layoutButtons(juce::Rectangle<int> bottomArea)
@@ -581,17 +238,35 @@ void OptionsPanel::layoutButtons(juce::Rectangle<int> bottomArea)
     constexpr int buttonHeight = 28;
     constexpr int spacing = 12;
 
-    const int totalWidth = 2 * buttonWidth + spacing;
-    const int startX = (getWidth() - totalWidth) / 2;
-    const int y = bottomArea.getY()
-                + (bottomArea.getHeight() - buttonHeight) / 2;
+    juce::FlexBox buttonRow;
+    buttonRow.flexDirection = juce::FlexBox::Direction::row;
+    buttonRow.alignItems = juce::FlexBox::AlignItems::center;
+    buttonRow.justifyContent = juce::FlexBox::JustifyContent::center;
 
-    cancel.setBounds(startX, y, buttonWidth, buttonHeight);
+    buttonRow.items.add(juce::FlexItem(clearButton)
+        .withWidth((float) buttonWidth)
+        .withHeight((float) buttonHeight)
+        .withMargin(juce::FlexItem::Margin(0.0f, (float) spacing / 2.0f, 0.0f, 0.0f)));
 
-    generateButton.setBounds(startX + buttonWidth + spacing,
-                             y,
-                             buttonWidth,
-                             buttonHeight);
+    buttonRow.items.add(juce::FlexItem(generateButton)
+        .withWidth((float) buttonWidth)
+        .withHeight((float) buttonHeight)
+        .withMargin(juce::FlexItem::Margin(0.0f, 0.0f, 0.0f, (float) spacing / 2.0f)));
+
+    buttonRow.performLayout(bottomArea);
+}
+
+//==============================================================================
+// Nettoyage de la page
+//==============================================================================
+
+void OptionsPanel::clearGenerationInputs()
+{
+    if (leftPanel != nullptr)
+        leftPanel->clearInputState();
+
+    voiceWorkspace.resetCounterpointSelectors();
+    setNumVoices(0);
 }
 
 //==============================================================================
@@ -600,37 +275,20 @@ void OptionsPanel::layoutButtons(juce::Rectangle<int> bottomArea)
 
 void OptionsPanel::setNumVoices(int numVoices)
 {
+    const int numCounterpoints = juce::jmax(0, numVoices - 1);
+    voiceWorkspace.setActiveCounterpointCount(numCounterpoints);
+
     if (appController == nullptr)
         return;
 
-    const int numCounterpoints = juce::jmax(0, numVoices - 1);
+    // Le workspace affiche uniquement les contrepoints.
+    // On garde seulement les réglages internes par défaut pour que Generate fonctionne encore.
     appController->getVoiceSettings().resize(numCounterpoints);
+}
 
-    if (selectedVoiceIndex >= numVoices)
-        selectedVoiceIndex = -1;
-
-    std::array<VoiceBox*, 4> boxes { &box1, &box2, &box3, &box4 };
-
-    for (size_t i = 0; i < boxes.size(); ++i)
-    {
-        auto* box = boxes[i];
-
-        const bool isVisibleVoice = i < static_cast<size_t>(numVoices);
-        const bool isCantusFirmus = i == 0;
-        const bool isCounterpoint = isVisibleVoice && !isCantusFirmus;
-
-        box->setActive(isVisibleVoice);
-
-        box->speciesBox.setVisible(isCounterpoint);
-        box->typeBox.setVisible(isCounterpoint);
-
-        if (isCounterpoint)
-            box->connectToController(appController, static_cast<int>(i) - 1);
-
-        box->repaint();
-    }
-
-    updateSelectedVoiceVisuals();
+juce::Rectangle<int> OptionsPanel::getWorkspaceBounds() const
+{
+    return workspaceBounds;
 }
 
 //==============================================================================
@@ -653,6 +311,12 @@ void OptionsPanel::setAppController(AppController* app_controller)
 void OptionsPanel::setLeftPanel(LeftPanel* panel)
 {
     leftPanel = panel;
+
+    if (leftPanel != nullptr)
+    {
+        addAndMakeVisible(*leftPanel);
+        resized();
+    }
 }
 
 LeftPanel* OptionsPanel::getLeftPanel() const

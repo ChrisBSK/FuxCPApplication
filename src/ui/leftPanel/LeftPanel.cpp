@@ -71,6 +71,14 @@ static std::vector<int> parseCantusFirmus(const juce::String& text)
 LeftPanel::LeftPanel(AppController& controller)
     : appController(controller)
 {
+    cfInput.setMultiLine(true);
+    cfInput.setReturnKeyStartsNewLine(true);
+    cfInput.setScrollbarsShown(true);
+    cfInput.setCaretVisible(true);
+    cfInput.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+    cfInput.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+    cfInput.setColour(juce::TextEditor::focusedOutlineColourId, juce::Colours::transparentBlack);
+    cfInput.setColour(juce::TextEditor::textColourId, juce::Colours::white);
     addAndMakeVisible(cfInput);
 
     // =========================
@@ -94,17 +102,35 @@ LeftPanel::LeftPanel(AppController& controller)
 
 void LeftPanel::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colours::darkgrey);
+    auto panelBounds = getLocalBounds().toFloat().reduced(2.0f);
 
-    auto area = getLocalBounds();
+    g.setColour(juce::Colours::darkgrey.darker(0.3f));
+    g.fillRoundedRectangle(panelBounds, 10.0f);
 
-    const int spacing = juce::jlimit(12, 40, area.getHeight() / 16);
+    g.setColour(juce::Colours::white.withAlpha(0.2f));
+    g.drawRoundedRectangle(panelBounds, 10.0f, 1.5f);
+
+    auto area = getLocalBounds().reduced(2);
+    area.removeFromTop(8);
+
+    const int spacing = juce::jlimit(10, 18, area.getHeight() / 42);
+    const int titleHeight = juce::jlimit(20, 24, area.getHeight() / 22);
     const int numSections = 3;
 
-    int totalSpacing = spacing * (numSections - 1);
-    int sectionHeight = juce::jmax(1, (area.getHeight() - totalSpacing) / numSections);
+    juce::FlexBox sectionColumn;
+    sectionColumn.flexDirection = juce::FlexBox::Direction::column;
+    sectionColumn.alignItems = juce::FlexBox::AlignItems::stretch;
 
-    const int titleHeight = juce::jlimit(20, 24, area.getHeight() / 22);
+    for (int i = 0; i < numSections; ++i)
+    {
+        const float bottomMargin = i == numSections - 1 ? 0.0f : (float) spacing;
+
+        sectionColumn.items.add(juce::FlexItem()
+            .withFlex(1.0f)
+            .withMargin(juce::FlexItem::Margin(0.0f, 0.0f, bottomMargin, 0.0f)));
+    }
+
+    sectionColumn.performLayout(area);
 
     juce::Colour darkGreen = juce::Colour(0xff2f4f4f);
 
@@ -117,29 +143,30 @@ void LeftPanel::paint(juce::Graphics& g)
 
     for (int i = 0; i < numSections; ++i)
     {
-        auto section = area.removeFromTop(sectionHeight);
+        auto section = sectionColumn.items[i].currentBounds.toNearestInt();
 
         // uniquement la barre de titre
-        auto titleArea = section.removeFromTop(titleHeight);
+        auto titleArea = section.removeFromTop(titleHeight).reduced(4, 0);
 
         g.setColour(darkGreen);
-        g.fillRect(titleArea);
+        g.fillRoundedRectangle(titleArea.toFloat(), 6.0f);
 
         g.setColour(juce::Colours::white);
         g.setFont(juce::Font(14.0f, juce::Font::bold));
         g.drawText(titles[i], titleArea.reduced(10, 0),
                    juce::Justification::centredLeft);
 
-        // petite ligne séparatrice
-        g.setColour(juce::Colours::black.withAlpha(0.3f));
-        g.drawLine((float)section.getX(),
-                   (float)section.getY(),
-                   (float)section.getRight(),
-                   (float)section.getY(),
-                   1.0f);
+    }
 
-        if (i < numSections - 1)
-            area.removeFromTop(spacing);
+    if (cfInput.isVisible())
+    {
+        auto inputBounds = cfInput.getBounds().toFloat();
+
+        g.setColour(juce::Colour(0xff24363b));
+        g.fillRoundedRectangle(inputBounds, 5.0f);
+
+        g.setColour(juce::Colour(0xff94adb0));
+        g.drawRoundedRectangle(inputBounds.reduced(0.5f), 5.0f, 1.0f);
     }
 }
 
@@ -305,23 +332,37 @@ void LeftPanel::showAlert(juce::AlertWindow::AlertIconType icon,
 
 void LeftPanel::resized()
 {
-    auto area = getLocalBounds();
+    auto area = getLocalBounds().reduced(2);
+    area.removeFromTop(8);
 
-    const int spacing = juce::jlimit(12, 40, area.getHeight() / 16);
-    const float widthRatio = 0.78f;
+    const int spacing = juce::jlimit(10, 18, area.getHeight() / 42);
+    const float widthRatio = 0.88f;
     const int titleReservedHeight = juce::jlimit(24, 30, area.getHeight() / 18);
     const int rowHeight = juce::jlimit(20, 24, area.getHeight() / 28);
+    const int numSections = 3;
 
-    int totalSpacing = spacing * 2;
-    int sectionHeight = juce::jmax(1, (area.getHeight() - totalSpacing) / 3);
+    juce::FlexBox sectionColumn;
+    sectionColumn.flexDirection = juce::FlexBox::Direction::column;
+    sectionColumn.alignItems = juce::FlexBox::AlignItems::stretch;
+
+    for (int i = 0; i < numSections; ++i)
+    {
+        const float bottomMargin = i == numSections - 1 ? 0.0f : (float) spacing;
+
+        sectionColumn.items.add(juce::FlexItem()
+            .withFlex(1.0f)
+            .withMargin(juce::FlexItem::Margin(0.0f, 0.0f, bottomMargin, 0.0f)));
+    }
+
+    sectionColumn.performLayout(area);
 
     // ===== SECTION 1 : CF =====
-    auto section1 = area.removeFromTop(sectionHeight);
-    auto content1 = section1.reduced(10);
+    auto section1 = sectionColumn.items[0].currentBounds.toNearestInt();
+    auto content1 = section1.reduced(12, 10);
     content1.removeFromTop(titleReservedHeight);
 
     {
-        auto row = content1.removeFromTop(rowHeight);
+        auto row = content1.removeFromTop(juce::jmax(rowHeight * 3, content1.getHeight() - 8));
         cfInput.setVisible(true);
 
         int width = static_cast<int>(row.getWidth() * widthRatio);
@@ -329,14 +370,9 @@ void LeftPanel::resized()
         cfInput.setBounds(x, row.getY(), width, row.getHeight());
     }
 
-    area.removeFromTop(spacing);
-
-    // ===== SECTION 3 : DRAG ZONE =====
-    auto section3 = area.removeFromBottom(sectionHeight);
-
     // ===== SECTION 2 : VOICES =====
-    auto section2 = area;
-    auto content2 = section2.reduced(10);
+    auto section2 = sectionColumn.items[1].currentBounds.toNearestInt();
+    auto content2 = section2.reduced(12, 10);
     content2.removeFromTop(titleReservedHeight);
 
     {
@@ -351,17 +387,24 @@ void LeftPanel::resized()
 
     content2.removeFromTop(10);
 
+    // ===== SECTION 3 : DRAG ZONE =====
+    auto section3 = sectionColumn.items[2].currentBounds.toNearestInt();
+
     // ===== SECTION 3 : DRAG ZONE CONTENT =====
     auto content3 = section3.reduced(10, 15);
 
     // ===== DRAG ZONE (MIDI ITEM) =====
     if (midiItem != nullptr)
     {
+        constexpr int midiItemWidth = 30;
+        constexpr int midiItemHeight = 50;
+        constexpr int midiItemVerticalOffset = 11;
+
         midiItem->setBounds(
-            content3.getCentreX() - 40,
-            content3.getCentreY() - 25,
-            80,
-            50
+            content3.getCentreX() - midiItemWidth / 2,
+            content3.getCentreY() - midiItemHeight / 2 + midiItemVerticalOffset,
+            midiItemWidth,
+            midiItemHeight
         );
     }
 }
@@ -408,6 +451,30 @@ void LeftPanel::updateCantusDisplay()
     }
 
     cfInput.setText(display, juce::dontSendNotification);
+}
+
+/*
+//==============================================================================
+   Nettoie la saisie comme au lancement de l'application.
+
+   Le Cantus Firmus, le nombre de voix, le MIDI affiché
+   et les données musicales du modèle sont vidés.
+//==============================================================================
+*/
+void LeftPanel::clearInputState()
+{
+    cfInput.clear();
+    numVoicesCB.setSelectedId(0, juce::dontSendNotification);
+
+    midiItem.reset();
+
+    CantusProblem::Voices emptyVoices;
+    auto& problem = appController.getProblem();
+    problem.setVoices(emptyVoices);
+    problem.setVoiceCount(0);
+
+    resized();
+    repaint();
 }
 
 /*

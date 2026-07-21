@@ -1,6 +1,7 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
 
+#include "BinaryData.h"
 #include "../../service/GenerationService.h"
 #include "../optionsPanel/OptionsPanel.h"
 
@@ -37,6 +38,18 @@ class OptionsPanel;
 class MidiFileItem : public juce::Component
 {
 public:
+    MidiFileItem()
+        : logoImage(juce::ImageCache::getFromMemory(BinaryData::logoApp_png,
+                                                     BinaryData::logoApp_pngSize))
+    {
+        if (logoImage.isValid())
+        {
+            // Le PNG original a beaucoup de marge blanche.
+            // Ce recadrage garde la partie visuelle importante du logo.
+            logoImage = logoImage.getClippedImage({ 600, 120, 800, 1700 });
+        }
+    }
+
     juce::File file;
 
     // Dessine l'icône MIDI affichée dans la zone de sortie.
@@ -44,13 +57,25 @@ public:
     {
         auto bounds = getLocalBounds().toFloat();
 
-        g.setColour(juce::Colours::darkgrey.brighter());
-        g.fillRoundedRectangle(bounds, 6.0f);
-
+        // Le fond blanc arrondi se fond avec le logo, qui contient deja du blanc.
         g.setColour(juce::Colours::white);
-        g.drawText("MIDI",
-                   getLocalBounds(),
-                   juce::Justification::centred);
+        g.fillRoundedRectangle(bounds, 5.0f);
+
+        if (logoImage.isValid())
+        {
+            g.drawImageWithin(logoImage,
+                              4,
+                              4,
+                              getWidth() - 8,
+                              getHeight() - 8,
+                              juce::RectanglePlacement::centred);
+        }
+        else
+        {
+            g.setColour(juce::Colours::white);
+            g.setFont(juce::Font(juce::FontOptions(11.0f, juce::Font::bold)));
+            g.drawText("MIDI", getLocalBounds(), juce::Justification::centred);
+        }
     }
 
     // Lance le drag & drop externe du fichier MIDI.
@@ -65,6 +90,9 @@ public:
 
     // Présent pour initialiser correctement le geste de drag.
     void mouseDown(const juce::MouseEvent&) override{}
+
+private:
+    juce::Image logoImage;
 };
 
 /*
@@ -111,6 +139,9 @@ public:
 
     // Met à jour l'affichage textuel du Cantus Firmus.
     void updateCantusDisplay();
+
+    // Remet la saisie utilisateur dans l'état initial de l'application.
+    void clearInputState();
 
     /*
     //==============================================================================

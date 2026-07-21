@@ -2,14 +2,11 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
-#include "components/VoiceBox.h"
 #include "components/ColumnBox.h"
 #include "components/ClickableTitle.h"
-#include "components/ParameterColumn.h"
-#include "components/ParameterFactory.h"
 #include "components/SolverPriorityList.h"
 #include "components/ArrowIconButton.h"
-#include "components/ShapeColumnControls.h"
+#include "components/VoiceWorkspace.h"
 
 class LeftPanel;
 class AppController;
@@ -40,6 +37,12 @@ public:
     // Met à jour l'affichage des voix selon le nombre sélectionné
     void setNumVoices(int numVoices);
 
+    // Remet les contrôles de génération dans l'état initial.
+    void clearGenerationInputs();
+
+    // Limite de la grande zone de travail, en coordonnées de OptionsPanel.
+    juce::Rectangle<int> getWorkspaceBounds() const;
+
     // Connexions externes
     void setAppController(AppController* app_controller);
     void setLeftPanel(LeftPanel* panel);
@@ -50,109 +53,43 @@ private:
     LeftPanel* leftPanel = nullptr;
     AppController* appController = nullptr;
 
-    // Colonnes principales
+    // Zone de travail + colonne Search
     ColumnBox column1, column2, column3, column4, column5;
     ClickableTitle title1, title2, title3, title4, title5;
+    VoiceWorkspace voiceWorkspace;
 
-    // Voix affichées dans la première colonne
-    VoiceBox box1 { "Cantus Firmus" };
-    VoiceBox box2 { "Contrepoint 1" };
-    VoiceBox box3 { "Contrepoint 2" };
-    VoiceBox box4 { "Contrepoint 3" };
 
-    // Paramètres configurables par colonne
-    ParameterColumn basicColumn;
-    ParameterColumn melodicColumn;
-    ParameterColumn harmonicColumn;
-    ShapeColumnControls shapeColumnControls;
-    ParameterColumn solverColumn;
 
-    // Repères visuels du vecteur importance envoyé au solveur
+    // Ancienne colonne Solver Priorities.
+    // Conservée pour pouvoir la réutiliser plus tard.
     SolverPriorityList solverPriorityList;
     ArrowIconButton movePriorityUpButton { ArrowIconButton::Direction::up };
     ArrowIconButton movePriorityDownButton { ArrowIconButton::Direction::down };
 
     // Boutons d'action
     juce::TextButton generateButton;
-    juce::TextButton cancel;
+    juce::TextButton clearButton;
 
-    // État visuel des colonnes
+    // État visuel de la colonne Search
     int activeColumn = 0;
-    int hoveredColumn = 0;
-
-    // -1 = aucune voix sélectionnée.
-    int selectedVoiceIndex = -1;
+    juce::Rectangle<int> workspaceBounds;
 
     // Initialisation de l'interface
     void setupColumns();
     void setupTitles();
-    void setupVoiceBoxes();
     void setupButtons();
-    void setupBasicControls();
-    void setupMelodicControls();
-    void setupHarmonicControls();
-    void setupShapeControls();
     void setupSolverPriorities();
 
     // Interactions utilisateur
     void setupColumnInteractions();
-    void setupHover(ClickableTitle& title,
-                    ColumnBox& column,
-                    int index);
 
     void updateActiveColumn(int index);
-    void updateSelectedVoiceVisuals();
 
     // Layout interne
-    void layoutVoiceColumn(juce::Rectangle<int> bounds);
-    void layoutSolverPriorities(juce::Rectangle<int> listBounds,
-                                juce::Rectangle<int> arrowBounds);
+    void layoutSolverPriorities(juce::Rectangle<int> listBounds);
     void layoutButtons(juce::Rectangle<int> bottomArea);
 
-    // Ajoute un paramètre UI dans une colonne donnée
-    template <typename ControlType>
-    ControlType* addParameter(ParameterColumn& column,
-                              const juce::String& label,
-                              std::unique_ptr<ControlType> control)
-    {
-        auto* controlPtr = control.get();
 
-        column.addParameter(*this, label, std::move(control));
-
-        return controlPtr;
-    }
-
-    juce::Slider* addSliderParameter(ParameterColumn& column,
-                                     const juce::String& label,
-                                     double min,
-                                     double max,
-                                     double interval,
-                                     double defaultValue,
-                                     const juce::String& leftEndpoint,
-                                     const juce::String& rightEndpoint)
-    {
-        auto slider = ParameterFactory::slider(min, max, interval, defaultValue);
-        auto* sliderPtr = slider.get();
-
-        column.addParameter(*this,
-                            label,
-                            std::move(slider),
-                            BoxParameter::EndpointLabels { leftEndpoint, rightEndpoint });
-
-        return sliderPtr;
-    }
-
-    OnOffSwitchButton* addSwitchParameter(ParameterColumn& column,
-                                          const juce::String& label,
-                                          bool defaultValue)
-    {
-        auto button = ParameterFactory::onOffSwitch(defaultValue);
-        auto* buttonPtr = button.get();
-
-        column.addParameter(*this, label, std::move(button));
-
-        return buttonPtr;
-    }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OptionsPanel)
 };

@@ -1,5 +1,12 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "MainComponent.h"
+
+namespace
+{
+    constexpr int fixedWindowWidth = 1000;
+    constexpr int fixedWindowHeight = 560;
+}
+
 class MainWindow : public juce::DocumentWindow
 {
 public:
@@ -10,12 +17,15 @@ public:
     {
         setUsingNativeTitleBar(true);
 
-        setResizable(true, true);
-
         setContentOwned(new MainComponent(), true);
-        setResizeLimits(900, 560, 2560, 1600);
+        setResizable(false, false);
+        setResizeLimits(fixedWindowWidth,
+                        fixedWindowHeight,
+                        fixedWindowWidth,
+                        fixedWindowHeight);
+        setSize(fixedWindowWidth, fixedWindowHeight);
 
-        centreWithSize(getWidth(), getHeight());
+        centreWithSize(fixedWindowWidth, fixedWindowHeight);
         setVisible(true);
     }
 
