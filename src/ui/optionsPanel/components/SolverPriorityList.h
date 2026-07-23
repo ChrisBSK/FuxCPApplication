@@ -38,6 +38,18 @@ public:
 
     std::function<void(const std::vector<int>&)> onPriorityOrderChanged;
 
+    // Active une version plus dense de la liste pour les colonnes etroites.
+    void setCompactMode(bool shouldUseCompactMode)
+    {
+        compactMode = shouldUseCompactMode;
+
+        for (auto& row : rows)
+            row.setCompactMode(compactMode);
+
+        resized();
+        repaint();
+    }
+
     /*
         Charge le vecteur importance venant du modèle.
         FuxCP stocke un rang par contrainte ; l'interface affiche l'ordre trié.
@@ -140,8 +152,8 @@ public:
 
     void resized() override
     {
-        const int inset = juce::jlimit(6, 12, getWidth() / 18);
-        const int spacingY = juce::jlimit(2, 4, getHeight() / 130);
+        const int inset = compactMode ? 3 : juce::jlimit(6, 12, getWidth() / 18);
+        const int spacingY = compactMode ? 1 : juce::jlimit(2, 4, getHeight() / 130);
 
         auto area = getLocalBounds().reduced(inset);
 
@@ -149,8 +161,8 @@ public:
         const int availableHeight = area.getHeight()
                                   - juce::jmax(0, rowCount - 1) * spacingY;
         const int rowHeight = rowCount > 0
-            ? juce::jmax(18, availableHeight / rowCount)
-            : 18;
+            ? juce::jmax(compactMode ? 12 : 18, availableHeight / rowCount)
+            : compactMode ? 12 : 18;
 
         for (auto& row : rows)
         {
@@ -203,12 +215,20 @@ private:
             repaint();
         }
 
+        void setCompactMode(bool shouldUseCompactMode)
+        {
+            compactMode = shouldUseCompactMode;
+            repaint();
+        }
+
         void paint(juce::Graphics& g) override
         {
             auto area = getLocalBounds();
 
-            const int gap = juce::jlimit(4, 7, area.getWidth() / 28);
-            const int bubbleSize = juce::jlimit(18, 24, area.getHeight());
+            const int gap = compactMode ? 3 : juce::jlimit(4, 7, area.getWidth() / 28);
+            const int bubbleSize = compactMode
+                ? juce::jlimit(12, 16, area.getHeight())
+                : juce::jlimit(18, 24, area.getHeight());
 
             auto bubble = area.removeFromLeft(bubbleSize).withSizeKeepingCentre(
                 bubbleSize,
@@ -239,7 +259,7 @@ private:
                 return;
 
             g.setColour(juce::Colours::white.withAlpha(0.18f));
-            g.fillRoundedRectangle(bounds.toFloat(), 7.0f);
+            g.fillRoundedRectangle(bounds.toFloat(), compactMode ? 4.0f : 7.0f);
         }
 
         /*
@@ -253,7 +273,8 @@ private:
 
             g.setColour(juce::Colours::white);
             g.setFont(juce::FontOptions(
-                juce::jlimit(10.0f, 13.0f, bubble.getHeight() * 0.55f),
+                compactMode ? juce::jlimit(7.0f, 9.0f, bubble.getHeight() * 0.56f)
+                            : juce::jlimit(10.0f, 13.0f, bubble.getHeight() * 0.55f),
                 juce::Font::bold
             ));
             g.drawFittedText(juce::String(rank),
@@ -269,21 +290,23 @@ private:
         void drawPriorityName(juce::Graphics& g, juce::Rectangle<int> bounds)
         {
             g.setColour(juce::Colour(0xff2f4f4f));
-            g.fillRoundedRectangle(bounds.toFloat(), 6.0f);
+            g.fillRoundedRectangle(bounds.toFloat(), compactMode ? 4.0f : 6.0f);
 
             g.setColour(juce::Colours::white);
             g.setFont(juce::FontOptions(
-                juce::jlimit(10.0f, 14.0f, bounds.getHeight() * 0.52f),
+                compactMode ? juce::jlimit(7.0f, 9.0f, bounds.getHeight() * 0.55f)
+                            : juce::jlimit(10.0f, 14.0f, bounds.getHeight() * 0.52f),
                 juce::Font::bold
             ));
             g.drawFittedText(name,
-                             bounds.reduced(5, 1),
+                             bounds.reduced(compactMode ? 3 : 5, 1),
                              juce::Justification::centred,
                              1);
         }
 
         int rank = 0;
         bool isSelected = false;
+        bool compactMode = false;
         juce::String name;
     };
 
@@ -393,4 +416,5 @@ private:
 
     std::array<PriorityRow, priorityCount> rows;
     int selectedIndex = -1;
+    bool compactMode = false;
 };

@@ -485,14 +485,31 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
         // =========================
         // Solveur
         // =========================
-        BAB<CounterpointProblem> e(fuxProblem, opts);
+        // La methode vient du modele : BAB par defaut, DFS si l'utilisateur
+        // l'a selectionne dans la colonne Search.
+        const auto searchMethod = problem.getSettings().getSearchMethod();
+
+        std::unique_ptr<Gecode::Search::Base<CounterpointProblem>> solver;
+
+        if (searchMethod == ConstraintSettings::SearchMethod::bab)
+        {
+            std::cout << "\n=== SEARCH METHOD SENT TO FUXCP ===\n";
+            std::cout << "BAB\n";
+            solver = std::make_unique<BAB<CounterpointProblem>>(fuxProblem, opts);
+        }
+        else
+        {
+            std::cout << "\n=== SEARCH METHOD SENT TO FUXCP ===\n";
+            std::cout << "DFS\n";
+            solver = std::make_unique<DFS<CounterpointProblem>>(fuxProblem, opts);
+        }
 
         // =========================
         // Meilleure solution
         // =========================
         CounterpointProblem* best = nullptr;
 
-        while (CounterpointProblem* pb = e.next()) {
+        while (CounterpointProblem* pb = solver->next()) {
 
             //on garde la meilleure solution trouvée
             best = pb;

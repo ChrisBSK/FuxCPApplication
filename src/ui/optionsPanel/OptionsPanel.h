@@ -7,6 +7,7 @@
 #include "components/SolverPriorityList.h"
 #include "components/ArrowIconButton.h"
 #include "components/VoiceWorkspace.h"
+#include "components/MinimizationModePanel.h"
 
 class LeftPanel;
 class AppController;
@@ -57,6 +58,7 @@ private:
     ColumnBox column1, column2, column3, column4, column5;
     ClickableTitle title1, title2, title3, title4, title5;
     VoiceWorkspace voiceWorkspace;
+    MinimizationModePanel minimizationModePanel;
 
 
 
@@ -72,6 +74,7 @@ private:
 
     // État visuel de la colonne Search
     int activeColumn = 0;
+    bool showLexicographicPriorities = true;
     juce::Rectangle<int> workspaceBounds;
 
     // Initialisation de l'interface
@@ -79,13 +82,16 @@ private:
     void setupTitles();
     void setupButtons();
     void setupSolverPriorities();
+    void setupMinimizationModePanel();
 
     // Interactions utilisateur
     void setupColumnInteractions();
 
     void updateActiveColumn(int index);
+    void updateSolverPriorityVisibility();
 
     // Layout interne
+    void layoutMinimizationModePanel(juce::Rectangle<int> columnBounds);
     void layoutSolverPriorities(juce::Rectangle<int> listBounds);
     void layoutButtons(juce::Rectangle<int> bottomArea);
 

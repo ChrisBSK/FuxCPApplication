@@ -75,6 +75,12 @@ struct ConstraintSettings
         stepDescending
     };
 
+    enum class SearchMethod
+    {
+        dfs = 0,
+        bab
+    };
+
     struct ShapeAssignment
     {
         // 0 = Contrepoint 1, 1 = Contrepoint 2, etc.
@@ -147,6 +153,7 @@ struct ConstraintSettings
     struct Global
     {
         int borrowMode = 1;
+        SearchMethod searchMethod = SearchMethod::bab;
     };
 
     struct Importance
@@ -245,6 +252,16 @@ struct ConstraintSettings
     int getBorrowMode() const
     {
         return global.borrowMode;
+    }
+
+    void setSearchMethod(SearchMethod method)
+    {
+        global.searchMethod = method;
+    }
+
+    SearchMethod getSearchMethod() const
+    {
+        return global.searchMethod;
     }
 
     void setImportanceCosts(const std::vector<int>& values)

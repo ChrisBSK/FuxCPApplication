@@ -18,6 +18,7 @@ OptionsPanel::OptionsPanel()
 
     setupColumnInteractions();
     setupSolverPriorities();
+    setupMinimizationModePanel();
 }
 
 //==============================================================================
@@ -92,10 +93,9 @@ void OptionsPanel::setupSolverPriorities()
     addAndMakeVisible(movePriorityUpButton);
     addAndMakeVisible(movePriorityDownButton);
 
-    // Conservé pour plus tard, mais masqué pendant que la colonne sert à Search.
-    solverPriorityList.setVisible(false);
-    movePriorityUpButton.setVisible(false);
-    movePriorityDownButton.setVisible(false);
+    // Version compacte : elle vit maintenant sous le mode Lexicographic.
+    solverPriorityList.setCompactMode(true);
+    updateSolverPriorityVisibility();
 
     solverPriorityList.onPriorityOrderChanged = [this](const std::vector<int>& importanceCosts)
     {
@@ -131,6 +131,38 @@ void OptionsPanel::setupSolverPriorities()
     };
 }
 
+void OptionsPanel::setupMinimizationModePanel()
+{
+    //==========================================================================
+    // Search / Minimization
+    //==========================================================================
+    // Panneau purement visuel pour choisir la strategie d'optimisation.
+    // La connexion au solveur sera ajoutee dans une etape separee.
+    addAndMakeVisible(minimizationModePanel);
+
+    minimizationModePanel.onBabSearchMethodChanged = [this](bool useBab)
+    {
+        if (appController == nullptr || appController->isGenerating())
+            return;
+
+        auto& settings = appController->getProblem().getSettings();
+
+        settings.setSearchMethod(useBab
+            ? ConstraintSettings::SearchMethod::bab
+            : ConstraintSettings::SearchMethod::dfs);
+
+        std::cout << "\n=== SEARCH METHOD CHANGED ===\n";
+        std::cout << "searchMethod = " << (useBab ? "BAB" : "DFS") << "\n";
+    };
+
+    minimizationModePanel.onLexicographicModeChanged = [this](bool isLexicographic)
+    {
+        showLexicographicPriorities = isLexicographic;
+        updateSolverPriorityVisibility();
+        resized();
+    };
+}
+
 //==============================================================================
 // Interactions des colonnes
 //==============================================================================
@@ -148,6 +180,13 @@ void OptionsPanel::updateActiveColumn(int index)
     activeColumn = 0;
     column5.isActive = false;
     repaint();
+}
+
+void OptionsPanel::updateSolverPriorityVisibility()
+{
+    solverPriorityList.setVisible(showLexicographicPriorities);
+    movePriorityUpButton.setVisible(showLexicographicPriorities);
+    movePriorityDownButton.setVisible(showLexicographicPriorities);
 }
 
 //==============================================================================
@@ -222,8 +261,45 @@ void OptionsPanel::resized()
 
     const auto solverBounds = column5.getBounds();
     title5.setBounds(solverBounds.getX(), titleRow.getY(), solverBounds.getWidth(), titleHeight);
+    layoutMinimizationModePanel(solverBounds);
 
     layoutButtons(bottomArea);
+}
+
+void OptionsPanel::layoutMinimizationModePanel(juce::Rectangle<int> columnBounds)
+{
+    // Le panneau interne laisse respirer le contour de la colonne.
+    auto area = columnBounds.reduced(9, 10);
+
+    constexpr int modePanelHeight = 86;
+    constexpr int listGap = 7;
+    constexpr int arrowColumnWidth = 24;
+    constexpr int arrowSize = 22;
+    constexpr int arrowGap = 6;
+
+    minimizationModePanel.setBounds(area.removeFromTop(modePanelHeight));
+
+    if (! showLexicographicPriorities)
+        return;
+
+    area.removeFromTop(listGap);
+
+    auto arrowArea = area.removeFromRight(arrowColumnWidth);
+    auto listArea = area.reduced(0, 2);
+
+    solverPriorityList.setBounds(listArea);
+
+    const int totalArrowHeight = arrowSize * 2 + arrowGap;
+    auto arrows = juce::Rectangle<int>(
+        arrowArea.getCentreX() - arrowSize / 2,
+        arrowArea.getCentreY() - totalArrowHeight / 2,
+        arrowSize,
+        totalArrowHeight
+    );
+
+    movePriorityUpButton.setBounds(arrows.removeFromTop(arrowSize));
+    arrows.removeFromTop(arrowGap);
+    movePriorityDownButton.setBounds(arrows.removeFromTop(arrowSize));
 }
 
 void OptionsPanel::layoutSolverPriorities(juce::Rectangle<int> listBounds)
