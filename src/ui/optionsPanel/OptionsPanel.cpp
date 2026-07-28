@@ -6,6 +6,48 @@
 
 #include <array>
 
+namespace
+{
+    /*
+        Traduit le slider UI vers la fonction de coût stockée dans ConstraintSettings.
+    */
+    ConstraintSettings::ShapeCostTarget mapShapeTarget(VoiceWorkspace::CostSliderTarget target)
+    {
+        switch (target)
+        {
+            case VoiceWorkspace::CostSliderTarget::melodyMovement:
+                return ConstraintSettings::ShapeCostTarget::melodyMovement;
+
+            case VoiceWorkspace::CostSliderTarget::intervalColour:
+                return ConstraintSettings::ShapeCostTarget::intervalColour;
+
+            case VoiceWorkspace::CostSliderTarget::perfectIntervals:
+                return ConstraintSettings::ShapeCostTarget::perfectIntervals;
+        }
+
+        return ConstraintSettings::ShapeCostTarget::melodyMovement;
+    }
+
+    /*
+        Traduit l'id de la ComboBox Shape vers la shape utilisée par FuxCP.
+    */
+    ConstraintSettings::ShapeType mapShapeId(int shapeId)
+    {
+        switch (shapeId)
+        {
+            case 1: return ConstraintSettings::ShapeType::fixedZero;
+            case 2: return ConstraintSettings::ShapeType::linear;
+            case 3: return ConstraintSettings::ShapeType::linearDescending;
+            case 4: return ConstraintSettings::ShapeType::invertedV;
+            case 5: return ConstraintSettings::ShapeType::v;
+            case 6: return ConstraintSettings::ShapeType::m;
+            case 7: return ConstraintSettings::ShapeType::step;
+            case 8: return ConstraintSettings::ShapeType::stepDescending;
+            default: return ConstraintSettings::ShapeType::fixedZero;
+        }
+    }
+}
+
 //==============================================================================
 // Construction
 //==============================================================================
@@ -57,6 +99,27 @@ void OptionsPanel::setupColumns()
         appController->updateVoice(counterpointIndex,
                                    voiceSettings[counterpointIndex].species,
                                    type);
+    };
+
+    voiceWorkspace.onCostSliderChanged = [this](int counterpointIndex,
+                                                VoiceWorkspace::CostSliderTarget target,
+                                                double value)
+    {
+        if (appController == nullptr || appController->isGenerating())
+            return;
+
+        applyCostSliderValueToSettings(counterpointIndex, target, value);
+    };
+
+    voiceWorkspace.onShapeChanged = [this](int counterpointIndex,
+                                           VoiceWorkspace::CostSliderTarget target,
+                                           int shapeId,
+                                           const std::vector<double>& values)
+    {
+        if (appController == nullptr || appController->isGenerating())
+            return;
+
+        applyShapeToSettings(counterpointIndex, target, shapeId, values);
     };
 }
 
@@ -187,6 +250,77 @@ void OptionsPanel::updateSolverPriorityVisibility()
     solverPriorityList.setVisible(showLexicographicPriorities);
     movePriorityUpButton.setVisible(showLexicographicPriorities);
     movePriorityDownButton.setVisible(showLexicographicPriorities);
+}
+
+/*
+    Traduit un slider de l'interface vers le paramètre FuxCP correspondant.
+
+    Ici, on ne crée pas les coûts directement dans l'UI :
+    l'UI modifie seulement ConstraintSettings, puis CantusProblem recalcule
+    les vecteurs que GenerationService enverra ensuite à FuxCP.
+*/
+void OptionsPanel::applyCostSliderValueToSettings(int counterpointIndex,
+                                                  VoiceWorkspace::CostSliderTarget target,
+                                                  double value)
+{
+    if (appController == nullptr)
+        return;
+
+    auto& problem = appController->getProblem();
+    auto& settings = problem.getSettings();
+
+    switch (target)
+    {
+        case VoiceWorkspace::CostSliderTarget::melodyMovement:
+            // Melody movement pilote steps1(s) pour ce contrepoint uniquement.
+            settings.setCounterpointMelodyMovement(counterpointIndex, value);
+            break;
+
+        case VoiceWorkspace::CostSliderTarget::intervalColour:
+            // Interval colour pilote steps2(s) pour ce contrepoint uniquement.
+            settings.setCounterpointIntervalColour(counterpointIndex, value);
+            break;
+
+        case VoiceWorkspace::CostSliderTarget::perfectIntervals:
+            // Perfect intervals pilote harmo(s) pour ce contrepoint uniquement.
+            settings.setCounterpointPerfectIntervals(counterpointIndex, value);
+            break;
+    }
+
+    problem.recalculateCosts();
+}
+
+/*
+    Stocke dans ConstraintSettings la shape choisie pour une voix.
+
+    shapeId <= 0 signifie : aucune shape choisie.
+    Dans ce cas, FuxCP utilise simplement la valeur du slider principal.
+*/
+void OptionsPanel::applyShapeToSettings(int counterpointIndex,
+                                        VoiceWorkspace::CostSliderTarget target,
+                                        int shapeId,
+                                        const std::vector<double>& values)
+{
+    if (appController == nullptr)
+        return;
+
+    auto& problem = appController->getProblem();
+    auto& settings = problem.getSettings();
+    const auto modelTarget = mapShapeTarget(target);
+
+    if (shapeId <= 0)
+    {
+        settings.removeShapeAssignment(counterpointIndex, modelTarget);
+    }
+    else
+    {
+        settings.setShapeAssignment(counterpointIndex,
+                                    modelTarget,
+                                    mapShapeId(shapeId),
+                                    values);
+    }
+
+    problem.recalculateCosts();
 }
 
 //==============================================================================
@@ -341,6 +475,19 @@ void OptionsPanel::clearGenerationInputs()
     if (leftPanel != nullptr)
         leftPanel->clearInputState();
 
+    if (appController != nullptr)
+    {
+        auto& problem = appController->getProblem();
+        auto& settings = problem.getSettings();
+
+        settings.setLargeLeapPenalty(0.0);
+        settings.setMelodicIntervalColor(0.0);
+        settings.setPerfectIntervalBalance(0.0);
+        settings.setCounterpointCount(0);
+        settings.setShapeAssignments({});
+        problem.recalculateCosts();
+    }
+
     voiceWorkspace.resetCounterpointSelectors();
     setNumVoices(0);
 }
@@ -360,6 +507,7 @@ void OptionsPanel::setNumVoices(int numVoices)
     // Le workspace affiche uniquement les contrepoints.
     // On garde seulement les réglages internes par défaut pour que Generate fonctionne encore.
     appController->getVoiceSettings().resize(numCounterpoints);
+    appController->getProblem().getSettings().setCounterpointCount(numCounterpoints);
 }
 
 juce::Rectangle<int> OptionsPanel::getWorkspaceBounds() const

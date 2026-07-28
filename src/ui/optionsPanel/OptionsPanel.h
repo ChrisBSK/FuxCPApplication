@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include "components/ColumnBox.h"
@@ -89,6 +91,17 @@ private:
 
     void updateActiveColumn(int index);
     void updateSolverPriorityVisibility();
+
+    // Applique au modèle la valeur envoyée par un slider de coût.
+    void applyCostSliderValueToSettings(int counterpointIndex,
+                                        VoiceWorkspace::CostSliderTarget target,
+                                        double value);
+
+    // Applique au modèle la shape et ses 4 valeurs envoyées par l'interface.
+    void applyShapeToSettings(int counterpointIndex,
+                              VoiceWorkspace::CostSliderTarget target,
+                              int shapeId,
+                              const std::vector<double>& values);
 
     // Layout interne
     void layoutMinimizationModePanel(juce::Rectangle<int> columnBounds);

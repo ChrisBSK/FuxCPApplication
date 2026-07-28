@@ -98,6 +98,7 @@ private:
        Petit bouton dessine a la main pour garder une ecriture fine,
        lisible et coherente avec le reste de l'interface.
     */
+    //--> Réalisé avec l'aide de ChatGPT
     class ModeButton : public juce::Button
     {
     public:
