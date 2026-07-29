@@ -33,9 +33,6 @@ target_sources(myproject PRIVATE
         src/model/ConstraintsSettings.h
         src/model/ConstraintsSettings.cpp
 
-        src/ui/footer/FooterPanel.cpp
-        src/ui/footer/FooterPanel.h
-
         src/ui/header/HeaderPanel.cpp
         src/ui/header/HeaderPanel.h
 

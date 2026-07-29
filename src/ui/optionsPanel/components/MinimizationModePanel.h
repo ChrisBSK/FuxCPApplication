@@ -3,27 +3,41 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 /*
-//==============================================================================
-   MinimizationModePanel
+    =====================================================================
+    MinimizationModePanel.h — choix de recherche et de minimisation
 
-   Petit panneau visuel pour choisir :
-   - la methode de recherche : DFS ou BAB
-   - la methode de minimisation : Lexicographic ou Weighted Sum
+    Petit panneau affiché dans la colonne Search.
 
-   Pour l'instant, ces choix ne sont pas encore connectes au solveur.
-//==============================================================================
+    Il permet de choisir :
+    - la méthode de recherche : DFS ou BAB,
+    - la méthode de minimisation : Lexicographic ou Weighted Sum.
+
+    Le composant ne modifie pas directement le modèle.
+    Il expose des callbacks que OptionsPanel connecte ensuite à AppController.
+    =====================================================================
 */
 class MinimizationModePanel : public juce::Component
 {
 public:
+    // Callbacks envoyés à OptionsPanel quand l'utilisateur change de mode.
+    // bool = true signifie BAB pour la recherche, Lexicographic pour la minimisation.
     std::function<void(bool)> onBabSearchMethodChanged;
     std::function<void(bool)> onLexicographicModeChanged;
 
+    /*
+    Crée les titres, les boutons, puis connecte leurs clics.
+
+    Les valeurs par défaut sont :
+    - BAB pour la recherche,
+    - Lexicographic pour la minimisation.
+*/
     MinimizationModePanel()
     {
+        // Titres des deux groupes du panneau.
         setupGroupTitle(searchMethodTitle, "Search Method");
         setupGroupTitle(minimizationMethodTitle, "Minimization Method");
 
+        // Rend tous les éléments visibles dans le composant.
         addAndMakeVisible(searchMethodTitle);
         addAndMakeVisible(minimizationMethodTitle);
         addAndMakeVisible(dfsButton);
@@ -31,6 +45,7 @@ public:
         addAndMakeVisible(lexicographicButton);
         addAndMakeVisible(weightedSumButton);
 
+        // Chaque bouton sélectionne son mode correspondant.
         dfsButton.onClick = [this]()
         {
             selectSearchMethod(SearchMethod::dfs);
@@ -51,12 +66,23 @@ public:
             selectMinimizationMode(MinimizationMode::weightedSum);
         };
 
+        // État initial affiché au lancement de l'application.
         selectSearchMethod(SearchMethod::bab);
         selectMinimizationMode(MinimizationMode::lexicographic);
     }
 
+    /*
+        Place les titres et les boutons dans le panneau.
+
+        Le layout est vertical :
+        - titre Search Method,
+        - boutons DFS / BAB,
+        - titre Minimization Method,
+        - boutons Lexicographic / Weighted Sum.
+    */
     void resized() override
     {
+        // Zone intérieure avec une petite marge
         auto area = getLocalBounds().reduced(10, 8);
 
         constexpr int titleHeight = 12;
@@ -66,6 +92,7 @@ public:
         constexpr int groupGap = 8;
         constexpr int gap = 5;
 
+        // Premier groupe : choix de la méthode de recherche.
         searchMethodTitle.setBounds(area.removeFromTop(titleHeight));
         area.removeFromTop(titleGap);
 
@@ -74,6 +101,7 @@ public:
 
         area.removeFromTop(groupGap);
 
+        // Deuxième groupe : choix de la méthode de minimisation.
         minimizationMethodTitle.setBounds(area.removeFromTop(titleHeight));
         area.removeFromTop(titleGap);
 
@@ -82,12 +110,15 @@ public:
     }
 
 private:
+
+    // Modes de recherche disponibles dans le solveur.
     enum class SearchMethod
     {
         dfs,
         bab
     };
 
+    // Modes de minimisation affichés dans l'interface.
     enum class MinimizationMode
     {
         lexicographic,
@@ -95,8 +126,7 @@ private:
     };
 
     /*
-       Petit bouton dessine a la main pour garder une ecriture fine,
-       lisible et coherente avec le reste de l'interface.
+        Petit bouton personnalisé pour les modes Search / Minimization.
     */
     //--> Réalisé avec l'aide de ChatGPT
     class ModeButton : public juce::Button
@@ -107,27 +137,39 @@ private:
         {
         }
 
+        // Met à jour l'état sélectionné du bouton puis le redessine.
         void setActive(bool shouldBeActive)
         {
             isActive = shouldBeActive;
             repaint();
         }
 
+        /*
+        Dessine le bouton selon son état.
+
+        États pris en compte :
+        - actif ou inactif,
+        - survolé par la souris,
+        - enfoncé pendant le clic.
+    */
         void paintButton(juce::Graphics& g,
                          bool isMouseOverButton,
                          bool isButtonDown) override
         {
             auto bounds = getLocalBounds().toFloat().reduced(0.5f);
 
+            // Couleur de base selon l'état actif/inactif.
             auto background = isActive ? juce::Colour(0xff2f4f4f)
                                        : juce::Colour(0xff3e3e3e);
 
+            // Feedback visuel au survol et au clic.
             if (isMouseOverButton)
                 background = background.brighter(0.08f);
 
             if (isButtonDown)
                 background = background.darker(0.12f);
 
+            // Fond + contour du bouton.
             g.setColour(background);
             g.fillRoundedRectangle(bounds, 4.0f);
 
@@ -136,6 +178,8 @@ private:
             g.drawRoundedRectangle(bounds, 4.0f, isActive ? 1.0f : 0.7f);
 
             g.setColour(juce::Colours::white);
+
+            // Texte centré, géré par une méthode dédiée.
             drawReadableButtonText(g);
         }
 
@@ -148,8 +192,10 @@ private:
             auto textBounds = getLocalBounds().reduced(2, 1);
             const auto text = getButtonText();
 
+
             if (text == "Weighted Sum")
             {
+                // Cas spécial : texte long, donc affichage sur deux lignes.
                 g.setFont(juce::Font(juce::FontOptions(8.0f, juce::Font::bold)));
                 auto top = textBounds.removeFromTop(textBounds.getHeight() / 2);
                 g.drawText("Weighted", top, juce::Justification::centred, true);
@@ -163,9 +209,11 @@ private:
         }
     };
 
+    // État actuellement sélectionné dans le panneau.
     SearchMethod selectedSearchMethod = SearchMethod::bab;
     MinimizationMode selectedMinimizationMode = MinimizationMode::lexicographic;
 
+    // Titres des deux groupes de boutons.
     juce::Label searchMethodTitle;
     juce::Label minimizationMethodTitle;
 
@@ -174,7 +222,13 @@ private:
     ModeButton lexicographicButton { "Lexicographic" };
     ModeButton weightedSumButton { "Weighted Sum" };
 
-    // Configure un petit titre de groupe lisible et discret.
+    /*
+        Configure un titre de groupe compact.
+
+        Utilisé pour :
+        - Search Method,
+        - Minimization Method.
+    */
     void setupGroupTitle(juce::Label& label, const juce::String& text)
     {
         label.setText(text, juce::dontSendNotification);
@@ -183,40 +237,67 @@ private:
         label.setColour(juce::Label::textColourId, juce::Colours::white);
     }
 
-    // Place deux boutons sur une meme ligne.
+    /*
+        Place deux boutons côte à côte dans une même ligne.
+
+        La ligne est divisée en :
+        - bouton gauche,
+        - espace central,
+        - bouton droit.
+    */
     void layoutButtonRow(juce::Rectangle<int> row,
                          ModeButton& leftButton,
                          ModeButton& rightButton,
                          int gap)
     {
+        // Coupe la moitié gauche de la ligne.
         auto left = row.removeFromLeft((row.getWidth() - gap) / 2);
+        // Retire l'espace entre les deux boutons.
         row.removeFromLeft(gap);
 
         leftButton.setBounds(left);
         rightButton.setBounds(row);
     }
 
-    // Change uniquement l'etat visuel de la methode de recherche.
+    /*
+        Sélectionne la méthode de recherche.
+
+        Met à jour :
+        - l'état interne,
+        - l'apparence des boutons DFS/BAB,
+        - le callback envoyé à OptionsPanel.
+    */
     void selectSearchMethod(SearchMethod method)
     {
         selectedSearchMethod = method;
 
+        // Met à jour l'état visuel des deux boutons.
         dfsButton.setActive(selectedSearchMethod == SearchMethod::dfs);
         babButton.setActive(selectedSearchMethod == SearchMethod::bab);
 
         if (onBabSearchMethodChanged != nullptr)
+            // Informe OptionsPanel du choix courant.
             onBabSearchMethodChanged(selectedSearchMethod == SearchMethod::bab);
     }
 
-    // Change uniquement l'etat visuel de la methode de minimisation.
+    /*
+        Sélectionne la méthode de minimisation.
+
+        Met à jour :
+        - l'état interne,
+        - l'apparence des boutons Lexicographic/Weighted Sum,
+        - le callback envoyé à OptionsPanel.
+    */
     void selectMinimizationMode(MinimizationMode mode)
     {
         selectedMinimizationMode = mode;
 
+        // Met à jour l'état visuel des deux boutons.
         lexicographicButton.setActive(selectedMinimizationMode == MinimizationMode::lexicographic);
         weightedSumButton.setActive(selectedMinimizationMode == MinimizationMode::weightedSum);
 
         if (onLexicographicModeChanged != nullptr)
+            // Informe OptionsPanel du choix courant.
             onLexicographicModeChanged(selectedMinimizationMode == MinimizationMode::lexicographic);
     }
 

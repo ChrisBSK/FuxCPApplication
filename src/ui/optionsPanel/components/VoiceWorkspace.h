@@ -6,32 +6,62 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 /*
-    VoiceWorkspace
+    =====================================================================
+    VoiceWorkspace.h — zone centrale des contrepoints
 
-    Zone centrale qui affiche uniquement les contrepoints.
-    Le cantus firmus reste dans la colonne de gauche.
+    Ce composant affiche les contrôles propres à chaque contrepoint.
+
+    Il contient :
+    - les titres Counterpoint 1, 2, 3,
+    - les ComboBox Species / Type,
+    - les sliders des fonctions de coût,
+    - les ComboBox Shape,
+    - les 4 mini-sliders part1-part4 pour visualiser/modifier une shape.
+
+    Le Cantus Firmus n'est pas affiché ici.
+    Il reste dans le LeftPanel.
+
+    VoiceWorkspace ne modifie pas directement le modèle.
+    Il envoie des callbacks à OptionsPanel, qui transmet ensuite les valeurs
+    à AppController et ConstraintSettings.
+    =====================================================================
 */
 class VoiceWorkspace : public juce::Component
 {
 public:
+    /*
+        Identifie quelle fonction de coût est pilotée par un slider.
+
+        Chaque valeur correspond à une fonction définie par Dorian :
+        - melodyMovement   -> steps1(s)
+        - intervalColour   -> steps2(s)
+        - perfectIntervals -> harmo(s)
+    */
     enum class CostSliderTarget
     {
-        // Paramètre s de steps1(s).
         melodyMovement = 0,
-
-        // Paramètre s de steps2(s).
         intervalColour,
-
-        // Paramètre s de harmo(s).
         perfectIntervals
     };
 
+    /*
+        Crée les contrôles du workspace.
+
+        Les sélecteurs Species/Type sont préparés séparément des sliders
+        pour garder l'initialisation lisible.
+    */
     VoiceWorkspace()
     {
         setupCounterpointSelectors();
         setupCostSliders();
     }
 
+    /*
+        Détache le LookAndFeel personnalisé des ComboBox.
+
+        JUCE demande de retirer un LookAndFeel avant que l'objet qui le possède
+        soit détruit, sinon les composants peuvent garder un pointeur invalide.
+    */
     ~VoiceWorkspace() override
     {
         for (auto& selector : speciesSelectors)
@@ -50,27 +80,44 @@ public:
             selector.setLookAndFeel(nullptr);
     }
 
-    // Appelé quand l'espèce d'un contrepoint change.
+    //==============================================================================
+    // Callbacks envoyés à OptionsPanel
+    //==============================================================================
+
+    /*
+        VoiceWorkspace ne modifie pas directement AppController.
+        Il prévient seulement OptionsPanel quand l'utilisateur change une valeur.
+    */
+
+    // Espèce modifiée pour un contrepoint.
     std::function<void(int counterpointIndex, int species)> onSpeciesChanged;
 
-    // Appelé quand le type d'un contrepoint change.
+    // Type modifié pour un contrepoint.
     std::function<void(int counterpointIndex, int type)> onTypeChanged;
 
-    // Appelé quand un slider de coût change.
+    // Slider de coût modifié pour un contrepoint.
     std::function<void(int counterpointIndex, CostSliderTarget target, double value)> onCostSliderChanged;
 
-    // Appelé quand une shape ou un de ses 4 points de contrôle change.
+    // Shape ou valeur part1-part4 modifiée pour un contrepoint.
     std::function<void(int counterpointIndex,
                        CostSliderTarget target,
                        int shapeId,
                        const std::vector<double>& values)> onShapeChanged;
 
     /*
-        Remet les menus des contrepoints dans l'état de lancement :
-        Species 1, Type 0, sliders à 0, aucun contrepoint actif.
+        Remet le workspace dans son état initial.
+
+        Cette méthode réinitialise :
+        - Species à 1,
+        - Type à 0,
+        - les ComboBox Shape,
+        - les sliders de coût,
+        - les mini-sliders part1-part4,
+        - le nombre de contrepoints actifs.
     */
     void resetCounterpointSelectors()
     {
+        // Réinitialise les menus principaux de chaque contrepoint.
         for (int counterpointIndex = 0; counterpointIndex < maxCounterpoints; ++counterpointIndex)
         {
             speciesSelectors[counterpointIndex].setSelectedId(1, juce::dontSendNotification);
@@ -81,6 +128,7 @@ public:
             clearShapeSelector(harmoShapeSelectors[counterpointIndex]);
         }
 
+        // Réinitialise ensuite les familles de contrôles.
         resetCostSliders();
         resetShapeControls();
 
@@ -89,8 +137,13 @@ public:
     }
 
     /*
-        Met à jour le nombre de contrepoints actifs.
-        Exemple : 4 voix au total = 3 contrepoints actifs.
+        Définit combien de contrepoints sont actifs visuellement.
+
+        Exemple :
+        - 2 voix totales -> 1 contrepoint actif
+        - 4 voix totales -> 3 contrepoints actifs
+
+        Les autres colonnes restent visibles mais grisées.
     */
     void setActiveCounterpointCount(int newActiveCounterpointCount)
     {
@@ -102,6 +155,11 @@ public:
         repaint();
     }
 
+    /*
+        Dessine les titres Counterpoint 1, 2, 3.
+
+        Le reste des contrôles est dessiné par les composants JUCE eux-mêmes.
+    */
     void paint(juce::Graphics& g) override
     {
         for (int counterpointIndex = 0; counterpointIndex < maxCounterpoints; ++counterpointIndex)
@@ -113,6 +171,14 @@ public:
         }
     }
 
+    /*
+        Recalcule tout le layout interne du workspace.
+
+        À chaque changement de taille, on recalcule :
+        - les zones de contrepoints,
+        - les ComboBox Species/Type,
+        - les sliders et shapes.
+    */
     void resized() override
     {
         updateCounterpointAreas();
@@ -123,16 +189,24 @@ public:
 private:
     /*
         LookAndFeel compact pour les petites ComboBox du workspace.
+
+        Il réduit :
+        - la taille du texte,
+        - la taille de la flèche,
+        - l'épaisseur du contour.
+
+        Objectif : rendre Species, Type et Shape lisibles malgré leur petite taille.
     */
-    //--> Réalisé avec l'aide de ChatGPT
     class CompactComboBoxLookAndFeel : public juce::LookAndFeel_V4
     {
     public:
+        // Police compacte utilisée dans toutes les petites ComboBox.
         juce::Font getComboBoxFont(juce::ComboBox&) override
         {
             return juce::Font(juce::FontOptions(8.2f, juce::Font::plain));
         }
 
+        // Place le texte en laissant de la place à la flèche à droite.
         void positionComboBoxText(juce::ComboBox& box, juce::Label& label) override
         {
             label.setBounds(4, 0, box.getWidth() - 15, box.getHeight());
@@ -140,6 +214,9 @@ private:
             label.setJustificationType(juce::Justification::centredLeft);
         }
 
+        /*
+            Dessine manuellement le fond, le contour et la flèche de la ComboBox.
+        */
         void drawComboBox(juce::Graphics& g,
                           int width,
                           int height,
@@ -154,6 +231,7 @@ private:
                                                  (float) width - 1.0f,
                                                  (float) height - 1.0f);
 
+            // Fond et contour arrondis.
             g.setColour(box.findColour(juce::ComboBox::backgroundColourId));
             g.fillRoundedRectangle(bounds, 3.0f);
 
@@ -164,6 +242,7 @@ private:
             const float arrowCentreY = (float) height * 0.52f;
             const float arrowSize = 2.6f;
 
+            // Petite flèche dessinée à droite.
             juce::Path arrow;
             arrow.startNewSubPath(arrowCentreX - arrowSize, arrowCentreY - 1.0f);
             arrow.lineTo(arrowCentreX, arrowCentreY + 2.0f);
@@ -174,16 +253,35 @@ private:
         }
     };
 
+    //==============================================================================
+    // Constantes de structure et de layout
+    //==============================================================================
+
+    // Nombre maximal de contrepoints affichables dans le workspace.
     static constexpr int maxCounterpoints = 3;
+
+    // Nombre de parties visibles pour une shape : part1, part2, part3, part4.
     static constexpr int shapeControlCount = 4;
+
+    // Marges internes du workspace.
     static constexpr int outerPaddingX = 4;
     static constexpr int outerPaddingY = 4;
+
+    // Bornes de l'espace horizontal entre les colonnes de contrepoint.
     static constexpr int minGapBetweenCounterpoints = 10;
     static constexpr int maxGapBetweenCounterpoints = 18;
+
+    //==============================================================================
+    // État courant
+    //==============================================================================
 
     int activeCounterpointCount = 0;
 
     CompactComboBoxLookAndFeel compactComboBoxLookAndFeel;
+
+    //==============================================================================
+    // Composants visibles
+    //==============================================================================
 
     // Zone verticale complète réservée à chaque contrepoint.
     std::array<juce::Rectangle<int>, maxCounterpoints> counterpointAreas;
@@ -191,6 +289,10 @@ private:
     // Menus Species / Type.
     std::array<juce::ComboBox, maxCounterpoints> speciesSelectors;
     std::array<juce::ComboBox, maxCounterpoints> typeSelectors;
+
+    //==============================================================================
+    // Contrôles des fonctions de coût
+    //==============================================================================
 
     // Sliders visuels des trois fonctions de coûts.
     std::array<juce::Label, maxCounterpoints> steps1Labels;
@@ -213,6 +315,10 @@ private:
     std::array<juce::ComboBox, maxCounterpoints> steps2ShapeSelectors;
     std::array<juce::ComboBox, maxCounterpoints> harmoShapeSelectors;
 
+    //==============================================================================
+    // Contrôles des shapes
+    //==============================================================================
+
     // 4 mini-sliders qui rendent visible la shape choisie pour chaque paramètre.
     using ShapeControlSliders = std::array<juce::Slider, shapeControlCount>;
     using ShapeControlLabels = std::array<juce::Label, shapeControlCount>;
@@ -224,11 +330,17 @@ private:
     std::array<ShapeControlLabels, maxCounterpoints> harmoShapeControlLabels;
 
     /*
-        Découpe la zone centrale en 3 espaces égaux.
+        Découpe la zone centrale en colonnes de contrepoint.
+
+        Chaque contrepoint reçoit une zone verticale.
+        FlexBox permet de garder une répartition équilibrée quand la fenêtre change.
     */
     void updateCounterpointAreas()
     {
+        // Zone disponible après retrait des petites marges internes.
         const auto availableArea = getLocalBounds().reduced(outerPaddingX, outerPaddingY);
+
+        // Espace horizontal adaptatif entre les contrepoints.
         const float gapBetweenCounterpoints = (float) juce::jlimit(minGapBetweenCounterpoints,
                                                                    maxGapBetweenCounterpoints,
                                                                    availableArea.getWidth() / 42);
@@ -238,6 +350,7 @@ private:
         counterpointRow.alignItems = juce::FlexBox::AlignItems::stretch;
         counterpointRow.justifyContent = juce::FlexBox::JustifyContent::spaceBetween;
 
+        // Crée trois colonnes flexibles de même poids.
         for (int counterpointIndex = 0; counterpointIndex < maxCounterpoints; ++counterpointIndex)
         {
             const float leftMargin = counterpointIndex == 0 ? 0.0f : gapBetweenCounterpoints / 2.0f;
@@ -251,13 +364,17 @@ private:
 
         counterpointRow.performLayout(availableArea);
 
+        // Sauvegarde les bounds calculés pour les autres méthodes de layout.
         for (int counterpointIndex = 0; counterpointIndex < maxCounterpoints; ++counterpointIndex)
             counterpointAreas[counterpointIndex] =
                 counterpointRow.items[counterpointIndex].currentBounds.toNearestInt();
     }
 
     /*
-        Prépare les deux menus de chaque contrepoint.
+        Prépare les ComboBox Species et Type pour chaque contrepoint.
+
+        Species propose les valeurs 1 à 5.
+        Type propose les valeurs -3 à 2, converties en ids positifs pour JUCE.
     */
     void setupCounterpointSelectors()
     {
@@ -266,18 +383,22 @@ private:
             auto& speciesSelector = speciesSelectors[counterpointIndex];
             auto& typeSelector = typeSelectors[counterpointIndex];
 
+            // Remplit les choix disponibles.
             for (int species = 1; species <= 5; ++species)
                 speciesSelector.addItem("Species " + juce::String(species), species);
 
             for (int type = -3; type <= 2; ++type)
                 typeSelector.addItem("Type " + juce::String(type), typeToComboBoxId(type));
 
+            // Applique le style compact commun aux ComboBox.
             styleSelector(speciesSelector);
             styleSelector(typeSelector);
 
+            // Valeurs par défaut : Species 1, Type 0.
             speciesSelector.setSelectedId(1, juce::dontSendNotification);
             typeSelector.setSelectedId(typeToComboBoxId(0), juce::dontSendNotification);
 
+            // Envoie le changement d'espèce à OptionsPanel.
             speciesSelector.onChange = [this, counterpointIndex]()
             {
                 if (onSpeciesChanged)
@@ -285,6 +406,7 @@ private:
                                      speciesSelectors[counterpointIndex].getSelectedId());
             };
 
+            // Envoie le changement de type à OptionsPanel.
             typeSelector.onChange = [this, counterpointIndex]()
             {
                 if (onTypeChanged)
@@ -303,9 +425,11 @@ private:
         Crée les sliders des trois fonctions de coûts.
 
         Chaque colonne de contrepoint possède ses propres valeurs :
-        - Melody movement  -> steps1(s)
-        - Interval colour  -> steps2(s)
+        - Melody moves    -> steps1(s)
+        - Interval colour -> steps2(s)
         - Perfect intervals -> harmo(s)
+
+        Chaque slider possède aussi une ComboBox Shape à droite.
     */
     void setupCostSliders()
     {
@@ -338,12 +462,14 @@ private:
                                  "Avoid oct.",
                                  "Avoid fifths");
 
+            // Fonction locale utilisée par les trois sliders pour éviter la répétition.
             auto sendSliderValue = [this, counterpointIndex](CostSliderTarget target, juce::Slider& slider)
             {
                 if (onCostSliderChanged)
                     onCostSliderChanged(counterpointIndex, target, slider.getValue());
             };
 
+            // Connecte chaque slider à sa fonction de coût.
             steps1Sliders[counterpointIndex].onValueChange = [this, counterpointIndex, sendSliderValue]()
             {
                 sendSliderValue(CostSliderTarget::melodyMovement,
@@ -362,6 +488,7 @@ private:
                                 harmoSliders[counterpointIndex]);
             };
 
+            // Prépare les 4 mini-sliders de shape pour chaque fonction de coût.
             setupShapeControls(counterpointIndex,
                                CostSliderTarget::melodyMovement,
                                steps1ShapeSelectors[counterpointIndex]);
@@ -380,12 +507,15 @@ private:
 
     /*
         Prépare les 4 mini-sliders associés à une shape.
-        Ils représentent les 4 parties de la ligne musicale.
+
+        Ils sont cachés au départ.
+        Ils deviennent visibles quand une shape est choisie dans la ComboBox.
     */
     void setupShapeControls(int counterpointIndex,
                             CostSliderTarget target,
                             juce::ComboBox& shapeSelector)
     {
+        // Récupère le bon groupe de mini-sliders selon le paramètre ciblé.
         auto& controls = getShapeControls(counterpointIndex, target);
         auto& labels = getShapeControlLabels(counterpointIndex, target);
 
@@ -394,7 +524,7 @@ private:
             auto& label = labels[controlIndex];
             auto& slider = controls[controlIndex];
 
-            label.setText("part" + juce::String(controlIndex + 1),
+            label.setText("Part. " + juce::String(controlIndex + 1),
                           juce::dontSendNotification);
             label.setFont(juce::Font(juce::FontOptions(7.8f, juce::Font::bold)));
             label.setJustificationType(juce::Justification::centredLeft);
@@ -409,17 +539,20 @@ private:
             slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
             slider.setVisible(false);
 
+            // Chaque mini-slider modifie une partie de la shape.
             slider.onValueChange = [this, counterpointIndex, target]()
             {
                 sendShapeToModel(counterpointIndex, target);
             };
 
+            // addChildComponent : le composant existe mais reste invisible au départ.
             addChildComponent(label);
             addChildComponent(slider);
         }
 
         auto* selectorToRead = &shapeSelector;
 
+        // Quand la ComboBox Shape change, on applique les valeurs de base de cette shape.
         shapeSelector.onChange = [this, counterpointIndex, target, selectorToRead]()
         {
             applyShapeChoice(counterpointIndex, target, selectorToRead->getSelectedId());
@@ -427,14 +560,20 @@ private:
     }
 
     /*
-        Applique les valeurs de base d'une shape aux 4 mini-sliders.
-        Ces valeurs restent ensuite modifiables à la main.
+        Applique une shape choisie dans la ComboBox.
+
+        La shape donne des valeurs de départ aux 4 mini-sliders.
+        L'utilisateur peut ensuite ajuster ces valeurs manuellement.
     */
     void applyShapeChoice(int counterpointIndex, CostSliderTarget target, int shapeId)
     {
         auto& controls = getShapeControls(counterpointIndex, target);
         auto& labels = getShapeControlLabels(counterpointIndex, target);
+
+        // Valeurs initiales correspondant à Fixed, Linear, V, M, etc.
         const auto values = getDefaultShapeControlValues(shapeId);
+
+        // Affiche les 4 parties de shape et leur donne leurs valeurs initiales.
         for (int controlIndex = 0; controlIndex < shapeControlCount; ++controlIndex)
         {
             labels[controlIndex].setVisible(true);
@@ -442,12 +581,18 @@ private:
             controls[controlIndex].setValue(values[controlIndex], juce::dontSendNotification);
         }
 
+        // Envoie immédiatement cette shape au modèle.
         sendShapeToModel(counterpointIndex, target);
         resized();
     }
 
     /*
-        Envoie au modèle la shape personnalisée affichée dans l'interface.
+        Envoie la shape courante à OptionsPanel.
+
+        La méthode lit :
+        - la shape sélectionnée dans la ComboBox,
+        - les 4 valeurs part1-part4,
+        puis appelle onShapeChanged.
     */
     void sendShapeToModel(int counterpointIndex, CostSliderTarget target)
     {
@@ -457,15 +602,18 @@ private:
         std::vector<double> values;
         values.reserve(shapeControlCount);
 
+        // Lit les 4 valeurs visibles dans l'interface.
         for (auto& control : controls)
             values.push_back(control.getValue());
 
+        // Prévient OptionsPanel que la shape a changé.
         if (onShapeChanged)
             onShapeChanged(counterpointIndex, target, shapeId, values);
     }
 
     /*
-        Retourne les 4 mini-sliders liés à un paramètre précis.
+        Retourne les 4 mini-sliders liés à une fonction de coût précise.
+
     */
     ShapeControlSliders& getShapeControls(int counterpointIndex, CostSliderTarget target)
     {
@@ -485,7 +633,7 @@ private:
     }
 
     /*
-        Retourne la ComboBox Shape liée à un paramètre précis.
+        Retourne la ComboBox Shape liée à une fonction de coût précise.
     */
     juce::ComboBox& getShapeSelector(int counterpointIndex, CostSliderTarget target)
     {
@@ -506,7 +654,9 @@ private:
 
     /*
         Vide vraiment une ComboBox Shape.
-        setSelectedId(0) ne suffit pas toujours à retirer l'item affiché.
+
+        setSelectedId(0) ne suffit pas toujours à retirer le texte affiché.
+        On force donc l'état "rien sélectionné".
     */
     void clearShapeSelector(juce::ComboBox& shapeSelector)
     {
@@ -515,7 +665,7 @@ private:
     }
 
     /*
-        Retourne les labels part1..part4 liés à un paramètre précis.
+        Retourne les labels part1..part4 liés à une fonction de coût précise.
     */
     ShapeControlLabels& getShapeControlLabels(int counterpointIndex, CostSliderTarget target)
     {
@@ -535,8 +685,14 @@ private:
     }
 
     /*
-        Donne les 4 valeurs de départ pour la shape choisie.
-        L'utilisateur peut ensuite modifier ces valeurs librement.
+        Donne les 4 valeurs initiales d'une shape.
+
+        Ces valeurs correspondent à l'idée générale de la forme :
+        - Linear monte progressivement,
+        - V descend puis remonte,
+        - M alterne bas/haut/bas/haut.
+
+        L'utilisateur peut ensuite modifier ces valeurs.
     */
     std::array<double, shapeControlCount> getDefaultShapeControlValues(int shapeId) const
     {
@@ -555,7 +711,8 @@ private:
     }
 
     /*
-        Remet tous les sliders à zéro lors du bouton Clear.
+        Remet tous les sliders principaux à zéro.
+
         dontSendNotification évite de relancer les callbacks inutilement.
     */
     void resetCostSliders()
@@ -569,8 +726,10 @@ private:
     }
 
     /*
-        Cache les 4 mini-sliders de shape et remet leurs valeurs à zéro.
-        Le modèle est vidé séparément par OptionsPanel quand on clique Clear.
+        Cache et remet à zéro tous les contrôles part1-part4.
+
+        Le modèle est vidé séparément par OptionsPanel.
+        Ici, on nettoie seulement l'affichage.
     */
     void resetShapeControls()
     {
@@ -586,7 +745,7 @@ private:
     }
 
     /*
-        Réinitialise les 4 valeurs d'une shape précise.
+        Réinitialise un groupe de 4 mini-sliders de shape.
     */
     void resetShapeControlGroup(ShapeControlSliders& controls)
     {
@@ -598,7 +757,7 @@ private:
     }
 
     /*
-        Cache les textes part1..part4 d'une shape précise.
+        Cache les labels part1..part4 d'un groupe de shape.
     */
     void resetShapeLabelGroup(ShapeControlLabels& labels)
     {
@@ -607,7 +766,13 @@ private:
     }
 
     /*
-        Configure une ligne de paramètre : nom, slider, shape et repères.
+        Configure une ligne complète de paramètre de coût.
+
+        Une ligne contient :
+        - le nom du paramètre,
+        - le slider principal,
+        - la ComboBox Shape,
+        - les repères gauche/droite du slider.
     */
     void setupSmallCostSlider(juce::Label& label,
                               juce::Slider& slider,
@@ -618,12 +783,14 @@ private:
                               const juce::String& leftReference,
                               const juce::String& rightReference)
     {
+        // Nom visible du paramètre.
         label.setText(text, juce::dontSendNotification);
         label.setFont(juce::Font(juce::FontOptions(9.2f, juce::Font::bold)));
         label.setJustificationType(juce::Justification::centredLeft);
         label.setColour(juce::Label::textColourId, juce::Colours::white);
         label.setMinimumHorizontalScale(0.70f);
 
+        // Slider principal entre 0 et 1.
         slider.setRange(0.0, 1.0, 0.01);
         slider.setValue(0.0, juce::dontSendNotification);
         slider.setSliderStyle(juce::Slider::LinearHorizontal);
@@ -631,10 +798,12 @@ private:
         slider.setColour(juce::Slider::trackColourId, juce::Colour(0xff2f4f4f));
         slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
 
+        // Shape à droite + repères sous le slider.
         setupShapeSelector(shapeSelector);
         setupReferenceLabel(leftReferenceLabel, leftReference, juce::Justification::centredLeft);
         setupReferenceLabel(rightReferenceLabel, rightReference, juce::Justification::centredRight);
 
+        // Tous les éléments de la ligne deviennent visibles.
         addAndMakeVisible(label);
         addAndMakeVisible(slider);
         addAndMakeVisible(shapeSelector);
@@ -643,7 +812,10 @@ private:
     }
 
     /*
-        Prépare les petits textes qui indiquent les extrémités du slider.
+        Configure un petit repère de slider.
+
+        Exemple :
+        Smooth à gauche, Jumpy à droite.
     */
     void setupReferenceLabel(juce::Label& referenceLabel,
                              const juce::String& text,
@@ -657,7 +829,9 @@ private:
     }
 
     /*
-        Prépare le petit menu qui choisit la shape appliquée au slider.
+        Remplit la ComboBox avec les shapes disponibles.
+
+        Les ids doivent rester cohérents avec mapShapeId dans OptionsPanel.
     */
     void setupShapeSelector(juce::ComboBox& shapeSelector)
     {
@@ -674,7 +848,7 @@ private:
     }
 
     /*
-        Applique le style compact utilisé dans le workspace.
+        Applique le style commun aux petites ComboBox du workspace.
     */
     void styleSelector(juce::ComboBox& selector)
     {
@@ -689,7 +863,7 @@ private:
     }
 
     /*
-        Place les deux menus juste sous le bandeau du contrepoint.
+        Place les ComboBox Species et Type sous le titre du contrepoint.
     */
     void layoutCounterpointSelectors()
     {
@@ -701,6 +875,7 @@ private:
             selectorRow.flexDirection = juce::FlexBox::Direction::row;
             selectorRow.alignItems = juce::FlexBox::AlignItems::stretch;
 
+            // FlexBox partage la ligne en deux menus de même largeur.
             selectorRow.items.add(juce::FlexItem(speciesSelectors[counterpointIndex])
                 .withFlex(1.0f)
                 .withMinWidth(26.0f)
@@ -716,7 +891,7 @@ private:
     }
 
     /*
-        Place les petits sliders sous les menus Species/Type.
+        Place les trois paramètres de coût dans chaque colonne de contrepoint.
     */
     void layoutCostSliders()
     {
@@ -755,8 +930,10 @@ private:
 
     /*
         Place un paramètre complet.
-        La première ligne contient le slider principal.
-        La deuxième ligne apparaît seulement quand une shape est choisie.
+
+        Il contient :
+        - une ligne principale : label, slider, ComboBox Shape,
+        - une zone secondaire : les 4 mini-sliders part1-part4.
     */
     void layoutCostParameter(juce::Rectangle<int>& area,
                              int counterpointIndex,
@@ -782,7 +959,12 @@ private:
     }
 
     /*
-        Place une ligne compacte : label, slider, puis choix de shape.
+        Place une ligne compacte de slider.
+
+        Découpage horizontal :
+        - label à gauche,
+        - slider au centre,
+        - ComboBox Shape à droite.
     */
     void layoutSmallCostSlider(juce::Rectangle<int> row,
                                juce::Label& label,
@@ -791,12 +973,15 @@ private:
                                juce::Label& leftReferenceLabel,
                                juce::Label& rightReferenceLabel)
     {
+        // Réserve la colonne du label.
         auto labelArea = row.removeFromLeft(56);
         row.removeFromLeft(2);
 
+        // Réserve la ComboBox Shape à droite.
         auto shapeBox = row.removeFromRight(40);
         row.removeFromRight(3);
 
+        // Le reste devient la zone du slider et de ses repères.
         auto sliderArea = row;
         auto referenceArea = sliderArea.removeFromTop(8);
 
@@ -808,16 +993,18 @@ private:
     }
 
     /*
-        Place les 4 sliders de shape l'un sous l'autre.
+        Place les 4 mini-sliders part1-part4 sous le slider principal.
     */
     void layoutShapeControls(juce::Rectangle<int> row,
                              ShapeControlSliders& controls,
                              ShapeControlLabels& labels)
     {
+        // Indentation pour aligner les mini-sliders sous le slider principal.
         row = row.withTrimmedLeft(17).withTrimmedRight(82);
 
         for (int controlIndex = 0; controlIndex < shapeControlCount; ++controlIndex)
         {
+            // Chaque ligne contient un label partX puis son mini-slider.
             auto line = row.removeFromTop(7);
             auto labelArea = line.removeFromLeft(25);
             line.removeFromLeft(2);
@@ -828,21 +1015,29 @@ private:
     }
 
     /*
-        Active uniquement les menus et sliders des contrepoints utilisés.
+        Active ou grise les contrôles selon le nombre de contrepoints choisis.
+
+        Les contrepoints actifs sont utilisables.
+        Les autres restent visibles mais désactivés avec une transparence.
     */
     void updateCounterpointSelectorStates()
     {
         for (int counterpointIndex = 0; counterpointIndex < maxCounterpoints; ++counterpointIndex)
         {
+            // isActive indique si ce contrepoint fait partie du nombre de voix choisi.
             const bool isActive = counterpointIndex < activeCounterpointCount;
+
+            // Même alpha pour tous les éléments visuels de cette colonne.
             const float alpha = isActive ? 1.0f : 0.35f;
 
+            // Menus Species / Type.
             speciesSelectors[counterpointIndex].setEnabled(isActive);
             typeSelectors[counterpointIndex].setEnabled(isActive);
 
             speciesSelectors[counterpointIndex].setAlpha(alpha);
             typeSelectors[counterpointIndex].setAlpha(alpha);
 
+            // Labels et repères des sliders.
             steps1Labels[counterpointIndex].setAlpha(alpha);
             steps2Labels[counterpointIndex].setAlpha(alpha);
             harmoLabels[counterpointIndex].setAlpha(alpha);
@@ -854,6 +1049,7 @@ private:
             harmoLeftReferenceLabels[counterpointIndex].setAlpha(alpha);
             harmoRightReferenceLabels[counterpointIndex].setAlpha(alpha);
 
+            // Sliders principaux.
             steps1Sliders[counterpointIndex].setEnabled(isActive);
             steps2Sliders[counterpointIndex].setEnabled(isActive);
             harmoSliders[counterpointIndex].setEnabled(isActive);
@@ -862,6 +1058,7 @@ private:
             steps2Sliders[counterpointIndex].setAlpha(alpha);
             harmoSliders[counterpointIndex].setAlpha(alpha);
 
+            // ComboBox Shape.
             steps1ShapeSelectors[counterpointIndex].setEnabled(isActive);
             steps2ShapeSelectors[counterpointIndex].setEnabled(isActive);
             harmoShapeSelectors[counterpointIndex].setEnabled(isActive);
@@ -870,6 +1067,7 @@ private:
             steps2ShapeSelectors[counterpointIndex].setAlpha(alpha);
             harmoShapeSelectors[counterpointIndex].setAlpha(alpha);
 
+            // Mini-sliders part1-part4.
             setShapeControlVisibility(steps1ShapeControls[counterpointIndex],
                                       steps1ShapeControlLabels[counterpointIndex]);
             setShapeControlVisibility(steps2ShapeControls[counterpointIndex],
@@ -887,8 +1085,9 @@ private:
     }
 
     /*
-        Les contrôles de shape restent visibles pour toutes les voix.
-        Les voix non sélectionnées sont seulement grisées et désactivées.
+        Rend visibles les contrôles part1-part4.
+
+        Ils peuvent ensuite être désactivés/grisés si le contrepoint n'est pas actif.
     */
     void setShapeControlVisibility(ShapeControlSliders& controls,
                                    ShapeControlLabels& labels)
@@ -901,7 +1100,7 @@ private:
     }
 
     /*
-        Active ou grise les 4 mini-sliders d'une shape.
+        Active ou désactive les mini-sliders d'une shape.
     */
     void updateShapeControlState(ShapeControlSliders& controls,
                                  bool isActive,
@@ -915,7 +1114,7 @@ private:
     }
 
     /*
-        Grise les labels part1..part4 avec le même alpha que leur contrepoint.
+        Applique la transparence du contrepoint aux labels part1-part4.
     */
     void updateShapeLabelState(ShapeControlLabels& labels, float alpha)
     {
@@ -924,7 +1123,9 @@ private:
     }
 
     /*
-        Calcule le bandeau de titre d'un contrepoint.
+        Calcule la zone du titre Counterpoint X.
+
+        Le titre reste centré en haut de la colonne.
     */
     juce::Rectangle<int> getCounterpointTitleBounds(juce::Rectangle<int> counterpointArea) const
     {
@@ -942,7 +1143,9 @@ private:
     }
 
     /*
-        Calcule la ligne des ComboBox placées sous le titre.
+        Calcule la zone des ComboBox Species / Type.
+
+        Cette zone est placée juste sous le titre du contrepoint.
     */
     juce::Rectangle<int> getCounterpointControlsBounds(juce::Rectangle<int> counterpointArea) const
     {
@@ -961,7 +1164,9 @@ private:
     }
 
     /*
-        Calcule la petite zone réservée aux sliders.
+        Calcule la zone réservée aux paramètres de coût.
+
+        Elle commence sous les ComboBox Species / Type.
     */
     juce::Rectangle<int> getCostSlidersBounds(juce::Rectangle<int> counterpointArea) const
     {
@@ -980,7 +1185,10 @@ private:
     }
 
     /*
-        Dessine le petit bandeau contenant le nom du contrepoint.
+        Dessine le bandeau Counterpoint X.
+
+        Les contrepoints actifs sont verts.
+        Les contrepoints inactifs sont gris.
     */
     void drawCounterpointTitle(juce::Graphics& g,
                                juce::Rectangle<int> titleBox,
@@ -995,6 +1203,7 @@ private:
                                     ? juce::Colour(0xff2f4f4f)
                                     : juce::Colour(0xff3e3e3e);
 
+        // Fond, contour, puis texte centré.
         g.setColour(backgroundColour);
         g.fillRoundedRectangle(bounds, 5.0f);
 
@@ -1007,8 +1216,10 @@ private:
     }
 
     /*
-        Les ComboBox JUCE ont besoin d'un identifiant positif.
-        On décale donc les types -3..2 vers les ids 1..6.
+        Convertit un type musical en id positif pour JUCE.
+
+        Les types vont de -3 à 2.
+        Les ComboBox JUCE utilisent des ids positifs.
     */
     static int typeToComboBoxId(int type)
     {
@@ -1016,7 +1227,7 @@ private:
     }
 
     /*
-        Conversion inverse : ids 1..6 vers types -3..2.
+        Convertit l'id positif de la ComboBox vers le type musical réel.
     */
     static int comboBoxIdToType(int comboBoxId)
     {

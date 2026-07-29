@@ -56,11 +56,12 @@ private:
     LeftPanel* leftPanel = nullptr;
     AppController* appController = nullptr;
 
-    // Zone de travail + colonne Search
-    ColumnBox column1, column2, column3, column4, column5;
-    ClickableTitle title1, title2, title3, title4, title5;
+    // Zone de travail
     VoiceWorkspace voiceWorkspace;
     MinimizationModePanel minimizationModePanel;
+
+    ColumnBox workspaceColumn;
+    ColumnBox searchColumn;
 
 
 
@@ -75,7 +76,6 @@ private:
     juce::TextButton clearButton;
 
     // État visuel de la colonne Search
-    int activeColumn = 0;
     bool showLexicographicPriorities = true;
     juce::Rectangle<int> workspaceBounds;
 
@@ -87,9 +87,6 @@ private:
     void setupMinimizationModePanel();
 
     // Interactions utilisateur
-    void setupColumnInteractions();
-
-    void updateActiveColumn(int index);
     void updateSolverPriorityVisibility();
 
     // Applique au modèle la valeur envoyée par un slider de coût.
@@ -105,7 +102,6 @@ private:
 
     // Layout interne
     void layoutMinimizationModePanel(juce::Rectangle<int> columnBounds);
-    void layoutSolverPriorities(juce::Rectangle<int> listBounds);
     void layoutButtons(juce::Rectangle<int> bottomArea);
 
 

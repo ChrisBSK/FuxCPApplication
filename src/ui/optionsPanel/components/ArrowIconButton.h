@@ -8,6 +8,7 @@
 
    Bouton compact qui dessine une vraie flèche.
 
+    --> Ce fichier a été réalisé avec l'aide de ChatGPT
 //==============================================================================
 */
 class ArrowIconButton : public juce::Button

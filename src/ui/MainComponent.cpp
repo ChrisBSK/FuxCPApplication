@@ -14,7 +14,7 @@ MainComponent::MainComponent()
     addAndMakeVisible(header);
     addAndMakeVisible(optionsPanel);
     addAndMakeVisible(keyboard);
-    addAndMakeVisible(footer);
+
 
     // =========================
     // AUDIO INIT

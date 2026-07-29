@@ -3,7 +3,6 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 // ===== UI =====
-#include "footer/FooterPanel.h"
 #include "header/HeaderPanel.h"
 #include "keyboard/KeyboardComponent.h"
 #include "leftPanel/LeftPanel.h"
@@ -54,8 +53,6 @@ private:
     HeaderPanel header;
     LeftPanel leftPanel { appController };
     OptionsPanel optionsPanel;
-
-    FooterPanel footer;
 
     // =========================
     // MIDI / KEYBOARD
