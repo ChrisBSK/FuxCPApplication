@@ -46,6 +46,12 @@ public:
     // Limite de la grande zone de travail, en coordonnées de OptionsPanel.
     juce::Rectangle<int> getWorkspaceBounds() const;
 
+    // Limite de la colonne gauche, en coordonnées de OptionsPanel.
+    juce::Rectangle<int> getLeftPanelBounds() const;
+
+    // Hauteur laissée libre en bas pour le clavier.
+    void setLowerReservedHeight(int height);
+
     // Connexions externes
     void setAppController(AppController* app_controller);
     void setLeftPanel(LeftPanel* panel);
@@ -73,15 +79,17 @@ private:
 
     // Boutons d'action
     juce::TextButton generateButton;
+    juce::TextButton nextSolutionButton;
     juce::TextButton clearButton;
 
     // État visuel de la colonne Search
     bool showLexicographicPriorities = true;
     juce::Rectangle<int> workspaceBounds;
+    juce::Rectangle<int> leftPanelBounds;
+    int lowerReservedHeight = 0;
 
     // Initialisation de l'interface
     void setupColumns();
-    void setupTitles();
     void setupButtons();
     void setupSolverPriorities();
     void setupMinimizationModePanel();
@@ -102,7 +110,7 @@ private:
 
     // Layout interne
     void layoutMinimizationModePanel(juce::Rectangle<int> columnBounds);
-    void layoutButtons(juce::Rectangle<int> bottomArea);
+    void layoutButtons(juce::Rectangle<int> buttonArea);
 
 
 

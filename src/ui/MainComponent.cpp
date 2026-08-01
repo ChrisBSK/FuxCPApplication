@@ -110,7 +110,7 @@ void MainComponent::resized()
     // puis FlexBox distribue verticalement le reste.
     const int margin = juce::jlimit(2, 8, windowWidth / 220);
     const int headerHeight = juce::jlimit(28, 42, static_cast<int>(windowHeight * 0.055f));
-    const int keyboardHeight = juce::jlimit(62, 88, static_cast<int>(windowHeight * 0.12f));
+    const int keyboardHeight = juce::jlimit(118, 160, static_cast<int>(windowHeight * 0.22f));
 
     juce::FlexBox mainColumn;
     mainColumn.flexDirection = juce::FlexBox::Direction::column;
@@ -120,11 +120,24 @@ void MainComponent::resized()
     mainColumn.items.add(juce::FlexItem(optionsPanel)
         .withFlex(1.0f)
         .withMargin(juce::FlexItem::Margin(0.0f, (float) margin, 0.0f, (float) margin)));
-    mainColumn.items.add(juce::FlexItem(keyboard)
-        .withHeight((float) keyboardHeight)
-        .withMargin(juce::FlexItem::Margin(0.0f, (float) margin, 0.0f, (float) margin)));
 
     mainColumn.performLayout(getLocalBounds());
+
+    optionsPanel.setLowerReservedHeight(keyboardHeight);
+
+    const auto workspaceBounds = optionsPanel.getWorkspaceBounds()
+        .translated(optionsPanel.getX(), optionsPanel.getY());
+
+    const int keyboardWidth = juce::jmin(workspaceBounds.getWidth() + 140,
+                                         getWidth() - margin * 2);
+    const int keyboardX = workspaceBounds.getCentreX() - keyboardWidth / 2;
+    const int keyboardY = optionsPanel.getBottom() - keyboardHeight;
+
+    // Le clavier est centré sur le rectangle arrondi du milieu.
+    keyboard.setBounds(keyboardX,
+                       keyboardY,
+                       keyboardWidth,
+                       keyboardHeight);
 }
 
 //==============================================================================

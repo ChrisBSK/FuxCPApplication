@@ -28,6 +28,8 @@ public:
 private:
     double currentAngle = 0.0;
     double angleDelta = 0.0;
+    double noteAgeSeconds = 0.0;
+    double baseFrequency = 0.0;
     float level = 0.0f;
     float tailOff = 0.0f;
 };
@@ -45,12 +47,4 @@ public:
 
 private:
     juce::Synthesiser synth;
-
-    double currentAngle = 0.0;
-    double angleDelta = 0.0;
-    float level = 0.0f;
-    float tailOff = 0.0f;
-
-
-
 };

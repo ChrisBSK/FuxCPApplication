@@ -190,11 +190,13 @@ void OptionsPanel::setupColumns()
     Configure les boutons principaux du panneau.
 
     Generate lance la génération via LeftPanel.
+    Next Solution relance une génération pour demander une autre proposition.
     Clear remet l'interface dans son état initial.
 */
 void OptionsPanel::setupButtons()
 {
     OptionsPanelHelpers::setupButton(*this, generateButton, "Generate");
+    OptionsPanelHelpers::setupButton(*this, nextSolutionButton, "Next solution");
     OptionsPanelHelpers::setupButton(*this, clearButton, "Clear");
 
     generateButton.onClick = [this]()
@@ -206,6 +208,12 @@ void OptionsPanel::setupButtons()
     clearButton.onClick = [this]()
     {
         clearGenerationInputs();
+    };
+
+    nextSolutionButton.onClick = [this]()
+    {
+        if (leftPanel != nullptr)
+            leftPanel->triggerGeneration();
     };
 }
 
@@ -456,7 +464,7 @@ void OptionsPanel::paint(juce::Graphics& g)
     - workspace des contrepoints au centre,
     - colonne Search à droite.
 
-    Les boutons Clear / Generate sont placés dans une zone séparée en bas.
+    Les boutons Clear / Generate sont placés sous le LeftPanel.
 */
 void OptionsPanel::resized()
 {
@@ -468,22 +476,19 @@ void OptionsPanel::resized()
     const int outerMargin = juce::jlimit(2, 6, panelWidth / 220);
     const int horizontalInset = juce::jlimit(4, 10, panelWidth / 130);
     const int verticalInset = juce::jlimit(3, 8, panelHeight / 110);
-    const int bottomHeight = juce::jlimit(36, 48, panelHeight / 15);
 
-    // On réserve d'abord la zone du bas pour les boutons.
     auto fullArea = getLocalBounds().reduced(outerMargin);
-    auto bottomArea = fullArea.removeFromBottom(bottomHeight);
 
-    // Le reste devient la zone principale de contenu.
     auto contentArea = fullArea.reduced(horizontalInset, verticalInset);
+    auto leftArea = contentArea;
 
     const int columnGap = juce::jlimit(5, 10, panelWidth / 120);
-    const int titleHeight = juce::jlimit(18, 24, panelHeight / 42);
-    const int titleGap = juce::jlimit(2, 4, panelHeight / 220);
+    const int leftButtonGap = juce::jlimit(4, 7, panelHeight / 120);
 
-    // Petite zone supérieure prévue pour les titres de colonnes.
-    auto titleRow = contentArea.removeFromTop(titleHeight);
-    contentArea.removeFromTop(titleGap);
+    // La zone centrale garde la même hauteur qu'avant :
+    // on retire seulement l'espace réservé au clavier.
+    if (lowerReservedHeight > 0)
+        contentArea.removeFromBottom(lowerReservedHeight);
 
     /*
         FlexBox répartit horizontalement les grandes colonnes.
@@ -524,6 +529,22 @@ void OptionsPanel::resized()
     // Calcule et applique les bounds finales des trois colonnes.
     mainRow.performLayout(contentArea);
 
+    if (leftPanel != nullptr)
+    {
+        leftPanelBounds = leftPanel->getBounds();
+        leftPanel->setBounds(leftPanelBounds);
+
+        auto leftButtonArea = juce::Rectangle<int>(
+            leftPanelBounds.getX(),
+            leftPanelBounds.getBottom() + leftButtonGap,
+            leftPanelBounds.getWidth(),
+            68
+        ).withBottom(juce::jmin(leftArea.getBottom(), leftPanelBounds.getBottom() + leftButtonGap + 68));
+
+        // Les boutons restent dans la colonne gauche, mais hors du contour du LeftPanel.
+        layoutButtons(leftButtonArea);
+    }
+
     // Le workspace réel vit à l'intérieur de la colonne centrale.
     workspaceBounds = workspaceColumn.getBounds();
     workspaceColumn.setBounds(workspaceBounds);
@@ -537,9 +558,6 @@ void OptionsPanel::resized()
     // On utilise ces bounds pour placer son contenu interne.
     const auto solverBounds = searchColumn.getBounds();
     layoutMinimizationModePanel(solverBounds);
-
-    // Les boutons sont placés dans la zone basse réservée au début.
-    layoutButtons(bottomArea);
 }
 
 /*
@@ -578,7 +596,7 @@ void OptionsPanel::layoutMinimizationModePanel(juce::Rectangle<int> columnBounds
 
     solverPriorityList.setBounds(listArea);
 
-    // Centre verticalement les deux flèches par rapport à la liste.@
+    // Centre verticalement les deux flèches par rapport à la liste.
     const int totalArrowHeight = arrowSize * 2 + arrowGap;
     auto arrows = juce::Rectangle<int>(
         arrowArea.getCentreX() - arrowSize / 2,
@@ -593,44 +611,54 @@ void OptionsPanel::layoutMinimizationModePanel(juce::Rectangle<int> columnBounds
 }
 
 /*
-    Place les boutons Clear et Generate dans la zone du bas.
+    Place les boutons Generate, Next solution et Clear sous le LeftPanel.
 
-    Les deux boutons sont centrés horizontalement.
-    -->FlexBox permet de garder leur alignement propre même si la fenêtre change.
+    Les trois boutons sont empilés verticalement pour rester lisibles.
+    FlexBox permet de garder leur alignement propre même si la fenêtre change.
 */
-void OptionsPanel::layoutButtons(juce::Rectangle<int> bottomArea)
+void OptionsPanel::layoutButtons(juce::Rectangle<int> buttonArea)
 {
-    constexpr int buttonWidth = 110;
-    constexpr int buttonHeight = 28;
-    constexpr int spacing = 12;
+    constexpr int buttonWidth = 128;
+    constexpr int buttonHeight = 20;
+    constexpr int spacing = 4;
 
     /*
-        On crée une ligne horizontale de boutons.
+        On crée une colonne de boutons.
 
-        row    -> les boutons sont placés côte à côte.
+        column -> les boutons sont placés les uns sous les autres.
         center -> ils sont centrés verticalement et horizontalement
-                  dans la zone bottomArea.
+                  dans la zone buttonArea.
     */
 
     juce::FlexBox buttonRow;
-    buttonRow.flexDirection = juce::FlexBox::Direction::row;
+    buttonRow.flexDirection = juce::FlexBox::Direction::column;
     buttonRow.alignItems = juce::FlexBox::AlignItems::center;
-    buttonRow.justifyContent = juce::FlexBox::JustifyContent::center;
+    buttonRow.justifyContent = juce::FlexBox::JustifyContent::flexStart;
 
-    // Bouton Clear : marge à droite pour créer l'espace entre les deux boutons.
-    buttonRow.items.add(juce::FlexItem(clearButton)
-        .withWidth((float) buttonWidth)
-        .withHeight((float) buttonHeight)
-        .withMargin(juce::FlexItem::Margin(0.0f, (float) spacing / 2.0f, 0.0f, 0.0f)));
-
-    // Bouton Generate : marge à gauche pour compléter l'espacement.
+    // Bouton Generate.
     buttonRow.items.add(juce::FlexItem(generateButton)
         .withWidth((float) buttonWidth)
         .withHeight((float) buttonHeight)
-        .withMargin(juce::FlexItem::Margin(0.0f, 0.0f, 0.0f, (float) spacing / 2.0f)));
+        .withMargin(juce::FlexItem::Margin(0.0f, 0.0f, (float) spacing / 2.0f, 0.0f)));
 
-    // Calcule les positions finales des boutons dans bottomArea.
-    buttonRow.performLayout(bottomArea);
+    // Bouton Next Solution.
+    buttonRow.items.add(juce::FlexItem(nextSolutionButton)
+        .withWidth((float) buttonWidth)
+        .withHeight((float) buttonHeight)
+        .withMargin(juce::FlexItem::Margin((float) spacing / 2.0f, 0.0f, (float) spacing / 2.0f, 0.0f)));
+
+    // Bouton Clear.
+    buttonRow.items.add(juce::FlexItem(clearButton)
+        .withWidth((float) buttonWidth)
+        .withHeight((float) buttonHeight)
+        .withMargin(juce::FlexItem::Margin((float) spacing / 2.0f, 0.0f, 0.0f, 0.0f)));
+
+    // Calcule les positions finales des boutons dans buttonArea.
+    buttonRow.performLayout(buttonArea);
+
+    clearButton.toFront(false);
+    generateButton.toFront(false);
+    nextSolutionButton.toFront(false);
 }
 
 //==============================================================================
@@ -717,6 +745,35 @@ void OptionsPanel::setNumVoices(int numVoices)
 juce::Rectangle<int> OptionsPanel::getWorkspaceBounds() const
 {
     return workspaceBounds;
+}
+
+/*
+    Retourne la zone occupée par la colonne gauche.
+
+    MainComponent s'en sert pour placer le clavier uniquement à droite
+    du LeftPanel.
+*/
+juce::Rectangle<int> OptionsPanel::getLeftPanelBounds() const
+{
+    return leftPanelBounds;
+}
+
+/*
+    Indique à OptionsPanel combien de pixels garder libres en bas.
+
+    Cette zone est réservée au clavier :
+    - le workspace central et Search restent au-dessus,
+    - le LeftPanel peut continuer jusqu'en bas.
+*/
+void OptionsPanel::setLowerReservedHeight(int height)
+{
+    const int newHeight = juce::jmax(0, height);
+
+    if (lowerReservedHeight == newHeight)
+        return;
+
+    lowerReservedHeight = newHeight;
+    resized();
 }
 
 //==============================================================================
