@@ -43,6 +43,10 @@ public:
                          const juce::String& outputPath,
                          AppController* controller);
 
+    // Demande une autre solution pour le dernier problème généré.
+    bool startNextSolution(const juce::String& outputPath,
+                           AppController* controller);
+
     // =========================
     // État du service
     // =========================
@@ -102,7 +106,10 @@ private:
     // =========================
 
     CantusProblem problemToGenerate;
+    CantusProblem lastProblemWithSolution;
     juce::String outputPathToGenerate;
+    int requestedSolutionIndex = 0;
+    bool hasPreviousSolution = false;
 
     // =========================
     // Impl interne

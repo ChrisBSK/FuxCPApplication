@@ -117,6 +117,9 @@ public:
     // Lance la construction du problème puis la génération.
     void triggerGeneration();
 
+    // Demande une autre solution du dernier problème généré.
+    void triggerNextSolution();
+
     // Affiche une boîte de dialogue utilisateur.
     void showAlert(juce::AlertWindow::AlertIconType icon,
                    const juce::String& title,

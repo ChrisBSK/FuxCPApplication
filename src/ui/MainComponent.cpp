@@ -1,6 +1,47 @@
 #include "MainComponent.h"
 
 //==============================================================================
+// SimplePage
+//==============================================================================
+
+MainComponent::SimplePage::SimplePage(const juce::String& titleText,
+                                      const juce::String& bodyText)
+{
+    title.setText(titleText, juce::dontSendNotification);
+    title.setJustificationType(juce::Justification::centred);
+    title.setColour(juce::Label::textColourId, juce::Colours::white);
+    title.setFont(juce::Font(18.0f, juce::Font::bold));
+
+    body.setText(bodyText, juce::dontSendNotification);
+    body.setJustificationType(juce::Justification::centred);
+    body.setColour(juce::Label::textColourId, juce::Colours::white.withAlpha(0.85f));
+    body.setFont(juce::Font(13.0f));
+
+    addAndMakeVisible(title);
+    addAndMakeVisible(body);
+}
+
+void MainComponent::SimplePage::paint(juce::Graphics& g)
+{
+    auto area = getLocalBounds().reduced(22);
+
+    g.setColour(juce::Colour(0xff3f3f3f));
+    g.fillRoundedRectangle(area.toFloat(), 8.0f);
+
+    g.setColour(juce::Colours::white.withAlpha(0.25f));
+    g.drawRoundedRectangle(area.toFloat(), 8.0f, 1.0f);
+}
+
+void MainComponent::SimplePage::resized()
+{
+    auto area = getLocalBounds().reduced(36);
+
+    title.setBounds(area.removeFromTop(32));
+    area.removeFromTop(8);
+    body.setBounds(area.removeFromTop(40));
+}
+
+//==============================================================================
 // Constructor
 //==============================================================================
 
@@ -14,6 +55,8 @@ MainComponent::MainComponent()
     addAndMakeVisible(header);
     addAndMakeVisible(optionsPanel);
     addAndMakeVisible(keyboard);
+    addAndMakeVisible(glossaryPage);
+    addAndMakeVisible(aboutPage);
 
 
     // =========================
@@ -30,6 +73,27 @@ MainComponent::MainComponent()
     keyboard.onNotePressed = [this](int midiNote)
     {
         leftPanel.addNoteFromKeyboard(midiNote);
+    };
+
+    // =========================
+    // HEADER → PAGES
+    // =========================
+    header.onPageChanged = [this](HeaderPanel::Page page)
+    {
+        switch (page)
+        {
+            case HeaderPanel::Page::mainScreen:
+                showPage(CurrentPage::mainScreen);
+                break;
+
+            case HeaderPanel::Page::glossary:
+                showPage(CurrentPage::glossary);
+                break;
+
+            case HeaderPanel::Page::about:
+                showPage(CurrentPage::about);
+                break;
+        }
     };
 
     // =========================
@@ -62,6 +126,8 @@ MainComponent::MainComponent()
     // TOOLTIP
     // =========================
     tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 500);
+
+    showPage(CurrentPage::mainScreen);
 }
 
 //==============================================================================
@@ -123,6 +189,10 @@ void MainComponent::resized()
 
     mainColumn.performLayout(getLocalBounds());
 
+    auto pageArea = optionsPanel.getBounds();
+    glossaryPage.setBounds(pageArea);
+    aboutPage.setBounds(pageArea);
+
     optionsPanel.setLowerReservedHeight(keyboardHeight);
 
     const auto workspaceBounds = optionsPanel.getWorkspaceBounds()
@@ -138,6 +208,23 @@ void MainComponent::resized()
                        keyboardY,
                        keyboardWidth,
                        keyboardHeight);
+}
+
+//==============================================================================
+// Pages
+//==============================================================================
+
+void MainComponent::showPage(CurrentPage page)
+{
+    currentPage = page;
+
+    const bool showMainScreen = currentPage == CurrentPage::mainScreen;
+
+    optionsPanel.setVisible(showMainScreen);
+    keyboard.setVisible(showMainScreen);
+
+    glossaryPage.setVisible(currentPage == CurrentPage::glossary);
+    aboutPage.setVisible(currentPage == CurrentPage::about);
 }
 
 //==============================================================================

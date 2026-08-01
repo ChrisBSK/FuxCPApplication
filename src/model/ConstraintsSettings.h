@@ -185,7 +185,7 @@ struct ConstraintSettings
         - voiceIndex = 0               -> Contrepoint 1
         - target = melodyMovement      -> on pilote steps1(s)
         - shape = invertedV            -> on part d'une forme en V inversé
-        - controlValues = {0, 1, 1, 0} -> les 4 parties visibles dans l'interface
+        - controlValues = {0, 0.5, 1, 0.5, 0} -> les 5 points visibles dans l'interface
 
         Remarque: - une shape ne s'applique pas au cantus firmus.
                   - elle s'applique à un contrepoint et à une fonction de coût précise.
@@ -339,7 +339,7 @@ struct ConstraintSettings
     Importance importance;
 
     // Shapes choisies dans l'interface.
-    // Chaque élément dit : voix + fonction de coût + shape + 4 valeurs.
+    // Chaque élément dit : voix + fonction de coût + shape + 5 valeurs.
     std::vector<ShapeAssignment> shapeAssignments;
 
     /*
@@ -869,4 +869,3 @@ private:
     */
     std::vector<int> buildDefaultImportanceCosts() const;
 };
-

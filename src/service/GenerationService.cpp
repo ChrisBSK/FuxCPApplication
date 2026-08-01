@@ -286,37 +286,7 @@ namespace
         return false;
     }
 
-    /*
-        Additionne deux vecteurs de coûts mélodiques.
 
-        Dans FuxCP, les fonctions steps1(s) et steps2(s) produisent chacune
-        un vecteur de coûts mélodiques dans le même ordre :
-
-        seconde, tierce, quarte, triton, quinte, sixte, septième, octave.
-
-        Cette méthode permet de combiner leurs effets.
-
-        Exemple :
-        - steps1(s) règle le mouvement mélodique : conjoint ou sauts
-        - steps2(s) règle la couleur des intervalles : dissonances ou parfaits
-
-        --> En les additionnant, on obtient un seul vecteur m_costs qui tient compte
-        des deux paramètres.
-
-        Le maximum est limité à 576 car FuxCP utilise cette valeur comme coût
-        très élevé, presque équivalent à une interdiction.
-    */
-    std::vector<int> addMelodicCostVectors(std::vector<int> target,
-                                           const std::vector<int>& source)
-    {
-        const auto size = std::min(target.size(), source.size());
-
-        for (std::size_t i = 0; i < size; ++i)
-            // On additionne coût par coût, sans jamais dépasser le plafond FuxCP.
-            target[i] = std::min(target[i] + source[i], 576);
-
-        return target;
-    }
 
     /*
         Appelle les shapes définies par Dorian dans FuxCP.
@@ -344,11 +314,11 @@ namespace
         Étend les valeurs de contrôle d'une shape sur toute la pièce.
 
         L'interface manipule quelques valeurs simples, par exemple :
-        {a, b, c, d}
+        {a, b, c, d, e}
 
         FuxCP attend une valeur par position.
-        Donc avec size = 8 :
-        {a, b, c, d} devient {a, a, b, b, c, c, d, d}
+        Donc avec size = 10 :
+        {a, b, c, d, e} devient {a, a, b, b, c, c, d, d, e, e}
     */
     std::vector<double> buildShapeValuesFromControls(const std::vector<double>& controlValues,
                                                      int size)
@@ -365,12 +335,12 @@ namespace
             return std::vector<double>(static_cast<std::size_t>(size), 0.0);
 
         // Nombre de parties disponibles dans la shape.
-        const int partCount = static_cast<int>(controlValues.size()); // Exemple : {a, b, c, d} -> 4 parties.
+        const int partCount = static_cast<int>(controlValues.size()); // Exemple : {a, b, c, d, e} -> 5 points.
 
         for (int measureIndex = 0; measureIndex < size; ++measureIndex)
         {
             // Convertit la mesure courante vers une partie de shape.
-            // Exemple : avec 8 mesures et 4 parties, les mesures 0-1 utilisent part1.
+            // Exemple : avec 10 positions et 5 points, les positions 0-1 utilisent part1.
             const int partIndex = std::min(partCount - 1,
                                            measureIndex * partCount / size);
 
@@ -384,21 +354,21 @@ namespace
     /*
         Choisit la shape réellement envoyée à FuxCP.
 
-        Si l'utilisateur a modifié les 4 sliders, on utilise ces valeurs.
+        Si l'utilisateur a modifié les 5 sliders, on utilise ces valeurs.
         Sinon, on retombe sur la shape de base définie par Dorian.
 
         Exemple :
         - assignment.shape = invertedV
-        - assignment.controlValues = {0.0, 1.0, 1.0, 0.0}
+        - assignment.controlValues = {0.0, 0.5, 1.0, 0.5, 0.0}
 
         La méthode utilise les valeurs personnalisées :
-        {0.0, 1.0, 1.0, 0.0}
+        {0.0, 0.5, 1.0, 0.5, 0.0}
 
     */
     std::vector<double> buildShapeValuesForAssignment(const ConstraintSettings::ShapeAssignment& assignment,
                                                       int size)
     {
-        // L'utilisateur a modifié les 4 parties de la shape dans l'interface.
+        // L'utilisateur a modifié les 5 points de la shape dans l'interface.
         if (! assignment.controlValues.empty())
             return buildShapeValuesFromControls(assignment.controlValues, size);
 
@@ -615,7 +585,9 @@ bool GenerationService::startGeneration(const CantusProblem& problem,
 
     // Copie du problème pour éviter les accès concurrents avec l'UI.
     problemToGenerate = problem;
+    lastProblemWithSolution = problem;
     outputPathToGenerate = outputPath;
+    requestedSolutionIndex = 0;
 
     {
         juce::ScopedLock lock(callbackLock);
@@ -625,6 +597,47 @@ bool GenerationService::startGeneration(const CantusProblem& problem,
     generationSuccess.store(false);
     lastGeneratedMidiPath.clear();
     lastError.clear();
+
+    startThread();
+    return true;
+}
+
+/*
+    Demande la solution suivante du dernier problème généré.
+
+    Next solution reprend le dernier CantusProblem utilisé par le bouton "Generate"
+    et demande au solveur d'avancer d'un cran dans les solutions.
+*/
+bool GenerationService::startNextSolution(const juce::String& outputPath,
+                                          AppController* controller)
+{
+    if (isThreadRunning())
+    {
+        lastError = juce::String::fromUTF8("Une génération est déjà en cours.");
+        return false;
+    }
+
+    if (! hasPreviousSolution)
+    {
+        lastError = juce::String::fromUTF8(
+            "Générez une première solution d'abord avant de demander une autre solution.");
+        inputValidationError = true;
+        return false;
+    }
+
+    problemToGenerate = lastProblemWithSolution;
+    outputPathToGenerate = outputPath;
+    ++requestedSolutionIndex;
+
+    {
+        juce::ScopedLock lock(callbackLock);
+        appController = controller;
+    }
+
+    generationSuccess.store(false);
+    lastGeneratedMidiPath.clear();
+    lastError.clear();
+    inputValidationError = false;
 
     startThread();
     return true;
@@ -740,20 +753,20 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
         }
 
         // =========================
-        // Meilleure solution
+        // Solutions
         // =========================
-        CounterpointProblem* best = nullptr;
+        std::vector<std::unique_ptr<CounterpointProblem>> foundSolutions;
 
-        while (CounterpointProblem* pb = solver->next()) {
-
-            //on garde la meilleure solution trouvée
-            best = pb;
+        while (CounterpointProblem* pb = solver->next())
+        {
+            // On garde les solutions trouvées pour pouvoir demander "Next solution".
+            foundSolutions.emplace_back(pb);
         }
 
         // =========================
         // Aucune solution
         // =========================
-        if (best == nullptr) {
+        if (foundSolutions.empty()) {
             lastError =
                 "Aucune solution trouvée.\n\n"
                 "Le problème est peut-être "
@@ -763,11 +776,26 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
             return false;
         }
 
+        /*
+            Choix de la solution à exporter.
+
+            - DFS énumère naturellement les solutions : on prend solution 0, puis 1, puis 2...
+            - BAB renvoie des solutions de mieux en mieux optimisées : la meilleure est la dernière.
+              Pour Next solution, on recule donc dans cette liste.
+        */
+        const int solutionCount = static_cast<int>(foundSolutions.size());
+        const int wrappedIndex = requestedSolutionIndex % solutionCount;
+        const int selectedIndex = searchMethod == ConstraintSettings::SearchMethod::bab
+            ? solutionCount - 1 - wrappedIndex
+            : wrappedIndex;
+
+        CounterpointProblem* selectedSolution = foundSolutions[(std::size_t) selectedIndex].get();
+
         // =========================
         // Solution brute
         // =========================
-        int size = best->getSize();
-        int *raw = best->return_solution();
+        int size = selectedSolution->getSize();
+        int *raw = selectedSolution->return_solution();
 
         if (raw == nullptr) {
 
@@ -854,6 +882,7 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
         lastGeneratedMidiPath =
             midiFile.getFullPathName();
 
+        hasPreviousSolution = true;
         lastError.clear();
 
         std::cout << "MIDI généré\n";
@@ -1027,6 +1056,11 @@ void GenerationService::reset()
     lastGeneratedMidiPath.clear();
     inputValidationError = false;
     generationSuccess.store(false);
+    requestedSolutionIndex = 0;
+    hasPreviousSolution = false;
+    problemToGenerate = {};
+    lastProblemWithSolution = {};
+    outputPathToGenerate.clear();
 
     if (pImpl)
         pImpl->initialized = true;

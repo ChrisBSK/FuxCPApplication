@@ -141,6 +141,59 @@ void AppController::startGeneration(const juce::String& outputPath)
 }
 
 //==============================================================================
+// Lance une autre solution pour le dernier problème généré.
+//==============================================================================
+void AppController::startNextSolution(const juce::String& outputPath)
+{
+    generationState.setProperty("generationStatus", "idle", nullptr);
+
+    if (generationService == nullptr)
+    {
+        generationState.setProperty("generationError",
+                                    juce::String::fromUTF8("Service de génération indisponible."),
+                                    nullptr);
+
+        generationState.setProperty("generationStatus", "error", nullptr);
+        return;
+    }
+
+    generationState.setProperty("generationStatus", "generating", nullptr);
+
+    bool started = generationService->startNextSolution(outputPath, this);
+
+    if (!started)
+    {
+        generationState.setProperty("generationError",
+                                    generationService->getLastError(),
+                                    nullptr);
+
+        generationState.setProperty("generationStatus",
+                                    generationService->isInputValidationError()
+                                        ? "warning"
+                                        : "error",
+                                    nullptr);
+
+        /*
+            Next solution peut échouer avant de lancer le thread.
+
+            Exemple :
+            l'utilisateur appuie sur "Next solution" alors qu'aucune première
+            solution n'a encore été générée.
+
+            Dans ce cas, on affiche directement une alerte claire au lieu
+            d'attendre un retour de génération qui n'arrivera pas.
+        */
+        if (generationService->isInputValidationError())
+        {
+            juce::AlertWindow::showMessageBoxAsync(
+                juce::AlertWindow::WarningIcon,
+                juce::String::fromUTF8("Next solution"),
+                generationService->getLastError());
+        }
+    }
+}
+
+//==============================================================================
 // CALLBACK THREAD --> UI
 
 // Callback de fin de génération.
@@ -220,4 +273,3 @@ bool AppController::isGenerating() const
 
     return generationService->isGenerating();
 }
-

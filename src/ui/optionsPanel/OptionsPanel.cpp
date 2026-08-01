@@ -171,7 +171,7 @@ void OptionsPanel::setupColumns()
         applyCostSliderValueToSettings(counterpointIndex, target, value);
     };
 
-    // Une shape change : on stocke la shape et ses valeurs part1-part4 dans le modèle.
+    // Une shape change : on stocke la shape et ses valeurs part1-part5 dans le modèle.
     voiceWorkspace.onShapeChanged = [this](int counterpointIndex,
                                            VoiceWorkspace::CostSliderTarget target,
                                            int shapeId,
@@ -213,7 +213,7 @@ void OptionsPanel::setupButtons()
     nextSolutionButton.onClick = [this]()
     {
         if (leftPanel != nullptr)
-            leftPanel->triggerGeneration();
+            leftPanel->triggerNextSolution();
     };
 }
 
@@ -392,7 +392,7 @@ void OptionsPanel::applyCostSliderValueToSettings(int counterpointIndex,
     - un contrepoint précis,
     - une fonction de coût précise,
     - un type de shape,
-    - les valeurs part1-part4 affichées dans l'interface.
+    - les valeurs part1-part5 affichées dans l'interface.
 
     Si aucune shape n'est sélectionnée, on supprime l'assignation.
     FuxCP utilisera alors simplement la valeur du slider principal.
@@ -418,7 +418,7 @@ void OptionsPanel::applyShapeToSettings(int counterpointIndex,
     }
     else
     {
-        // Shape sélectionnée : on stocke la voix, la cible, le type et part1-part4.
+        // Shape sélectionnée : on stocke la voix, la cible, le type et part1-part5.
         settings.setShapeAssignment(counterpointIndex,
                                     modelTarget,
                                     mapShapeId(shapeId),
@@ -679,10 +679,18 @@ void OptionsPanel::clearGenerationInputs()
 {
     // Nettoie les champs visibles : Cantus Firmus, nombre de voix, Drag Zone.
     if (leftPanel != nullptr)
+    {
         leftPanel->clearInputState();
+        leftPanel->getGenerationService().reset();
+    }
 
     if (appController != nullptr)
     {
+        auto& generationState = appController->getGenerationState();
+        generationState.setProperty("generationStatus", "idle", nullptr);
+        generationState.setProperty("generationError", "", nullptr);
+        generationState.setProperty("midiFilePath", "", nullptr);
+
         auto& problem = appController->getProblem();
         auto& settings = problem.getSettings();
 

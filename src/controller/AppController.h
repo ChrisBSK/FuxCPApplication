@@ -39,6 +39,12 @@ public:
      */
     void startGeneration(const juce::String& outputPath);
 
+    /**
+     * Lance la solution suivante du dernier problème généré.
+     */
+
+    void startNextSolution(const juce::String& outputPath);
+
 
     // =========================
     // Accès modèle

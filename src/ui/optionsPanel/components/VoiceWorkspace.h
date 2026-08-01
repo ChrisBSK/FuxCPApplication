@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cmath>
 #include <functional>
 #include <vector>
 #include <juce_gui_basics/juce_gui_basics.h>
@@ -16,7 +17,7 @@
     - les ComboBox Species / Type,
     - les sliders des fonctions de coût,
     - les ComboBox Shape,
-    - les 4 mini-sliders part1-part4 pour visualiser/modifier une shape.
+    - les 5 mini-sliders part1-part5 pour visualiser/modifier une shape.
 
     Le Cantus Firmus n'est pas affiché ici.
     Il reste dans le LeftPanel.
@@ -98,7 +99,7 @@ public:
     // Slider de coût modifié pour un contrepoint.
     std::function<void(int counterpointIndex, CostSliderTarget target, double value)> onCostSliderChanged;
 
-    // Shape ou valeur part1-part4 modifiée pour un contrepoint.
+    // Shape ou valeur part1-part5 modifiée pour un contrepoint.
     std::function<void(int counterpointIndex,
                        CostSliderTarget target,
                        int shapeId,
@@ -112,7 +113,7 @@ public:
         - Type à 0,
         - les ComboBox Shape,
         - les sliders de coût,
-        - les mini-sliders part1-part4,
+        - les mini-sliders part1-part5,
         - le nombre de contrepoints actifs.
     */
     void resetCounterpointSelectors()
@@ -182,8 +183,26 @@ public:
     void resized() override
     {
         updateCounterpointAreas();
+        clampCostScrollOffset();
         layoutCounterpointSelectors();
         layoutCostSliders();
+    }
+
+    /*
+        Permet de défiler dans les paramètres si leur contenu devient trop haut.
+
+        Objectif :
+        ne jamais couper les mini-sliders, même si on ajoute plus tard
+        d'autres fonctions de coût dans chaque colonne.
+    */
+    void mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails& wheel) override
+    {
+        const int scrollStep = 42;
+        const int delta = static_cast<int>(std::round(-wheel.deltaY * (float) scrollStep));
+
+        costScrollOffsetY += delta;
+        clampCostScrollOffset();
+        resized();
     }
 
 private:
@@ -260,8 +279,14 @@ private:
     // Nombre maximal de contrepoints affichables dans le workspace.
     static constexpr int maxCounterpoints = 3;
 
-    // Nombre de parties visibles pour une shape : part1, part2, part3, part4.
-    static constexpr int shapeControlCount = 4;
+    // Nombre de points visibles pour une shape : part1, part2, part3, part4, part5.
+    static constexpr int shapeControlCount = 5;
+
+    // Hauteurs centralisées pour éviter que les paramètres soient coupés.
+    static constexpr int costParameterCount = 3;
+    static constexpr int mainCostRowHeight = 17;
+    static constexpr int shapeControlsHeight = 35;
+    static constexpr int costParameterSpacing = 2;
 
     // Marges internes du workspace.
     static constexpr int outerPaddingX = 4;
@@ -276,6 +301,7 @@ private:
     //==============================================================================
 
     int activeCounterpointCount = 0;
+    int costScrollOffsetY = 0;
 
     CompactComboBoxLookAndFeel compactComboBoxLookAndFeel;
 
@@ -319,7 +345,7 @@ private:
     // Contrôles des shapes
     //==============================================================================
 
-    // 4 mini-sliders qui rendent visible la shape choisie pour chaque paramètre.
+    // 5 mini-sliders qui rendent visible la shape choisie pour chaque paramètre.
     using ShapeControlSliders = std::array<juce::Slider, shapeControlCount>;
     using ShapeControlLabels = std::array<juce::Label, shapeControlCount>;
     std::array<ShapeControlSliders, maxCounterpoints> steps1ShapeControls;
@@ -488,7 +514,7 @@ private:
                                 harmoSliders[counterpointIndex]);
             };
 
-            // Prépare les 4 mini-sliders de shape pour chaque fonction de coût.
+            // Prépare les 5 mini-sliders de shape pour chaque fonction de coût.
             setupShapeControls(counterpointIndex,
                                CostSliderTarget::melodyMovement,
                                steps1ShapeSelectors[counterpointIndex]);
@@ -506,7 +532,7 @@ private:
     }
 
     /*
-        Prépare les 4 mini-sliders associés à une shape.
+        Prépare les 5 mini-sliders associés à une shape.
 
         Ils sont cachés au départ.
         Ils deviennent visibles quand une shape est choisie dans la ComboBox.
@@ -562,7 +588,7 @@ private:
     /*
         Applique une shape choisie dans la ComboBox.
 
-        La shape donne des valeurs de départ aux 4 mini-sliders.
+        La shape donne des valeurs de départ aux 5 mini-sliders.
         L'utilisateur peut ensuite ajuster ces valeurs manuellement.
     */
     void applyShapeChoice(int counterpointIndex, CostSliderTarget target, int shapeId)
@@ -573,7 +599,7 @@ private:
         // Valeurs initiales correspondant à Fixed, Linear, V, M, etc.
         const auto values = getDefaultShapeControlValues(shapeId);
 
-        // Affiche les 4 parties de shape et leur donne leurs valeurs initiales.
+        // Affiche les 5 parties de shape et leur donne leurs valeurs initiales.
         for (int controlIndex = 0; controlIndex < shapeControlCount; ++controlIndex)
         {
             labels[controlIndex].setVisible(true);
@@ -591,7 +617,7 @@ private:
 
         La méthode lit :
         - la shape sélectionnée dans la ComboBox,
-        - les 4 valeurs part1-part4,
+        - les 5 valeurs part1-part5,
         puis appelle onShapeChanged.
     */
     void sendShapeToModel(int counterpointIndex, CostSliderTarget target)
@@ -602,7 +628,7 @@ private:
         std::vector<double> values;
         values.reserve(shapeControlCount);
 
-        // Lit les 4 valeurs visibles dans l'interface.
+        // Lit les 5 valeurs visibles dans l'interface.
         for (auto& control : controls)
             values.push_back(control.getValue());
 
@@ -612,7 +638,7 @@ private:
     }
 
     /*
-        Retourne les 4 mini-sliders liés à une fonction de coût précise.
+        Retourne les 5 mini-sliders liés à une fonction de coût précise.
 
     */
     ShapeControlSliders& getShapeControls(int counterpointIndex, CostSliderTarget target)
@@ -665,7 +691,7 @@ private:
     }
 
     /*
-        Retourne les labels part1..part4 liés à une fonction de coût précise.
+        Retourne les labels part1..part5 liés à une fonction de coût précise.
     */
     ShapeControlLabels& getShapeControlLabels(int counterpointIndex, CostSliderTarget target)
     {
@@ -685,12 +711,14 @@ private:
     }
 
     /*
-        Donne les 4 valeurs initiales d'une shape.
+        Donne les 5 valeurs initiales d'une shape.
 
-        Ces valeurs correspondent à l'idée générale de la forme :
-        - Linear monte progressivement,
-        - V descend puis remonte,
-        - M alterne bas/haut/bas/haut.
+        Ces valeurs correspondent aux fonctions de Dorian évaluées avec n = 5.
+
+        Exemple :
+        - Inverted V -> {0.0, 0.5, 1.0, 0.5, 0.0}
+        - V          -> {1.0, 0.5, 0.0, 0.5, 1.0}
+        - M          -> {0.0, 1.0, 0.0, 1.0, 0.0}
 
         L'utilisateur peut ensuite modifier ces valeurs.
     */
@@ -698,15 +726,15 @@ private:
     {
         switch (shapeId)
         {
-            case 1: return { 0.0, 0.0, 0.0, 0.0 }; // Fixed
-            case 2: return { 0.0, 0.33, 0.67, 1.0 }; // Linear
-            case 3: return { 1.0, 0.67, 0.33, 0.0 }; // Linear desc
-            case 4: return { 0.0, 0.67, 0.67, 0.0 }; // Inverted V
-            case 5: return { 1.0, 0.33, 0.33, 1.0 }; // V
-            case 6: return { 0.0, 1.0, 0.0, 1.0 }; // M
-            case 7: return { 0.0, 0.0, 1.0, 1.0 }; // Step
-            case 8: return { 1.0, 1.0, 0.0, 0.0 }; // Step desc
-            default: return { 0.0, 0.0, 0.0, 0.0 };
+            case 1: return { 0.0, 0.0, 0.0, 0.0, 0.0 }; // Fixed
+            case 2: return { 0.0, 0.25, 0.5, 0.75, 1.0 }; // Linear
+            case 3: return { 1.0, 0.75, 0.5, 0.25, 0.0 }; // Linear desc
+            case 4: return { 0.0, 0.5, 1.0, 0.5, 0.0 }; // Inverted V
+            case 5: return { 1.0, 0.5, 0.0, 0.5, 1.0 }; // V
+            case 6: return { 0.0, 1.0, 0.0, 1.0, 0.0 }; // M
+            case 7: return { 0.0, 0.0, 1.0, 1.0, 1.0 }; // Step
+            case 8: return { 1.0, 1.0, 0.0, 0.0, 0.0 }; // Step desc
+            default: return { 0.0, 0.0, 0.0, 0.0, 0.0 };
         }
     }
 
@@ -726,7 +754,7 @@ private:
     }
 
     /*
-        Cache et remet à zéro tous les contrôles part1-part4.
+        Cache et remet à zéro tous les contrôles part1-part5.
 
         Le modèle est vidé séparément par OptionsPanel.
         Ici, on nettoie seulement l'affichage.
@@ -745,7 +773,7 @@ private:
     }
 
     /*
-        Réinitialise un groupe de 4 mini-sliders de shape.
+        Réinitialise un groupe de 5 mini-sliders de shape.
     */
     void resetShapeControlGroup(ShapeControlSliders& controls)
     {
@@ -757,7 +785,7 @@ private:
     }
 
     /*
-        Cache les labels part1..part4 d'un groupe de shape.
+        Cache les labels part1..part5 d'un groupe de shape.
     */
     void resetShapeLabelGroup(ShapeControlLabels& labels)
     {
@@ -929,11 +957,45 @@ private:
     }
 
     /*
+        Calcule la hauteur totale nécessaire pour afficher tous les paramètres.
+
+        Si on ajoute une fonction de coût plus tard, on augmente seulement
+        costParameterCount ou on centralise la liste des paramètres ici.
+    */
+    int getRequiredCostSlidersHeight() const
+    {
+        return costParameterCount * (mainCostRowHeight + shapeControlsHeight + costParameterSpacing);
+    }
+
+    /*
+        Calcule combien on peut défiler verticalement dans les paramètres.
+
+        Si le contenu tient dans la zone visible, le maximum vaut 0 :
+        aucun scroll n'est nécessaire.
+    */
+    int getMaxCostScrollOffset() const
+    {
+        if (counterpointAreas[0].isEmpty())
+            return 0;
+
+        const auto visibleArea = getCostSlidersVisibleBounds(counterpointAreas[0]);
+        return juce::jmax(0, getRequiredCostSlidersHeight() - visibleArea.getHeight());
+    }
+
+    /*
+        Garde le défilement dans des limites valides.
+    */
+    void clampCostScrollOffset()
+    {
+        costScrollOffsetY = juce::jlimit(0, getMaxCostScrollOffset(), costScrollOffsetY);
+    }
+
+    /*
         Place un paramètre complet.
 
         Il contient :
         - une ligne principale : label, slider, ComboBox Shape,
-        - une zone secondaire : les 4 mini-sliders part1-part4.
+        - une zone secondaire : les 5 mini-sliders part1-part5.
     */
     void layoutCostParameter(juce::Rectangle<int>& area,
                              int counterpointIndex,
@@ -944,7 +1006,7 @@ private:
                              juce::Label& leftReferenceLabel,
                              juce::Label& rightReferenceLabel)
     {
-        layoutSmallCostSlider(area.removeFromTop(17),
+        layoutSmallCostSlider(area.removeFromTop(mainCostRowHeight),
                               label,
                               slider,
                               shapeSelector,
@@ -952,7 +1014,7 @@ private:
                               rightReferenceLabel);
 
         area.removeFromTop(1);
-        layoutShapeControls(area.removeFromTop(30),
+        layoutShapeControls(area.removeFromTop(shapeControlsHeight),
                             getShapeControls(counterpointIndex, target),
                             getShapeControlLabels(counterpointIndex, target));
         area.removeFromTop(1);
@@ -993,7 +1055,7 @@ private:
     }
 
     /*
-        Place les 4 mini-sliders part1-part4 sous le slider principal.
+        Place les 5 mini-sliders part1-part5 sous le slider principal.
     */
     void layoutShapeControls(juce::Rectangle<int> row,
                              ShapeControlSliders& controls,
@@ -1067,7 +1129,7 @@ private:
             steps2ShapeSelectors[counterpointIndex].setAlpha(alpha);
             harmoShapeSelectors[counterpointIndex].setAlpha(alpha);
 
-            // Mini-sliders part1-part4.
+            // Mini-sliders part1-part5.
             setShapeControlVisibility(steps1ShapeControls[counterpointIndex],
                                       steps1ShapeControlLabels[counterpointIndex]);
             setShapeControlVisibility(steps2ShapeControls[counterpointIndex],
@@ -1085,7 +1147,7 @@ private:
     }
 
     /*
-        Rend visibles les contrôles part1-part4.
+        Rend visibles les contrôles part1-part5.
 
         Ils peuvent ensuite être désactivés/grisés si le contrepoint n'est pas actif.
     */
@@ -1114,7 +1176,7 @@ private:
     }
 
     /*
-        Applique la transparence du contrepoint aux labels part1-part4.
+        Applique la transparence du contrepoint aux labels part1-part5.
     */
     void updateShapeLabelState(ShapeControlLabels& labels, float alpha)
     {
@@ -1164,17 +1226,17 @@ private:
     }
 
     /*
-        Calcule la zone réservée aux paramètres de coût.
+        Calcule la zone visible réservée aux paramètres de coût.
 
         Elle commence sous les ComboBox Species / Type.
     */
-    juce::Rectangle<int> getCostSlidersBounds(juce::Rectangle<int> counterpointArea) const
+    juce::Rectangle<int> getCostSlidersVisibleBounds(juce::Rectangle<int> counterpointArea) const
     {
         auto controlsBox = getCounterpointControlsBounds(counterpointArea);
 
         const int slidersWidth = juce::jlimit(168, 224, counterpointArea.getWidth());
-        const int slidersHeight = 144;
         const int slidersY = controlsBox.getBottom() + 8;
+        const int slidersHeight = juce::jmax(0, counterpointArea.getBottom() - slidersY);
 
         return {
             counterpointArea.getCentreX() - slidersWidth / 2,
@@ -1182,6 +1244,22 @@ private:
             slidersWidth,
             slidersHeight
         };
+    }
+
+    /*
+        Calcule la zone réelle du contenu des paramètres.
+
+        Cette zone peut être plus haute que la zone visible.
+        Le décalage costScrollOffsetY permet alors de défiler sans couper
+        les derniers sliders.
+    */
+    juce::Rectangle<int> getCostSlidersBounds(juce::Rectangle<int> counterpointArea) const
+    {
+        auto visibleArea = getCostSlidersVisibleBounds(counterpointArea);
+
+        return visibleArea
+            .withY(visibleArea.getY() - costScrollOffsetY)
+            .withHeight(getRequiredCostSlidersHeight());
     }
 
     /*

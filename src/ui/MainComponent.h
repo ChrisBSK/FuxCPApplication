@@ -42,6 +42,34 @@ public:
     void prepareToPlay(int, double sampleRate);
 
 private:
+    /*
+        Page simple utilisée pour les onglets qui n'ont pas encore
+        d'interface détaillée.
+
+        Elle permet de créer Glossary et About sans mélanger leur futur contenu
+        avec le code de la page principale.
+    */
+    class SimplePage : public juce::Component
+    {
+    public:
+        SimplePage(const juce::String& titleText,
+                   const juce::String& bodyText);
+
+        void paint(juce::Graphics& g) override;
+        void resized() override;
+
+    private:
+        juce::Label title;
+        juce::Label body;
+    };
+
+    enum class CurrentPage
+    {
+        mainScreen,
+        glossary,
+        about
+    };
+
     // =========================
     // CONTROLLER
     // =========================
@@ -53,6 +81,16 @@ private:
     HeaderPanel header;
     LeftPanel leftPanel { appController };
     OptionsPanel optionsPanel;
+    SimplePage glossaryPage {
+        "Glossary",
+        "Cette page servira à regrouper les définitions importantes du projet."
+    };
+    SimplePage aboutPage {
+        "About",
+        "Cette page servira à présenter l'application, le mémoire et les choix principaux."
+    };
+
+    CurrentPage currentPage = CurrentPage::mainScreen;
 
     // =========================
     // MIDI / KEYBOARD
@@ -75,6 +113,9 @@ private:
     std::unique_ptr<juce::TooltipWindow> tooltipWindow;
 
     int defaultVoiceCount = 0;
+
+    // Change la page visible quand l'utilisateur clique sur un onglet.
+    void showPage(CurrentPage page);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

@@ -102,7 +102,7 @@ private:
                                         VoiceWorkspace::CostSliderTarget target,
                                         double value);
 
-    // Applique au modèle la shape et ses 4 valeurs envoyées par l'interface.
+    // Applique au modèle la shape et ses 5 valeurs envoyées par l'interface.
     void applyShapeToSettings(int counterpointIndex,
                               VoiceWorkspace::CostSliderTarget target,
                               int shapeId,

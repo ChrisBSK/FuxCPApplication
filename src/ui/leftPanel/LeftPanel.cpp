@@ -268,6 +268,21 @@ void LeftPanel::triggerGeneration()
     appController.startGeneration(midiOutFileToGenerate.getFullPathName());
 }
 
+/*
+//==============================================================================
+   Demande la solution suivante.
+
+   Cette méthode ne reconstruit pas le problème depuis l'interface.
+   Elle demande simplement à l'AppController de réutiliser le dernier problème
+   généré et de passer à la solution suivante.
+//==============================================================================
+*/
+void LeftPanel::triggerNextSolution()
+{
+    prepareOutputFile();
+    appController.startNextSolution(midiOutFileToGenerate.getFullPathName());
+}
+
 
 //==============================================================================
 // RESULTAT : MIDI
