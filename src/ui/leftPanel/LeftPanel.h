@@ -120,6 +120,9 @@ public:
     // Demande une autre solution du dernier problème généré.
     void triggerNextSolution();
 
+    // Demande la sauvegarde de la solution actuellement affichée.
+    void triggerSaveSolution();
+
     // Affiche une boîte de dialogue utilisateur.
     void showAlert(juce::AlertWindow::AlertIconType icon,
                    const juce::String& title,

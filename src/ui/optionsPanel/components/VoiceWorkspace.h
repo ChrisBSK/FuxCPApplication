@@ -222,7 +222,7 @@ private:
         // Police compacte utilisée dans toutes les petites ComboBox.
         juce::Font getComboBoxFont(juce::ComboBox&) override
         {
-            return juce::Font(juce::FontOptions(8.2f, juce::Font::plain));
+            return juce::Font(juce::FontOptions(9.8f, juce::Font::plain));
         }
 
         // Place le texte en laissant de la place à la flèche à droite.
@@ -284,17 +284,17 @@ private:
 
     // Hauteurs centralisées pour éviter que les paramètres soient coupés.
     static constexpr int costParameterCount = 3;
-    static constexpr int mainCostRowHeight = 17;
-    static constexpr int shapeControlsHeight = 35;
-    static constexpr int costParameterSpacing = 2;
+    static constexpr int mainCostRowHeight = 23;
+    static constexpr int shapeControlsHeight = 54;
+    static constexpr int costParameterSpacing = 8;
 
     // Marges internes du workspace.
     static constexpr int outerPaddingX = 4;
     static constexpr int outerPaddingY = 4;
 
     // Bornes de l'espace horizontal entre les colonnes de contrepoint.
-    static constexpr int minGapBetweenCounterpoints = 10;
-    static constexpr int maxGapBetweenCounterpoints = 18;
+    static constexpr int minGapBetweenCounterpoints = 18;
+    static constexpr int maxGapBetweenCounterpoints = 30;
 
     //==============================================================================
     // État courant
@@ -476,17 +476,17 @@ private:
                                  steps2LeftReferenceLabels[counterpointIndex],
                                  steps2RightReferenceLabels[counterpointIndex],
                                  "Interval colour",
-                                 "Avoid disso.",
-                                 "Avoid cons.");
+                                 "Consonant",
+                                 "Dissonant");
 
             setupSmallCostSlider(harmoLabels[counterpointIndex],
                                  harmoSliders[counterpointIndex],
                                  harmoShapeSelectors[counterpointIndex],
                                  harmoLeftReferenceLabels[counterpointIndex],
                                  harmoRightReferenceLabels[counterpointIndex],
-                                 "Perfect int.",
-                                 "Avoid oct.",
-                                 "Avoid fifths");
+                                 "Perfect intervals",
+                                 "Less Octaves",
+                                 "Less fifths");
 
             // Fonction locale utilisée par les trois sliders pour éviter la répétition.
             auto sendSliderValue = [this, counterpointIndex](CostSliderTarget target, juce::Slider& slider)
@@ -552,7 +552,7 @@ private:
 
             label.setText("Part. " + juce::String(controlIndex + 1),
                           juce::dontSendNotification);
-            label.setFont(juce::Font(juce::FontOptions(7.8f, juce::Font::bold)));
+            label.setFont(juce::Font(juce::FontOptions(9.2f, juce::Font::bold)));
             label.setJustificationType(juce::Justification::centredLeft);
             label.setColour(juce::Label::textColourId, juce::Colours::white.withAlpha(0.9f));
             label.setVisible(false);
@@ -813,7 +813,7 @@ private:
     {
         // Nom visible du paramètre.
         label.setText(text, juce::dontSendNotification);
-        label.setFont(juce::Font(juce::FontOptions(9.2f, juce::Font::bold)));
+        label.setFont(juce::Font(juce::FontOptions(10.5f, juce::Font::bold)));
         label.setJustificationType(juce::Justification::centredLeft);
         label.setColour(juce::Label::textColourId, juce::Colours::white);
         label.setMinimumHorizontalScale(0.70f);
@@ -850,7 +850,7 @@ private:
                              juce::Justification justification)
     {
         referenceLabel.setText(text, juce::dontSendNotification);
-        referenceLabel.setFont(juce::Font(juce::FontOptions(7.2f, juce::Font::bold)));
+        referenceLabel.setFont(juce::Font(juce::FontOptions(8.4f, juce::Font::bold)));
         referenceLabel.setJustificationType(justification);
         referenceLabel.setColour(juce::Label::textColourId, juce::Colours::white.withAlpha(0.9f));
         referenceLabel.setMinimumHorizontalScale(0.70f);
@@ -1036,20 +1036,20 @@ private:
                                juce::Label& rightReferenceLabel)
     {
         // Réserve la colonne du label.
-        auto labelArea = row.removeFromLeft(56);
-        row.removeFromLeft(2);
+        auto labelArea = row.removeFromLeft(70);
+        row.removeFromLeft(4);
 
         // Réserve la ComboBox Shape à droite.
-        auto shapeBox = row.removeFromRight(40);
-        row.removeFromRight(3);
+        auto shapeBox = row.removeFromRight(48);
+        row.removeFromRight(5);
 
         // Le reste devient la zone du slider et de ses repères.
         auto sliderArea = row;
-        auto referenceArea = sliderArea.removeFromTop(8);
+        auto referenceArea = sliderArea.removeFromTop(10);
 
         label.setBounds(labelArea.withY(sliderArea.getY()).withHeight(sliderArea.getHeight()));
         slider.setBounds(sliderArea.reduced(0, 1));
-        shapeSelector.setBounds(shapeBox.withHeight(14).reduced(0, 1));
+        shapeSelector.setBounds(shapeBox.withHeight(17).reduced(0, 1));
         leftReferenceLabel.setBounds(referenceArea.removeFromLeft(referenceArea.getWidth() / 2));
         rightReferenceLabel.setBounds(referenceArea);
     }
@@ -1062,14 +1062,14 @@ private:
                              ShapeControlLabels& labels)
     {
         // Indentation pour aligner les mini-sliders sous le slider principal.
-        row = row.withTrimmedLeft(17).withTrimmedRight(82);
+        row = row.withTrimmedLeft(18).withTrimmedRight(96);
 
         for (int controlIndex = 0; controlIndex < shapeControlCount; ++controlIndex)
         {
             // Chaque ligne contient un label partX puis son mini-slider.
-            auto line = row.removeFromTop(7);
-            auto labelArea = line.removeFromLeft(25);
-            line.removeFromLeft(2);
+            auto line = row.removeFromTop(10);
+            auto labelArea = line.removeFromLeft(37);
+            line.removeFromLeft(4);
 
             labels[controlIndex].setBounds(labelArea);
             controls[controlIndex].setBounds(line.reduced(0, 1));
@@ -1191,14 +1191,14 @@ private:
     */
     juce::Rectangle<int> getCounterpointTitleBounds(juce::Rectangle<int> counterpointArea) const
     {
-        const int titleBoxWidth = juce::jlimit(56,
-                                               78,
-                                               static_cast<int>(counterpointArea.getWidth() * 0.38f));
-        const int titleBoxHeight = 14;
+        const int titleBoxWidth = juce::jlimit(78,
+                                               118,
+                                               static_cast<int>(counterpointArea.getWidth() * 0.52f));
+        const int titleBoxHeight = 18;
 
         return {
             counterpointArea.getCentreX() - titleBoxWidth / 2,
-            counterpointArea.getY(),
+            counterpointArea.getY() + 6,
             titleBoxWidth,
             titleBoxHeight
         };
@@ -1213,9 +1213,9 @@ private:
     {
         auto titleBox = getCounterpointTitleBounds(counterpointArea);
 
-        const int controlsWidth = juce::jlimit(70, 104, counterpointArea.getWidth() - 42);
-        const int controlsHeight = 13;
-        const int controlsY = titleBox.getBottom() + 8;
+        const int controlsWidth = juce::jlimit(86, 126, counterpointArea.getWidth() - 34);
+        const int controlsHeight = 16;
+        const int controlsY = titleBox.getBottom() + 12;
 
         return {
             counterpointArea.getCentreX() - controlsWidth / 2,
@@ -1234,8 +1234,8 @@ private:
     {
         auto controlsBox = getCounterpointControlsBounds(counterpointArea);
 
-        const int slidersWidth = juce::jlimit(168, 224, counterpointArea.getWidth());
-        const int slidersY = controlsBox.getBottom() + 8;
+        const int slidersWidth = juce::jmin(250, juce::jmax(190, counterpointArea.getWidth() - 18));
+        const int slidersY = controlsBox.getBottom() + 10;
         const int slidersHeight = juce::jmax(0, counterpointArea.getBottom() - slidersY);
 
         return {
@@ -1289,7 +1289,7 @@ private:
         g.drawRoundedRectangle(bounds, 5.0f, 0.9f);
 
         g.setColour(juce::Colours::white);
-        g.setFont(juce::Font(juce::FontOptions(7.2f, juce::Font::bold)));
+        g.setFont(juce::Font(juce::FontOptions(9.2f, juce::Font::bold)));
         g.drawText(title, titleBox, juce::Justification::centred);
     }
 

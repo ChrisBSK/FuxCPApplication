@@ -119,6 +119,15 @@ void OptionsPanel::setupColumns()
     addAndMakeVisible(voiceWorkspace);
 
     /*
+        Les ColumnBox servent ici uniquement de fond visuel.
+
+        Elles ne doivent pas recevoir les clics, sinon elles peuvent bloquer
+        les vrais boutons ou les contrôles placés au-dessus.
+    */
+    workspaceColumn.setInterceptsMouseClicks(false, false);
+    searchColumn.setInterceptsMouseClicks(false, false);
+
+    /*
             VoiceWorkspace ne modifie pas directement le modèle.
 
             Il envoie des événements à OptionsPanel, qui se charge ensuite
@@ -191,12 +200,14 @@ void OptionsPanel::setupColumns()
 
     Generate lance la génération via LeftPanel.
     Next Solution relance une génération pour demander une autre proposition.
+    Save solution est préparé pour sauvegarder la solution courante.
     Clear remet l'interface dans son état initial.
 */
 void OptionsPanel::setupButtons()
 {
     OptionsPanelHelpers::setupButton(*this, generateButton, "Generate");
     OptionsPanelHelpers::setupButton(*this, nextSolutionButton, "Next solution");
+    OptionsPanelHelpers::setupButton(*this, saveSolutionButton, "Save solution");
     OptionsPanelHelpers::setupButton(*this, clearButton, "Clear");
 
     generateButton.onClick = [this]()
@@ -214,6 +225,12 @@ void OptionsPanel::setupButtons()
     {
         if (leftPanel != nullptr)
             leftPanel->triggerNextSolution();
+    };
+
+    saveSolutionButton.onClick = [this]()
+    {
+        if (leftPanel != nullptr)
+            leftPanel->triggerSaveSolution();
     };
 }
 
@@ -538,8 +555,8 @@ void OptionsPanel::resized()
             leftPanelBounds.getX(),
             leftPanelBounds.getBottom() + leftButtonGap,
             leftPanelBounds.getWidth(),
-            68
-        ).withBottom(juce::jmin(leftArea.getBottom(), leftPanelBounds.getBottom() + leftButtonGap + 68));
+            104
+        ).withBottom(juce::jmin(leftArea.getBottom(), leftPanelBounds.getBottom() + leftButtonGap + 104));
 
         // Les boutons restent dans la colonne gauche, mais hors du contour du LeftPanel.
         layoutButtons(leftButtonArea);
@@ -558,6 +575,9 @@ void OptionsPanel::resized()
     // On utilise ces bounds pour placer son contenu interne.
     const auto solverBounds = searchColumn.getBounds();
     layoutMinimizationModePanel(solverBounds);
+
+    // Sécurité : les boutons restent cliquables même si un panneau passe devant.
+    bringActionButtonsToFront();
 }
 
 /*
@@ -611,16 +631,16 @@ void OptionsPanel::layoutMinimizationModePanel(juce::Rectangle<int> columnBounds
 }
 
 /*
-    Place les boutons Generate, Next solution et Clear sous le LeftPanel.
+    Place les boutons Generate, Next solution, Save solution et Clear sous le LeftPanel.
 
-    Les trois boutons sont empilés verticalement pour rester lisibles.
+    Les boutons sont empilés verticalement pour rester lisibles.
     FlexBox permet de garder leur alignement propre même si la fenêtre change.
 */
 void OptionsPanel::layoutButtons(juce::Rectangle<int> buttonArea)
 {
-    constexpr int buttonWidth = 128;
-    constexpr int buttonHeight = 20;
-    constexpr int spacing = 4;
+    constexpr int buttonWidth = 118;
+    constexpr int buttonHeight = 22;
+    constexpr int spacing = 5;
 
     /*
         On crée une colonne de boutons.
@@ -647,6 +667,12 @@ void OptionsPanel::layoutButtons(juce::Rectangle<int> buttonArea)
         .withHeight((float) buttonHeight)
         .withMargin(juce::FlexItem::Margin((float) spacing / 2.0f, 0.0f, (float) spacing / 2.0f, 0.0f)));
 
+    // Bouton Save Solution.
+    buttonRow.items.add(juce::FlexItem(saveSolutionButton)
+        .withWidth((float) buttonWidth)
+        .withHeight((float) buttonHeight)
+        .withMargin(juce::FlexItem::Margin((float) spacing / 2.0f, 0.0f, (float) spacing / 2.0f, 0.0f)));
+
     // Bouton Clear.
     buttonRow.items.add(juce::FlexItem(clearButton)
         .withWidth((float) buttonWidth)
@@ -655,10 +681,21 @@ void OptionsPanel::layoutButtons(juce::Rectangle<int> buttonArea)
 
     // Calcule les positions finales des boutons dans buttonArea.
     buttonRow.performLayout(buttonArea);
+}
 
+/*
+    Place les boutons d'action au premier plan.
+
+    En JUCE, si deux composants se superposent, celui du dessus reçoit le clic.
+    Cette méthode garantit que Generate, Next solution, Save solution et Clear
+    restent au-dessus des fonds décoratifs.
+*/
+void OptionsPanel::bringActionButtonsToFront()
+{
     clearButton.toFront(false);
     generateButton.toFront(false);
     nextSolutionButton.toFront(false);
+    saveSolutionButton.toFront(false);
 }
 
 //==============================================================================
@@ -833,6 +870,15 @@ void OptionsPanel::setLeftPanel(LeftPanel* panel)
     {
         // Le LeftPanel devient un composant enfant visible de OptionsPanel.
         addAndMakeVisible(*leftPanel);
+
+        /*
+            Le fond du LeftPanel ne doit pas voler les clics.
+
+            Ses vrais contrôles restent cliquables grâce au second paramètre :
+            Cantus Firmus, Number of voices et Drag Zone continuent de fonctionner.
+        */
+        leftPanel->setInterceptsMouseClicks(false, true);
+
         // On relance le layout pour lui donner immédiatement sa bonne position.
         resized();
     }

@@ -33,13 +33,26 @@ static std::vector<int> parseCantusFirmus(const juce::String& text)
     if (text.isEmpty())
         return result;
 
-    auto tokens = juce::StringArray::fromTokens(text, " ,;", "\"");
+    /*
+        Accepte plusieurs écritures du Cantus Firmus.
+
+        Exemples valides :
+        - 60,62,64,65
+        - 60, 62, 64, 65
+        - 60 62 64 65
+        - 60    62   64 65
+
+        Les virgules, points-virgules, espaces, tabulations et retours à la ligne
+        sont tous considérés comme des séparateurs entre les notes.
+    */
+    auto tokens = juce::StringArray::fromTokens(text,
+                                                " ,;\t\r\n",
+                                                "\"");
+    tokens.removeEmptyStrings();
+    tokens.trim();
 
     for (const auto& t : tokens)
     {
-        if (t.isEmpty())
-            return {};
-
         if (t.containsOnly("0123456789"))
         {
             int value = t.getIntValue();
@@ -211,6 +224,28 @@ void LeftPanel::triggerGeneration()
         return;
     }
 
+    /*
+        Vérifie que le Cantus Firmus contient assez de notes.
+
+        FuxCP utilise des règles musicales qui dépendent notamment :
+        - de la première note,
+        - de la dernière note,
+        - de la note pénultième,
+        - de plusieurs intervalles mélodiques.
+
+        Avec moins de 5 notes, le problème devient trop court et peut produire
+        des cas dégénérés dans le solveur.
+    */
+    constexpr int minimumCantusFirmusNotes = 5;
+
+    if ((int) cf.size() < minimumCantusFirmusNotes)
+    {
+        showAlert(juce::AlertWindow::WarningIcon,
+                  juce::String::fromUTF8("Cantus Firmus trop court"),
+                  juce::String::fromUTF8("Veuillez entrer au moins 5 nombres dans le Cantus Firmus pour que le problème soit valide."));
+        return;
+    }
+
     if (numVoicesCB.getSelectedItemIndex() == -1)
     {
         showAlert(juce::AlertWindow::WarningIcon,
@@ -281,6 +316,25 @@ void LeftPanel::triggerNextSolution()
 {
     prepareOutputFile();
     appController.startNextSolution(midiOutFileToGenerate.getFullPathName());
+}
+
+/*
+//==============================================================================
+   Demande la sauvegarde de la solution courante.
+
+   Pour sauvegarder, il faut d'abord qu'une solution ait été générée
+   et affichée dans la Drag Zone.
+//==============================================================================
+*/
+void LeftPanel::triggerSaveSolution()
+{
+    if (midiItem == nullptr || ! midiItem->file.existsAsFile())
+    {
+        showAlert(juce::AlertWindow::WarningIcon,
+                  juce::String::fromUTF8("Save solution"),
+                  juce::String::fromUTF8("Veuillez générer une solution avant de la sauvegarder."));
+        return;
+    }
 }
 
 

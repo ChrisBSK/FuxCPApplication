@@ -80,6 +80,7 @@ private:
     // Boutons d'action
     juce::TextButton generateButton;
     juce::TextButton nextSolutionButton;
+    juce::TextButton saveSolutionButton;
     juce::TextButton clearButton;
 
     // État visuel de la colonne Search
@@ -111,6 +112,7 @@ private:
     // Layout interne
     void layoutMinimizationModePanel(juce::Rectangle<int> columnBounds);
     void layoutButtons(juce::Rectangle<int> buttonArea);
+    void bringActionButtonsToFront();
 
 
 

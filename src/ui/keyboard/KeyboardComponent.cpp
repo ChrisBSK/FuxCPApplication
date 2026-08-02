@@ -12,6 +12,14 @@ KeyboardComponent::KeyboardComponent(juce::MidiKeyboardState& state)
 
     midiKeyboard.setScrollButtonsVisible(true);
 
+    /*
+        Seul le clavier interne doit recevoir les clics.
+
+        Si le composant parent dépasse visuellement autour du clavier,
+        cette zone vide laisse passer la souris aux autres composants.
+    */
+    setInterceptsMouseClicks(false, true);
+
     setWantsKeyboardFocus(true);
 
     state.addListener(this);
