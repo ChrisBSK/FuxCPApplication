@@ -10,8 +10,17 @@ set(CMAKE_CXX_STANDARD 17)
 add_subdirectory(externals/JUCE)
 add_subdirectory(externals/FuxCP/FuxCP/c++)
 
-juce_add_gui_app(myproject
+juce_add_plugin(myproject
         PRODUCT_NAME "myproject"
+        COMPANY_NAME "ChrisBakashika"
+        IS_SYNTH TRUE                   # Dit à GarageBand de proposer le plug-in sur une piste "instrument logiciel"
+        NEEDS_MIDI_INPUT TRUE           # Permet de jouer le Cantus firmus sur un clavier MIDI (amélioration future)
+        NEEDS_MIDI_OUTPUT FALSE         # Pas besoin, la sortie est le fichier MIDI
+        PLUGIN_MANUFACTURER_CODE Chba   # CODE à 4 lettres exigés par Apple
+        PLUGIN_CODE Fuxp                # CODE à 4 lettres exigés par Apple
+        FORMATS AU Standalone           # Version Standalone (perso) + Version AU (publique)
+        COPY_PLUGIN_AFTER_BUILD FALSE    # installe .component généré dans ~/Library/Audio/Plug-Ins/Components/
+                                        # à chaque build.
 )
 
 juce_add_binary_data(AppAssets
@@ -20,7 +29,14 @@ juce_add_binary_data(AppAssets
 )
 
 target_sources(myproject PRIVATE
-        src/ui/main.cpp
+
+        #src/ui/main.cpp # Version Standalone
+
+        # Plugin
+        src/plugin/PluginProcessor.cpp
+        src/plugin/PluginProcessor.h
+        src/plugin/PluginEditor.h
+
         src/ui/MainComponent.cpp
         src/ui/MainComponent.h
 
@@ -85,6 +101,8 @@ target_link_libraries(myproject PRIVATE
         juce::juce_core
         juce::juce_data_structures
 
+        juce::juce_audio_processors
+
         AppAssets
         FuxCPLib
 )
@@ -92,4 +110,47 @@ target_link_libraries(myproject PRIVATE
 target_compile_definitions(myproject PRIVATE
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
+)
+
+# =========================
+# Embarque Gecode dans le bundle de l'app
+#
+# Pour que l'app ne dépende plus du Gecode.framework installé localement
+#
+# Tout le monde peut l'utiliser maintenant.
+# =========================
+# =========================
+# Embarque Gecode dans chaque bundle généré (AU + Standalone)
+# =========================
+foreach(format_target myproject_AU myproject_Standalone)
+    add_custom_command(TARGET ${format_target} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_BUNDLE_CONTENT_DIR:${format_target}>/Frameworks"
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "/Library/Frameworks/gecode.framework/Versions/49/gecode"
+            "$<TARGET_BUNDLE_CONTENT_DIR:${format_target}>/Frameworks/libgecode.dylib"
+            COMMAND install_name_tool -id "@rpath/libgecode.dylib"
+            "$<TARGET_BUNDLE_CONTENT_DIR:${format_target}>/Frameworks/libgecode.dylib"
+            COMMAND install_name_tool -change
+            "gecode.framework/Versions/49/gecode"
+            "@rpath/libgecode.dylib"
+            "$<TARGET_FILE:${format_target}>"
+            COMMAND install_name_tool -add_rpath
+            "@loader_path/../Frameworks" "$<TARGET_FILE:${format_target}>"
+            COMMAND codesign --force -s -
+            "$<TARGET_BUNDLE_CONTENT_DIR:${format_target}>/Frameworks/libgecode.dylib"
+            COMMAND codesign --force -s -
+            "$<TARGET_BUNDLE_DIR:${format_target}>"
+            VERBATIM
+    )
+endforeach()
+
+#propre ajout de la copie
+add_custom_command(TARGET myproject_AU POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E remove_directory
+        "$ENV{HOME}/Library/Audio/Plug-Ins/Components/myproject.component"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "$<TARGET_BUNDLE_DIR:myproject_AU>"
+        "$ENV{HOME}/Library/Audio/Plug-Ins/Components/myproject.component"
+        VERBATIM
 )

@@ -3,8 +3,8 @@
 
 namespace
 {
-    constexpr int fixedWindowWidth = 1000;
-    constexpr int fixedWindowHeight = 560;
+    constexpr int fixedWindowWidth = 900;
+    constexpr int fixedWindowHeight = 420;
 }
 
 class MainWindow : public juce::DocumentWindow

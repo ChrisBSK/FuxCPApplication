@@ -384,7 +384,7 @@ private:
 
             counterpointRow.items.add(juce::FlexItem()
                 .withFlex(1.0f)
-                .withMinWidth(72.0f)
+                .withMinWidth(130.0f)
                 .withMargin(juce::FlexItem::Margin(0.0f, rightMargin, 0.0f, leftMargin)));
         }
 
@@ -1041,23 +1041,42 @@ private:
                                juce::Label& leftReferenceLabel,
                                juce::Label& rightReferenceLabel)
     {
-        // Réserve la colonne du label.
-        auto labelArea = row.removeFromLeft(70);
-        row.removeFromLeft(4);
+        // Ligne des repères (Smooth/Jumpy...) en bas, slider+label+shape au-dessus.
+        auto referenceArea = row.removeFromBottom(10);
 
-        // Réserve la ComboBox Shape à droite.
-        auto shapeBox = row.removeFromRight(48);
-        row.removeFromRight(5);
+        /*
+            Label, slider et ComboBox Shape se répartissent la largeur réelle
+            de la ligne via FlexBox, au lieu de largeurs fixes en pixels :
+            le slider prend tout ce qui reste une fois label et shape placés
+            à leur taille minimale.
+        */
+        juce::FlexBox mainRowBox;
+        mainRowBox.flexDirection = juce::FlexBox::Direction::row;
+        mainRowBox.alignItems = juce::FlexBox::AlignItems::stretch;
 
-        // Le reste devient la zone du slider et de ses repères.
-        auto sliderArea = row;
-        auto referenceArea = sliderArea.removeFromTop(10);
+        mainRowBox.items.add(juce::FlexItem(label)
+            .withFlex(0.0f, 1.0f, 60.0f)
+            .withMinWidth(34.0f)
+            .withMargin(juce::FlexItem::Margin(0.0f, 4.0f, 0.0f, 0.0f)));
 
-        label.setBounds(labelArea.withY(sliderArea.getY()).withHeight(sliderArea.getHeight()));
-        slider.setBounds(sliderArea.reduced(0, 1));
-        shapeSelector.setBounds(shapeBox.withHeight(17).reduced(0, 1));
-        leftReferenceLabel.setBounds(referenceArea.removeFromLeft(referenceArea.getWidth() / 2));
-        rightReferenceLabel.setBounds(referenceArea);
+        mainRowBox.items.add(juce::FlexItem(slider)
+            .withFlex(1.0f)
+            .withMinWidth(20.0f));
+
+        mainRowBox.items.add(juce::FlexItem(shapeSelector)
+            .withFlex(0.0f, 1.0f, 44.0f)
+            .withMinWidth(30.0f)
+            .withHeight(17.0f)
+            .withMargin(juce::FlexItem::Margin(0.0f, 0.0f, 0.0f, 5.0f)));
+
+        mainRowBox.performLayout(row);
+
+        // Les repères gauche/droite restent alignés sous le slider, pas sous toute la ligne.
+        const auto sliderBounds = mainRowBox.items[1].currentBounds.toNearestInt();
+        auto referenceRow = referenceArea.withX(sliderBounds.getX()).withWidth(sliderBounds.getWidth());
+
+        leftReferenceLabel.setBounds(referenceRow.removeFromLeft(referenceRow.getWidth() / 2));
+        rightReferenceLabel.setBounds(referenceRow);
     }
 
     /*
@@ -1067,18 +1086,31 @@ private:
                              ShapeControlSliders& controls,
                              ShapeControlLabels& labels)
     {
-        // Indentation pour aligner les mini-sliders sous le slider principal.
-        row = row.withTrimmedLeft(18).withTrimmedRight(96);
+        // Indentation proportionnelle à la largeur réelle de la colonne,
+        // plutôt qu'une marge fixe qui peut dépasser une colonne étroite.
+        const int indent = juce::jmax(6, row.getWidth() / 12);
+        row = row.withTrimmedLeft(indent).withTrimmedRight(indent);
 
         for (int controlIndex = 0; controlIndex < shapeControlCount; ++controlIndex)
         {
-            // Chaque ligne contient un label partX puis son mini-slider.
+            // Chaque ligne contient un label partX puis son mini-slider,
+            // répartis via FlexBox pour rester dans la largeur disponible.
             auto line = row.removeFromTop(10);
-            auto labelArea = line.removeFromLeft(37);
-            line.removeFromLeft(4);
 
-            labels[controlIndex].setBounds(labelArea);
-            controls[controlIndex].setBounds(line.reduced(0, 1));
+            juce::FlexBox lineBox;
+            lineBox.flexDirection = juce::FlexBox::Direction::row;
+            lineBox.alignItems = juce::FlexBox::AlignItems::stretch;
+
+            lineBox.items.add(juce::FlexItem(labels[controlIndex])
+                .withFlex(0.0f, 1.0f, 34.0f)
+                .withMinWidth(22.0f)
+                .withMargin(juce::FlexItem::Margin(0.0f, 4.0f, 0.0f, 0.0f)));
+
+            lineBox.items.add(juce::FlexItem(controls[controlIndex])
+                .withFlex(1.0f)
+                .withMinWidth(14.0f));
+
+            lineBox.performLayout(line);
         }
     }
 
@@ -1236,7 +1268,7 @@ private:
     {
         auto controlsBox = getCounterpointControlsBounds(counterpointArea);
 
-        const int slidersWidth = juce::jmin(250, juce::jmax(190, counterpointArea.getWidth() - 18));
+        const int slidersWidth = juce::jmin(250, juce::jmax(110, counterpointArea.getWidth() - 18));
         const int slidersY = controlsBox.getBottom() + 10;
         const int slidersHeight = juce::jmax(0, counterpointArea.getBottom() - slidersY);
 

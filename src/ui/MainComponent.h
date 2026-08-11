@@ -1,5 +1,6 @@
 #pragma once
 
+#include <juce_audio_utils/juce_audio_utils.h>
 #include <juce_gui_basics/juce_gui_basics.h>
 
 // ===== UI =====
@@ -31,7 +32,10 @@ class MainComponent : public juce::Component,
                       public juce::DragAndDropContainer
 {
 public:
-    MainComponent();
+    //MainComponent(); #Version standalone
+
+    MainComponent(AppController& controllerToUse, juce::MidiKeyboardState& keyboardStateToUse); // # Version AU
+
     ~MainComponent() override;
 
     // ===== UI =====
@@ -39,9 +43,15 @@ public:
     void paintOverChildren(juce::Graphics& g) override;
     void resized() override;
 
+
     // ===== Audio =====
+    // ====== Etape 1 Construction Plug-in ======
+    /*
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill);
     void prepareToPlay(int, double sampleRate);
+    */
+
+
 
 private:
     /*
@@ -76,7 +86,12 @@ private:
     // =========================
     // CONTROLLER
     // =========================
-    AppController appController;
+
+    // ====== Etape 1 Construction Plug-in ======
+    //AppController appController;     #Version Standalone
+
+    AppController& appController; // MainComponent.h reçoit les dépendances au lieu de les posséder
+
 
     // =========================
     // UI
@@ -96,17 +111,27 @@ private:
     // =========================
     // MIDI / KEYBOARD
     // =========================
-    juce::MidiKeyboardState keyboardState;
+
+    // ====== Etape 1 Construction Plug-in ======
+    //juce::MidiKeyboardState keyboardState;    # Version Standalone
+    juce::MidiKeyboardState& keyboardState;
+
     KeyboardComponent keyboard { keyboardState };
 
     // =========================
     // AUDIO
     // =========================
-    SimpleSynth synth;
-    AudioPlayer audioPlayer { keyboardState };
+    // ====== Etape 1 Construction Plug-in ======
+        // supression de l'audio dans le main, sachant que la fenêtre peut disparaitre
 
+    /*SimpleSynth synth;
+    AudioPlayer audioPlayer { keyboardState };
     juce::AudioDeviceManager deviceManager;
     juce::AudioSourcePlayer player;
+
+    */
+
+
 
     // =========================
     // UI Helpers

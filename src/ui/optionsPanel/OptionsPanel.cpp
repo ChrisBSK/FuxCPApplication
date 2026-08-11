@@ -559,7 +559,7 @@ void OptionsPanel::resized()
     // Zone centrale : contrepoints, sliders et shapes.
     mainRow.items.add(juce::FlexItem(workspaceColumn)
         .withFlex(1.25f, 1.0f, 640.0f)
-        .withMinWidth(390.0f)
+        .withMinWidth(480.0f)
         .withMargin(juce::FlexItem::Margin(0.0f, (float) columnGap, 0.0f, 0.0f)));
 
     // Colonne droite : Search et priorités du solveur.
@@ -660,9 +660,9 @@ void OptionsPanel::layoutMinimizationModePanel(juce::Rectangle<int> columnBounds
 */
 void OptionsPanel::layoutButtons(juce::Rectangle<int> buttonArea)
 {
-    constexpr int buttonWidth = 118;
-    constexpr int buttonHeight = 25;
-    constexpr int spacing = 5;
+    constexpr int buttonWidth = 150;
+    constexpr int buttonHeight = 34;
+    constexpr int spacing = 8;
 
     /*
         On crée une colonne de boutons.

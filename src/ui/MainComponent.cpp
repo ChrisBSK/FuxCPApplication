@@ -44,7 +44,7 @@ void MainComponent::SimplePage::resized()
 //==============================================================================
 // Constructor
 //==============================================================================
-
+/*
 MainComponent::MainComponent()
 {
     setSize(1000, 560);
@@ -133,17 +133,60 @@ MainComponent::MainComponent()
     tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 500);
 
     showPage(CurrentPage::mainScreen);
+}*/
+
+MainComponent::MainComponent(AppController& controllerToUse, juce::MidiKeyboardState& keyboardStateToUse)
+    : appController(controllerToUse), keyboardState(keyboardStateToUse)
+{
+    setSize(900, 420);
+
+    addAndMakeVisible(header);
+    addAndMakeVisible(optionsPanel);
+    addAndMakeVisible(keyboard);
+    addAndMakeVisible(savedSolutionsPage);
+    addAndMakeVisible(solverExplanationPage);
+    addAndMakeVisible(aboutPage);
+
+
+    keyboard.onNotePressed = [this](int midiNote)
+    {
+        leftPanel.addNoteFromKeyboard(midiNote);
+    };
+
+    // =========================
+    // SYNCHRONISATION UI (liaisons entre composants)
+    // =========================
+
+    //callback generation
+    appController.setLeftPanel(&leftPanel);
+
+    appController.setGenerationService(&leftPanel.getGenerationService());
+
+    // LeftPanel écoute les changements de génération
+    leftPanel.connectToGenerationState(appController.getGenerationState());
+
+    //relier les widgets des contraintes d'OptionPanel à AppController
+    optionsPanel.setAppController(&appController);
+
+    //sync UI
+    leftPanel.setOptionsPanel(&optionsPanel);
+
+    //boutoun Generate
+    optionsPanel.setLeftPanel(&leftPanel);
+
+    optionsPanel.setNumVoices(defaultVoiceCount);
+
+
+    tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 500);
+    showPage(CurrentPage::mainScreen);
 }
+
 
 //==============================================================================
 // Destructor
 //==============================================================================
 
-MainComponent::~MainComponent()
-{
-    player.setSource(nullptr);
-    deviceManager.removeAudioCallback(&player);
-}
+MainComponent::~MainComponent() = default;
 
 //==============================================================================
 // Paint
@@ -183,7 +226,7 @@ void MainComponent::resized()
     const int headerHeight = juce::jlimit(28, 42, static_cast<int>(windowHeight * 0.055f));
     // Clavier plus large et moins haut :
     // les touches restent lisibles sans prendre trop d'espace vertical.
-    const int keyboardHeight = juce::jlimit(92, 122, static_cast<int>(windowHeight * 0.17f));
+    const int keyboardHeight = juce::jlimit(50, 75, static_cast<int>(windowHeight * 0.11f));
 
     juce::FlexBox mainColumn;
     mainColumn.flexDirection = juce::FlexBox::Direction::column;
@@ -203,8 +246,9 @@ void MainComponent::resized()
 
     optionsPanel.setLowerReservedHeight(keyboardHeight);
 
-    const auto workspaceBounds = optionsPanel.getWorkspaceBounds()
-        .translated(optionsPanel.getX(), optionsPanel.getY());
+    //version standalone du clavier, ne va pas sur la version AU (les boutons et keyboard se chevauchent)
+    /*const auto workspaceBounds = optionsPanel.getWorkspaceBounds()
+    .translated(optionsPanel.getX(), optionsPanel.getY());
 
     const int keyboardWidth = juce::jmin(workspaceBounds.getWidth() + 380,
                                          getWidth() - margin * 2);
@@ -212,6 +256,26 @@ void MainComponent::resized()
     const int keyboardY = optionsPanel.getBottom() - keyboardHeight;
 
     // Le clavier est centré sur le rectangle arrondi du milieu.
+    keyboard.setBounds(keyboardX,
+                       keyboardY,
+                       keyboardWidth,
+                       keyboardHeight);*/
+
+    const auto leftPanelBounds = optionsPanel.getLeftPanelBounds()
+    .translated(optionsPanel.getX(), optionsPanel.getY());
+
+    // L'espace disponible pour le clavier commence après le LeftPanel,
+    // garantit qu'il ne peut jamais recouvrir les boutons Generate/Next solution/etc.
+    const int keyboardAreaLeft = leftPanelBounds.getRight() + margin;
+    const int keyboardAreaRight = getWidth() - margin;
+    const int keyboardAreaWidth = juce::jmax(0, keyboardAreaRight - keyboardAreaLeft);
+
+    constexpr int maxKeyboardWidth = 900;
+
+    const int keyboardWidth = juce::jmin(keyboardAreaWidth, maxKeyboardWidth);
+    const int keyboardX = keyboardAreaLeft + (keyboardAreaWidth - keyboardWidth) / 2;
+    const int keyboardY = optionsPanel.getBottom() - keyboardHeight;
+
     keyboard.setBounds(keyboardX,
                        keyboardY,
                        keyboardWidth,
@@ -236,32 +300,3 @@ void MainComponent::showPage(CurrentPage page)
     aboutPage.setVisible(currentPage == CurrentPage::about);
 }
 
-//==============================================================================
-// AUDIO CALLBACK
-//==============================================================================
-
-void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
-{
-    auto* buffer = bufferToFill.buffer;
-    buffer->clear();
-
-    juce::MidiBuffer midi;
-
-    keyboardState.processNextMidiBuffer(
-        midi,
-        bufferToFill.startSample,
-        bufferToFill.numSamples,
-        true
-    );
-
-    synth.render(*buffer, midi);
-}
-
-//==============================================================================
-// AUDIO PREP
-//==============================================================================
-
-void MainComponent::prepareToPlay(int, double sampleRate)
-{
-    synth.prepare(sampleRate);
-}
