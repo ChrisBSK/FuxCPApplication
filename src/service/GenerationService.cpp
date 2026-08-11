@@ -377,6 +377,28 @@ namespace
     }
 
     /*
+        Convertit la méthode de minimisation de l'application vers FuxCP.
+
+        L'interface garde des noms simples.
+        FuxCP attend les constantes définies par Dorian :
+        - OBJECTIVE_LEX
+        - OBJECTIVE_SUMWEIGHTED
+    */
+    ObjectiveMode mapMinimizationMethodToFux(ConstraintSettings::MinimizationMethod method)
+    {
+        switch (method)
+        {
+            case ConstraintSettings::MinimizationMethod::lexicographic:
+                return OBJECTIVE_LEX;
+
+            case ConstraintSettings::MinimizationMethod::weightedSum:
+                return OBJECTIVE_SUMWEIGHTED;
+        }
+
+        return OBJECTIVE_LEX;
+    }
+
+    /*
         Construit le CostModel complet envoyé à FuxCP.
 
         C'est ici que les réglages de l'interface deviennent des données
@@ -727,7 +749,7 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
         // Timeout Gecode
         // =========================
         Gecode::Search::Options opts;
-        Gecode::Search::TimeStop timeout(1000); // Laisse le BAB optimiser les coûts, pas seulement trouver une solution.
+        Gecode::Search::TimeStop timeout(20000); // Laisse le BAB optimiser les coûts, pas seulement trouver une solution.
         opts.stop = &timeout;
         opts.threads = 1;
 
@@ -979,6 +1001,12 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
         std::cout << cost << " ";
     std::cout << "\n";
 
+    const ObjectiveMode objectiveMode = mapMinimizationMethodToFux(settings.getMinimizationMethod());
+
+    std::cout << "\n=== MINIMIZATION METHOD SENT TO FUXCP ===\n";
+    std::cout << (objectiveMode == OBJECTIVE_SUMWEIGHTED ? "Weighted Sum" : "Lexicographic")
+              << "\n";
+
     std::cout << "\n";
 
     // =========================
@@ -1011,7 +1039,8 @@ CounterpointProblem* GenerationService::createFuxProblem(const CantusProblem& pr
         vTypeFux,
         costModel,
         importanceStorage,
-        settings.getBorrowMode()
+        settings.getBorrowMode(),
+        objectiveMode
     );
 }
 

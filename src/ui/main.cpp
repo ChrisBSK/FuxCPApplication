@@ -11,7 +11,7 @@ class MainWindow : public juce::DocumentWindow
 {
 public:
     MainWindow() 
-        : DocumentWindow("FuxCP App",
+        : DocumentWindow("Fuxophone",
                          juce::Colours::darkgrey,
                          DocumentWindow::allButtons)
     {

@@ -7,7 +7,8 @@
     Ce composant ne connaît pas le contenu des pages.
     Il permet seulement à l'utilisateur de choisir une page :
     - Main Screen,
-    - Glossary,
+    - Saved configurations,
+    - Solver,
     - About.
 
     MainComponent reçoit ensuite le choix via onPageChanged.
@@ -18,7 +19,8 @@ public:
     enum class Page
     {
         mainScreen,
-        glossary,
+        savedSolutions,
+        solver,
         about
     };
 
@@ -59,7 +61,8 @@ private:
     Page selectedPage = Page::mainScreen;
 
     TabButton mainScreenButton;
-    TabButton glossaryButton;
+    TabButton savedSolutionsButton;
+    TabButton solverButton;
     TabButton aboutButton;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HeaderPanel);

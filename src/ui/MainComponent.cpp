@@ -55,7 +55,8 @@ MainComponent::MainComponent()
     addAndMakeVisible(header);
     addAndMakeVisible(optionsPanel);
     addAndMakeVisible(keyboard);
-    addAndMakeVisible(glossaryPage);
+    addAndMakeVisible(savedSolutionsPage);
+    addAndMakeVisible(solverExplanationPage);
     addAndMakeVisible(aboutPage);
 
 
@@ -86,8 +87,12 @@ MainComponent::MainComponent()
                 showPage(CurrentPage::mainScreen);
                 break;
 
-            case HeaderPanel::Page::glossary:
-                showPage(CurrentPage::glossary);
+            case HeaderPanel::Page::savedSolutions:
+                showPage(CurrentPage::savedSolutions);
+                break;
+
+            case HeaderPanel::Page::solver:
+                showPage(CurrentPage::solver);
                 break;
 
             case HeaderPanel::Page::about:
@@ -176,7 +181,9 @@ void MainComponent::resized()
     // puis FlexBox distribue verticalement le reste.
     const int margin = juce::jlimit(2, 8, windowWidth / 220);
     const int headerHeight = juce::jlimit(28, 42, static_cast<int>(windowHeight * 0.055f));
-    const int keyboardHeight = juce::jlimit(118, 160, static_cast<int>(windowHeight * 0.22f));
+    // Clavier plus large et moins haut :
+    // les touches restent lisibles sans prendre trop d'espace vertical.
+    const int keyboardHeight = juce::jlimit(92, 122, static_cast<int>(windowHeight * 0.17f));
 
     juce::FlexBox mainColumn;
     mainColumn.flexDirection = juce::FlexBox::Direction::column;
@@ -190,7 +197,8 @@ void MainComponent::resized()
     mainColumn.performLayout(getLocalBounds());
 
     auto pageArea = optionsPanel.getBounds();
-    glossaryPage.setBounds(pageArea);
+    savedSolutionsPage.setBounds(pageArea);
+    solverExplanationPage.setBounds(pageArea);
     aboutPage.setBounds(pageArea);
 
     optionsPanel.setLowerReservedHeight(keyboardHeight);
@@ -198,7 +206,7 @@ void MainComponent::resized()
     const auto workspaceBounds = optionsPanel.getWorkspaceBounds()
         .translated(optionsPanel.getX(), optionsPanel.getY());
 
-    const int keyboardWidth = juce::jmin(workspaceBounds.getWidth() + 140,
+    const int keyboardWidth = juce::jmin(workspaceBounds.getWidth() + 380,
                                          getWidth() - margin * 2);
     const int keyboardX = workspaceBounds.getCentreX() - keyboardWidth / 2;
     const int keyboardY = optionsPanel.getBottom() - keyboardHeight;
@@ -223,7 +231,8 @@ void MainComponent::showPage(CurrentPage page)
     optionsPanel.setVisible(showMainScreen);
     keyboard.setVisible(showMainScreen);
 
-    glossaryPage.setVisible(currentPage == CurrentPage::glossary);
+    savedSolutionsPage.setVisible(currentPage == CurrentPage::savedSolutions);
+    solverExplanationPage.setVisible(currentPage == CurrentPage::solver);
     aboutPage.setVisible(currentPage == CurrentPage::about);
 }
 

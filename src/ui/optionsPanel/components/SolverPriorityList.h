@@ -21,11 +21,20 @@
 
     Le composant ne modifie pas directement le modèle.
     Il renvoie seulement le nouvel ordre via onPriorityOrderChanged.
+
+    En mode Weighted Sum, la même liste affiche aussi le poids associé :
+    weight = 15 - rank.
     =====================================================================
 */
 class SolverPriorityList : public juce::Component
 {
 public:
+
+    enum class DisplayMode
+    {
+        rank,
+        weight
+    };
 
     /*
         Crée les lignes de priorité et connecte leur sélection.
@@ -52,6 +61,23 @@ public:
 
     // Callback envoyé au parent quand l'ordre des priorités change.
     std::function<void(const std::vector<int>&)> onPriorityOrderChanged;
+
+    /*
+        Choisit ce que la colonne de gauche affiche.
+
+        - Lexicographic : la liste reste comme avant.
+        - Weighted Sum : on ajoute le poids de chaque contrainte.
+    */
+    void setDisplayMode(DisplayMode newDisplayMode)
+    {
+        if (displayMode == newDisplayMode)
+            return;
+
+        displayMode = newDisplayMode;
+        refreshRows();
+        resized();
+        repaint();
+    }
 
     /*
         Active ou désactive l'affichage compact.
@@ -269,11 +295,13 @@ private:
         // Callback appelé quand l'utilisateur clique sur cette ligne.
         std::function<void()> onClick;
 
-        // Met à jour le rang et le nom affichés par la ligne.
-        void setContent(int newRank, juce::String newName)
+        // Met à jour le rang, le nom et le poids affichés par la ligne.
+        void setContent(int newRank, juce::String newName, int newWeight, bool shouldShowWeight)
         {
             rank = newRank;
             name = std::move(newName);
+            weight = newWeight;
+            showWeight = shouldShowWeight;
             repaint();
         }
 
@@ -297,6 +325,7 @@ private:
             La ligne est découpée en deux zones :
             - la bulle de rang à gauche,
             - le nom de priorité à droite.
+            En Weighted Sum, un petit poids apparaît encore plus à droite.
         */
         void paint(juce::Graphics& g) override
         {
@@ -318,6 +347,19 @@ private:
 
             // Dessine les trois éléments visuels de la ligne.
             drawRankBubble(g, bubble);
+
+            if (showWeight)
+            {
+                auto weightArea = area.removeFromRight(compactMode ? 25 : 34);
+                area.removeFromRight(compactMode ? 2 : 4);
+
+                auto multiplyArea = area.removeFromRight(compactMode ? 9 : 12);
+                area.removeFromRight(compactMode ? 2 : 4);
+
+                drawMultiplySign(g, multiplyArea);
+                drawWeightTag(g, weightArea);
+            }
+
             drawPriorityName(g, area);
             drawSelection(g, getLocalBounds());
         }
@@ -363,6 +405,50 @@ private:
         }
 
         /*
+            Dessine le poids utilisé par Weighted Sum.
+
+            Le rang reste visible à gauche.
+            Ce tag ajoute simplement l'information de poids sur la même ligne.
+        */
+        void drawWeightTag(juce::Graphics& g, juce::Rectangle<int> bounds)
+        {
+            g.setColour(juce::Colour(0xff243f3f));
+            g.fillRoundedRectangle(bounds.toFloat(), compactMode ? 3.0f : 5.0f);
+
+            g.setColour(juce::Colours::white.withAlpha(0.9f));
+            g.setFont(juce::FontOptions(
+                compactMode ? juce::jlimit(6.5f, 8.0f, bounds.getHeight() * 0.52f)
+                            : juce::jlimit(9.0f, 11.0f, bounds.getHeight() * 0.5f),
+                juce::Font::bold
+            ));
+
+            g.drawFittedText("w" + juce::String(weight),
+                             bounds.reduced(compactMode ? 2 : 4, 1),
+                             juce::Justification::centred,
+                             1);
+        }
+
+        /*
+            Dessine le signe de multiplication.
+
+            En Weighted Sum, chaque ligne se lit :
+            contrainte x poids.
+        */
+        void drawMultiplySign(juce::Graphics& g, juce::Rectangle<int> bounds)
+        {
+            g.setColour(juce::Colours::white.withAlpha(0.75f));
+            g.setFont(juce::FontOptions(
+                compactMode ? 7.0f : 10.0f,
+                juce::Font::bold
+            ));
+
+            g.drawFittedText("x",
+                             bounds,
+                             juce::Justification::centred,
+                             1);
+        }
+
+        /*
             Dessine le nom court de la contrainte FuxCP.
         */
         void drawPriorityName(juce::Graphics& g, juce::Rectangle<int> bounds)
@@ -383,6 +469,8 @@ private:
         }
 
         int rank = 0;
+        int weight = 0;
+        bool showWeight = false;
         bool isSelected = false;
         bool compactMode = false;
         juce::String name;
@@ -465,9 +553,25 @@ private:
     {
         for (size_t i = 0; i < rows.size(); ++i)
         {
-            rows[i].setContent(static_cast<int>(i + 1), priorityNames[i]);
+            const int rank = static_cast<int>(i + 1);
+
+            rows[i].setContent(rank,
+                               priorityNames[i],
+                               getWeightForRank(rank),
+                               displayMode == DisplayMode::weight);
             rows[i].setSelected(static_cast<int>(i) == selectedIndex);
         }
+    }
+
+    /*
+        Calcule le poids associé à un rang.
+
+        En Weighted Sum, Dorian utilise :
+        weight = 15 - rank.
+    */
+    int getWeightForRank(int rank) const
+    {
+        return static_cast<int>(priorityCount + 1) - rank;
     }
 
     /*
@@ -510,4 +614,6 @@ private:
     int selectedIndex = -1;
     // Mode d'affichage dense utilisé dans la colonne Search.
     bool compactMode = false;
+    // Lecture actuelle de la colonne gauche : rang ou poids.
+    DisplayMode displayMode = DisplayMode::rank;
 };

@@ -209,7 +209,7 @@ private:
         }
     };
 
-    // État actuellement sélectionné dans le panneau.
+    // État actuellement sélectionné dans le panneau. (au lancement de l'App)
     SearchMethod selectedSearchMethod = SearchMethod::bab;
     MinimizationMode selectedMinimizationMode = MinimizationMode::lexicographic;
 

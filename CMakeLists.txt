@@ -36,6 +36,11 @@ target_sources(myproject PRIVATE
         src/ui/header/HeaderPanel.cpp
         src/ui/header/HeaderPanel.h
 
+        src/ui/pages/SolverExplanationPage.cpp
+        src/ui/pages/SolverExplanationPage.h
+        src/ui/pages/AboutPage.cpp
+        src/ui/pages/AboutPage.h
+
         src/ui/keyboard/KeyboardComponent.cpp
         src/ui/keyboard/KeyboardComponent.h
 
@@ -51,6 +56,9 @@ target_sources(myproject PRIVATE
         src/ui/optionsPanel/components/SolverPriorityList.h
         src/ui/optionsPanel/components/ArrowIconButton.h
         src/ui/optionsPanel/components/VoiceWorkspace.h
+        src/ui/optionsPanel/components/MinimizationModePanel.h
+
+
 
         src/audio/synth/SimpleSynth.cpp
         src/audio/synth/SimpleSynth.h

@@ -400,7 +400,12 @@ private:
         Prépare les ComboBox Species et Type pour chaque contrepoint.
 
         Species propose les valeurs 1 à 5.
-        Type propose les valeurs -3 à 2, converties en ids positifs pour JUCE.
+        Type propose les valeurs 2 à -3.
+        L'ordre visuel va du plus haut vers le plus bas :
+        - Type 2 en haut,
+        - Type -3 en bas.
+
+        Les valeurs sont ensuite converties en ids positifs pour JUCE.
     */
     void setupCounterpointSelectors()
     {
@@ -413,7 +418,8 @@ private:
             for (int species = 1; species <= 5; ++species)
                 speciesSelector.addItem("Species " + juce::String(species), species);
 
-            for (int type = -3; type <= 2; ++type)
+            // Ordre visuel : les voix hautes sont affichées en haut du menu.
+            for (int type = 2; type >= -3; --type)
                 typeSelector.addItem("Type " + juce::String(type), typeToComboBoxId(type));
 
             // Applique le style compact commun aux ComboBox.
@@ -1187,21 +1193,17 @@ private:
     /*
         Calcule la zone du titre Counterpoint X.
 
-        Le titre reste centré en haut de la colonne.
+        Le titre prend presque toute la largeur de la colonne.
+        Il se lit comme un bandeau de section, pas comme un bouton.
     */
     juce::Rectangle<int> getCounterpointTitleBounds(juce::Rectangle<int> counterpointArea) const
     {
-        const int titleBoxWidth = juce::jlimit(78,
-                                               118,
-                                               static_cast<int>(counterpointArea.getWidth() * 0.52f));
-        const int titleBoxHeight = 18;
+        const int titleBoxHeight = 20;
 
-        return {
-            counterpointArea.getCentreX() - titleBoxWidth / 2,
-            counterpointArea.getY() + 6,
-            titleBoxWidth,
-            titleBoxHeight
-        };
+        return counterpointArea
+            .withY(counterpointArea.getY() + 6)
+            .withHeight(titleBoxHeight)
+            .reduced(4, 0);
     }
 
     /*
@@ -1215,7 +1217,7 @@ private:
 
         const int controlsWidth = juce::jlimit(86, 126, counterpointArea.getWidth() - 34);
         const int controlsHeight = 16;
-        const int controlsY = titleBox.getBottom() + 12;
+        const int controlsY = titleBox.getBottom() + 10;
 
         return {
             counterpointArea.getCentreX() - controlsWidth / 2,
@@ -1265,8 +1267,11 @@ private:
     /*
         Dessine le bandeau Counterpoint X.
 
-        Les contrepoints actifs sont verts.
-        Les contrepoints inactifs sont gris.
+        Même logique visuelle que le LeftPanel :
+        les titres restent toujours verts pour montrer clairement les colonnes.
+
+        L'état actif/inactif est géré par les contrôles situés sous le titre,
+        pas par le titre lui-même.
     */
     void drawCounterpointTitle(juce::Graphics& g,
                                juce::Rectangle<int> titleBox,
@@ -1277,20 +1282,19 @@ private:
             return;
 
         const auto bounds = titleBox.toFloat().reduced(0.5f);
-        const auto backgroundColour = isActive
-                                    ? juce::Colour(0xff2f4f4f)
-                                    : juce::Colour(0xff3e3e3e);
+        (void) isActive;
 
-        // Fond, contour, puis texte centré.
+        const auto backgroundColour = juce::Colour(0xff2f4f4f);
+
+        // Fond de section : pas de contour, pour éviter l'effet bouton.
         g.setColour(backgroundColour);
-        g.fillRoundedRectangle(bounds, 5.0f);
-
-        g.setColour(juce::Colours::white.withAlpha(0.9f));
-        g.drawRoundedRectangle(bounds, 5.0f, 0.9f);
+        g.fillRoundedRectangle(bounds, 6.0f);
 
         g.setColour(juce::Colours::white);
-        g.setFont(juce::Font(juce::FontOptions(9.2f, juce::Font::bold)));
-        g.drawText(title, titleBox, juce::Justification::centred);
+        g.setFont(juce::Font(juce::FontOptions(12.5f, juce::Font::bold)));
+        g.drawText(title,
+                   titleBox.reduced(10, 0),
+                   juce::Justification::centredLeft);
     }
 
     /*

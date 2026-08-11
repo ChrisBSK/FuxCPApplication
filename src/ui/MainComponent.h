@@ -7,6 +7,8 @@
 #include "keyboard/KeyboardComponent.h"
 #include "leftPanel/LeftPanel.h"
 #include "optionsPanel/OptionsPanel.h"
+#include "pages/AboutPage.h"
+#include "pages/SolverExplanationPage.h"
 
 // ===== Core =====
 #include "../controller/AppController.h"
@@ -46,7 +48,7 @@ private:
         Page simple utilisée pour les onglets qui n'ont pas encore
         d'interface détaillée.
 
-        Elle permet de créer Glossary et About sans mélanger leur futur contenu
+        Elle permet de créer les pages secondaires sans mélanger leur futur contenu
         avec le code de la page principale.
     */
     class SimplePage : public juce::Component
@@ -66,7 +68,8 @@ private:
     enum class CurrentPage
     {
         mainScreen,
-        glossary,
+        savedSolutions,
+        solver,
         about
     };
 
@@ -81,14 +84,12 @@ private:
     HeaderPanel header;
     LeftPanel leftPanel { appController };
     OptionsPanel optionsPanel;
-    SimplePage glossaryPage {
-        "Glossary",
-        "Cette page servira à regrouper les définitions importantes du projet."
+    SimplePage savedSolutionsPage {
+        juce::String::fromUTF8("Saved configurations"),
+        juce::String::fromUTF8("Cette page servira à retrouver les configurations sauvegardées.")
     };
-    SimplePage aboutPage {
-        "About",
-        "Cette page servira à présenter l'application, le mémoire et les choix principaux."
-    };
+    SolverExplanationPage solverExplanationPage;
+    AboutPage aboutPage;
 
     CurrentPage currentPage = CurrentPage::mainScreen;
 

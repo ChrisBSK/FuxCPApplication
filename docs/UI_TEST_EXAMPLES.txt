@@ -1,0 +1,694 @@
+============================================================
+EXEMPLES DE TEST POUR L'INTERFACE FuxCP
+============================================================
+
+
+
+============================================================
+NOTATION MIDI RAPIDE
+============================================================
+
+C3 = 48
+D3 = 50
+E3 = 52
+F3 = 53
+G3 = 55
+A3 = 57
+B3 = 59
+
+C4 = 60
+D4 = 62
+E4 = 64
+F4 = 65
+G4 = 67
+A4 = 69
+B4 = 71
+C5 = 72
+
+En solfège :
+C = Do
+D = Ré
+E = Mi
+F = Fa
+G = Sol
+A = La
+B = Si
+
+
+============================================================
+EXEMPLE 1 — Génération de base
+============================================================
+
+Objectif :
+Vérifier que la génération de base fonctionne.
+
+Cantus Firmus à copier :
+60 62 64 65 67 65 64 62 60
+
+Traduction :
+C4 D4 E4 F4 G4 F4 E4 D4 C4
+
+Solfège :
+Do4 Ré4 Mi4 Fa4 Sol4 Fa4 Mi4 Ré4 Do4
+
+Réglages :
+- Number of voices : 2
+- Counterpoint 1 : Species 1, Type 0
+- Search Method : BAB
+- Minimization Method : Lexicographic
+- Ne pas mettre de shape
+- Laisser les sliders au minimum ou dans leur état par défaut
+
+À faire :
+1. Generate.
+2. Garder cette solution comme "solution de base".
+
+Effet attendu :
+Une solution valide est générée avec un contrepoint simple.
+
+
+============================================================
+EXEMPLE 2 — Next solution
+============================================================
+
+Objectif :
+Vérifier que Next solution donne une autre solution après une première génération.
+
+Cantus Firmus à copier :
+60 62 64 65 67 65 64 62 60
+
+Traduction :
+C4 D4 E4 F4 G4 F4 E4 D4 C4
+
+Solfège :
+Do4 Ré4 Mi4 Fa4 Sol4 Fa4 Mi4 Ré4 Do4
+
+Réglages :
+- Number of voices : 2
+- Counterpoint 1 : Species 1, Type 0
+- Search Method : BAB
+- Minimization Method : Lexicographic
+
+À faire :
+1. Generate.
+2. Écouter ou noter la solution.
+3. Cliquer Next solution.
+4. Comparer avec la première solution.
+
+Effet attendu :
+La deuxième solution doit être différente ou au moins issue d'un autre rang de recherche.
+Cela montre que l'application garde le problème courant et peut demander une autre solution.
+
+
+============================================================
+EXEMPLE 3 — DFS contre BAB
+============================================================
+
+Objectif :
+Comparer une recherche rapide de type DFS avec BAB.
+
+Cantus Firmus à copier :
+60 62 65 64 67 65 64 62 60
+
+Traduction :
+C4 D4 F4 E4 G4 F4 E4 D4 C4
+
+Solfège :
+Do4 Ré4 Fa4 Mi4 Sol4 Fa4 Mi4 Ré4 Do4
+
+Réglages de base :
+- Number of voices : 2
+- Counterpoint 1 : Species 1, Type 0
+- Minimization Method : Lexicographic
+
+Solution A :
+- Search Method : DFS
+- Generate
+
+Solution B :
+- Search Method : BAB
+- Generate
+
+Effet attendu :
+DFS cherche surtout une solution valide.
+BAB cherche une solution optimisée selon les coûts.
+La solution BAB doit généralement paraître plus cohérente avec les priorités.
+
+
+============================================================
+EXEMPLE 4 — Lexicographic contre Weighted Sum
+============================================================
+
+Objectif :
+Montrer que Lexicographic et Weighted Sum ne lisent pas les priorités de la même manière.
+
+Cantus Firmus à copier :
+60 62 64 67 65 69 67 64 62 60
+
+Traduction :
+C4 D4 E4 G4 F4 A4 G4 E4 D4 C4
+
+Solfège :
+Do4 Ré4 Mi4 Sol4 Fa4 La4 Sol4 Mi4 Ré4 Do4
+
+Réglages de base :
+- Number of voices : 2
+- Counterpoint 1 : Species 1, Type 0
+- Search Method : BAB
+- Mettre "melodic" très haut dans la liste des priorités
+- Mettre "fifth" et "octave" plus bas
+
+Solution A :
+- Minimization Method : Lexicographic
+- Generate
+
+Solution B :
+- Minimization Method : Weighted Sum
+- Generate
+
+Effet attendu :
+En Lexicographic, le coût le plus prioritaire domine fortement.
+En Weighted Sum, chaque coût est multiplié par son poids puis additionné.
+La solution peut donc faire davantage de compromis.
+
+À regarder dans le terminal :
+=== MINIMIZATION METHOD SENT TO FUXCP ===
+Lexicographic
+
+puis :
+=== MINIMIZATION METHOD SENT TO FUXCP ===
+Weighted Sum
+
+
+============================================================
+EXEMPLE 5 — Changer l'ordre des priorités en Lexicographic
+============================================================
+
+Objectif :
+Montrer que la liste des priorités influence la solution.
+
+Cantus Firmus à copier :
+60 62 64 65 67 69 67 65 64 62 60
+
+Traduction :
+C4 D4 E4 F4 G4 A4 G4 F4 E4 D4 C4
+
+Solfège :
+Do4 Ré4 Mi4 Fa4 Sol4 La4 Sol4 Fa4 Mi4 Ré4 Do4
+
+Réglages :
+- Number of voices : 2
+- Counterpoint 1 : Species 1, Type 0
+- Search Method : BAB
+- Minimization Method : Lexicographic
+
+Solution A :
+- Laisser l'ordre des priorités par défaut
+- Generate
+
+Solution B :
+- Sélectionner "melodic"
+- Le monter avec la flèche vers le haut
+- Generate
+
+Effet attendu :
+Quand "melodic" devient plus prioritaire, la solution doit mieux respecter
+les préférences mélodiques avant les contraintes moins prioritaires.
+
+
+============================================================
+EXEMPLE 6 — Changer l'ordre des priorités en Weighted Sum
+============================================================
+
+Objectif :
+Montrer que les poids changent quand on déplace les priorités.
+
+Cantus Firmus à copier :
+60 62 64 65 67 69 67 65 64 62 60
+
+Traduction :
+C4 D4 E4 F4 G4 A4 G4 F4 E4 D4 C4
+
+Solfège :
+Do4 Ré4 Mi4 Fa4 Sol4 La4 Sol4 Fa4 Mi4 Ré4 Do4
+
+Réglages :
+- Number of voices : 2
+- Counterpoint 1 : Species 1, Type 0
+- Search Method : BAB
+- Minimization Method : Weighted Sum
+
+Solution A :
+- Laisser l'ordre par défaut
+- Regarder les poids affichés à droite
+- Generate
+
+Solution B :
+- Monter "melodic" dans la liste
+- Vérifier que son poids augmente
+- Generate
+
+Effet attendu :
+En Weighted Sum, déplacer une contrainte change son poids.
+Le coût associé à cette contrainte influence donc plus fortement la somme finale.
+
+
+============================================================
+EXEMPLE 7 — Melody moves : Smooth contre Jumpy
+============================================================
+
+Objectif :
+Tester le slider Melody moves, relié à steps1(s).
+
+Cantus Firmus à copier :
+60 62 64 65 67 65 64 62 60
+
+Traduction :
+C4 D4 E4 F4 G4 F4 E4 D4 C4
+
+Solfège :
+Do4 Ré4 Mi4 Fa4 Sol4 Fa4 Mi4 Ré4 Do4
+
+Réglages :
+- Number of voices : 2
+- Counterpoint 1 : Species 1, Type 0
+- Search Method : BAB
+- Minimization Method : Lexicographic
+- Aucune shape
+
+Solution A :
+- Melody moves : tout à gauche / Smooth
+- Generate
+
+Solution B :
+- Melody moves : tout à droite / Jumpy
+- Generate
+
+Effet attendu :
+Smooth favorise les mouvements conjoints.
+Jumpy autorise davantage les sauts mélodiques.
+
+
+============================================================
+EXEMPLE 8 — Interval colour : consonances contre dissonances mélodiques
+============================================================
+
+Objectif :
+Tester le slider Interval colour, relié à steps2(s).
+
+Cantus Firmus à copier :
+60 62 65 64 67 65 69 67 64 62 60
+
+Traduction :
+C4 D4 F4 E4 G4 F4 A4 G4 E4 D4 C4
+
+Solfège :
+Do4 Ré4 Fa4 Mi4 Sol4 Fa4 La4 Sol4 Mi4 Ré4 Do4
+
+Réglages :
+- Number of voices : 2
+- Counterpoint 1 : Species 1, Type 0
+- Search Method : BAB
+- Minimization Method : Lexicographic
+- Aucune shape
+
+Solution A :
+- Interval colour : tout à gauche
+- Generate
+
+Solution B :
+- Interval colour : tout à droite
+- Generate
+
+Effet attendu :
+À gauche, les dissonances mélodiques sont fortement pénalisées.
+À droite, les consonances parfaites mélodiques deviennent plus pénalisées.
+La couleur des intervalles mélodiques doit donc changer.
+
+
+============================================================
+EXEMPLE 9 — Perfect intervals : octaves contre fifths
+============================================================
+
+Objectif :
+Tester le slider Perfect intervals, relié à harmo(s).
+
+Cantus Firmus à copier :
+60 62 64 65 67 69 71 72
+
+Traduction :
+C4 D4 E4 F4 G4 A4 B4 C5
+
+Solfège :
+Do4 Ré4 Mi4 Fa4 Sol4 La4 Si4 Do5
+
+Réglages :
+- Number of voices : 2
+- Counterpoint 1 : Species 1, Type 0
+- Search Method : BAB
+- Minimization Method : Lexicographic
+- Aucune shape
+
+Solution A :
+- Perfect intervals : tout à gauche
+- Generate
+
+Solution B :
+- Perfect intervals : tout à droite
+- Generate
+
+Effet attendu :
+À gauche, les octaves sont plus pénalisées.
+À droite, les quintes sont plus pénalisées.
+La relation harmonique entre CF et CP doit changer.
+
+
+============================================================
+EXEMPLE 10 — Shape Linear sur Melody moves
+============================================================
+
+Objectif :
+Montrer qu'une shape modifie un slider sur la durée de la pièce.
+
+Cantus Firmus à copier :
+60 62 64 65 67 69 67 65 64 62 60
+
+Traduction :
+C4 D4 E4 F4 G4 A4 G4 F4 E4 D4 C4
+
+Solfège :
+Do4 Ré4 Mi4 Fa4 Sol4 La4 Sol4 Fa4 Mi4 Ré4 Do4
+
+Réglages :
+- Number of voices : 2
+- Counterpoint 1 : Species 1, Type 0
+- Search Method : BAB
+- Minimization Method : Lexicographic
+
+Solution A :
+- Melody moves : valeur fixe au milieu
+- Shape : aucune
+- Generate
+
+Solution B :
+- Melody moves : choisir Shape = Linear
+- Laisser les 5 parts par défaut
+- Generate
+
+Effet attendu :
+Au début, la shape favorise davantage Smooth.
+Vers la fin, elle pousse davantage vers Jumpy.
+La ligne peut donc devenir plus mobile ou plus sautillante dans la deuxième partie.
+
+
+============================================================
+EXEMPLE 11 — Shape Inverted V sur Melody moves
+============================================================
+
+Objectif :
+Montrer une forme qui monte puis redescend.
+
+Cantus Firmus à copier :
+60 62 64 65 67 69 71 69 67 65 64 62 60
+
+Traduction :
+C4 D4 E4 F4 G4 A4 B4 A4 G4 F4 E4 D4 C4
+
+Solfège :
+Do4 Ré4 Mi4 Fa4 Sol4 La4 Si4 La4 Sol4 Fa4 Mi4 Ré4 Do4
+
+Réglages :
+- Number of voices : 2
+- Counterpoint 1 : Species 1, Type 0
+- Search Method : BAB
+- Minimization Method : Lexicographic
+
+Solution A :
+- Melody moves : valeur fixe au milieu
+- Shape : aucune
+- Generate
+
+Solution B :
+- Melody moves : Shape = Inverted V
+- Parts par défaut : bas / moyen / haut / moyen / bas
+- Generate
+
+Effet attendu :
+Le milieu de la pièce doit être plus influencé par Jumpy.
+Le début et la fin doivent rester plus proches de Smooth.
+
+
+============================================================
+EXEMPLE 12 — Modifier les 5 parts d'une shape
+============================================================
+
+Objectif :
+Montrer que les mini-sliders part1-part5 changent la shape.
+
+Cantus Firmus à copier :
+60 62 64 65 67 69 71 69 67 65 64 62 60
+
+Traduction :
+C4 D4 E4 F4 G4 A4 B4 A4 G4 F4 E4 D4 C4
+
+Solfège :
+Do4 Ré4 Mi4 Fa4 Sol4 La4 Si4 La4 Sol4 Fa4 Mi4 Ré4 Do4
+
+Réglages :
+- Number of voices : 2
+- Counterpoint 1 : Species 1, Type 0
+- Search Method : BAB
+- Minimization Method : Lexicographic
+
+Solution A :
+- Melody moves : Shape = Inverted V
+- Garder les parts par défaut
+- Generate
+
+Solution B :
+- Garder Shape = Inverted V
+- Baisser part3
+- Monter part4
+- Generate
+
+Effet attendu :
+La forme n'est plus parfaitement symétrique.
+Le moment où le paramètre pousse vers Jumpy se déplace ou devient moins fort.
+
+
+============================================================
+EXEMPLE 13 — Shape M sur Interval colour
+============================================================
+
+Objectif :
+Tester une shape M sur steps2(s).
+
+Cantus Firmus à copier :
+60 62 65 64 67 69 67 65 64 62 60
+
+Traduction :
+C4 D4 F4 E4 G4 A4 G4 F4 E4 D4 C4
+
+Solfège :
+Do4 Ré4 Fa4 Mi4 Sol4 La4 Sol4 Fa4 Mi4 Ré4 Do4
+
+Réglages :
+- Number of voices : 2
+- Counterpoint 1 : Species 1, Type 0
+- Search Method : BAB
+- Minimization Method : Lexicographic
+
+Solution A :
+- Interval colour : valeur fixe au milieu
+- Shape : aucune
+- Generate
+
+Solution B :
+- Interval colour : Shape = M
+- Garder les parts par défaut
+- Generate
+
+Effet attendu :
+La couleur mélodique doit varier en plusieurs zones.
+La forme M crée deux moments plus forts dans la pièce.
+
+
+============================================================
+EXEMPLE 14 — Shape Step sur Perfect intervals
+============================================================
+
+Objectif :
+Tester une shape abrupte sur harmo(s).
+
+Cantus Firmus à copier :
+60 62 64 65 67 69 67 65 64 62 60
+
+Traduction :
+C4 D4 E4 F4 G4 A4 G4 F4 E4 D4 C4
+
+Solfège :
+Do4 Ré4 Mi4 Fa4 Sol4 La4 Sol4 Fa4 Mi4 Ré4 Do4
+
+Réglages :
+- Number of voices : 2
+- Counterpoint 1 : Species 1, Type 0
+- Search Method : BAB
+- Minimization Method : Lexicographic
+
+Solution A :
+- Perfect intervals : valeur fixe au milieu
+- Shape : aucune
+- Generate
+
+Solution B :
+- Perfect intervals : Shape = Step
+- Garder les parts par défaut
+- Generate
+
+Effet attendu :
+La première partie de la pièce applique un équilibre.
+La deuxième partie applique un autre équilibre.
+On doit observer un changement plus net dans les quintes/octaves entre début et fin.
+
+
+============================================================
+EXEMPLE 15 — Trois voix : deux contrepoints indépendants
+============================================================
+
+Objectif :
+Montrer que l'application fonctionne avec 3 voix au total :
+Cantus Firmus + CP1 + CP2.
+
+Cantus Firmus à copier :
+60 62 64 65 67 69 67 65 64 62 60
+
+Traduction :
+C4 D4 E4 F4 G4 A4 G4 F4 E4 D4 C4
+
+Solfège :
+Do4 Ré4 Mi4 Fa4 Sol4 La4 Sol4 Fa4 Mi4 Ré4 Do4
+
+Réglages :
+- Number of voices : 3
+- Counterpoint 1 : Species 1, Type -2
+- Counterpoint 2 : Species 1, Type 2
+- Search Method : BAB
+- Minimization Method : Lexicographic
+
+Solution A :
+- Tous les sliders au milieu
+- Aucune shape
+- Generate
+
+Solution B :
+- CP1 : Melody moves vers Smooth
+- CP2 : Perfect intervals vers la droite
+- CP1 Melody moves : Shape = Linear
+- CP2 Perfect intervals : Shape = Step
+- Generate
+
+Effet attendu :
+Deux contrepoints sont générés.
+CP1 et CP2 peuvent recevoir des paramètres différents.
+Cela montre que les réglages par voix fonctionnent déjà avec 3 voix.
+
+
+============================================================
+EXEMPLE 16 — Quatre voix : trois contrepoints indépendants
+============================================================
+
+Objectif :
+Montrer que CP1, CP2 et CP3 peuvent avoir des réglages différents.
+
+Cantus Firmus à copier :
+60 62 64 65 67 69 71 72 71 69 67 65 64 62 60
+
+Traduction :
+C4 D4 E4 F4 G4 A4 B4 C5 B4 A4 G4 F4 E4 D4 C4
+
+Solfège :
+Do4 Ré4 Mi4 Fa4 Sol4 La4 Si4 Do5 Si4 La4 Sol4 Fa4 Mi4 Ré4 Do4
+
+Réglages :
+- Number of voices : 4
+- Counterpoint 1 : Species 1, Type -2
+- Counterpoint 2 : Species 1, Type 0
+- Counterpoint 3 : Species 1, Type 2
+- Search Method : BAB
+- Minimization Method : Weighted Sum
+
+Solution A :
+- Tous les sliders au milieu
+- Aucune shape
+- Generate
+
+Solution B :
+- CP1 : Melody moves vers Smooth
+- CP2 : Interval colour vers la droite
+- CP3 : Perfect intervals vers la droite
+- CP1 Melody moves : Shape = Linear
+- CP2 Interval colour : Shape = Inverted V
+- CP3 Perfect intervals : Shape = Step desc
+- Generate
+
+Effet attendu :
+Les contrepoints doivent réagir différemment.
+Cela montre que les colonnes CP sont indépendantes :
+modifier CP1 ne modifie pas automatiquement CP2 ou CP3.
+
+
+============================================================
+EXEMPLE BONUS — Save solution
+============================================================
+
+Objectif :
+Tester le bouton Save solution.
+
+Cantus Firmus à copier :
+60 62 64 65 67 65 64 62 60
+
+Traduction :
+C4 D4 E4 F4 G4 F4 E4 D4 C4
+
+Solfège :
+Do4 Ré4 Mi4 Fa4 Sol4 Fa4 Mi4 Ré4 Do4
+
+À faire :
+1. Cliquer Clear.
+2. Cliquer Save solution sans générer.
+
+Effet attendu :
+Une alerte doit dire :
+"Veuillez générer une solution avant de la sauvegarder"
+
+Puis :
+1. Generate.
+2. Save solution.
+
+Effet attendu :
+La solution générée peut être sauvegardée.
+
+
+============================================================
+EXEMPLE BONUS — Input Cantus Firmus flexible
+============================================================
+
+Objectif :
+Vérifier que l'entrée reconnaît les espaces et les virgules.
+
+Ces trois entrées doivent être reconnues pareil :
+
+60,62,64,65,67,65,64,62,60
+
+60, 62, 64, 65, 67, 65, 64, 62, 60
+
+60    62   64 65     67 65 64   62 60
+
+Traduction :
+C4 D4 E4 F4 G4 F4 E4 D4 C4
+
+Solfège :
+Do4 Ré4 Mi4 Fa4 Sol4 Fa4 Mi4 Ré4 Do4
+
+Effet attendu :
+Les trois formats doivent produire le même Cantus Firmus.

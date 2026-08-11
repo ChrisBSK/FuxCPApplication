@@ -200,14 +200,14 @@ void OptionsPanel::setupColumns()
 
     Generate lance la génération via LeftPanel.
     Next Solution relance une génération pour demander une autre proposition.
-    Save solution est préparé pour sauvegarder la solution courante.
+    Save configuration est préparé pour sauvegarder la configuration courante.
     Clear remet l'interface dans son état initial.
 */
 void OptionsPanel::setupButtons()
 {
     OptionsPanelHelpers::setupButton(*this, generateButton, "Generate");
     OptionsPanelHelpers::setupButton(*this, nextSolutionButton, "Next solution");
-    OptionsPanelHelpers::setupButton(*this, saveSolutionButton, "Save solution");
+    OptionsPanelHelpers::setupButton(*this, saveSolutionButton, "Save configuration");
     OptionsPanelHelpers::setupButton(*this, clearButton, "Clear");
 
     generateButton.onClick = [this]()
@@ -237,7 +237,10 @@ void OptionsPanel::setupButtons()
 /*
     Configure la liste des priorités du solveur.
 
-    Cette liste est affichée uniquement en mode Lexicographic.
+    Cette liste sert aux deux modes de minimisation :
+    - Lexicographic : elle affiche les rangs de priorité,
+    - Weighted Sum : elle affiche les poids calculés à partir des rangs.
+
     Quand l'ordre change, on met à jour ConstraintSettings puis on recalcule
     les coûts du problème.
 */
@@ -250,7 +253,9 @@ void OptionsPanel::setupSolverPriorities()
 
     // La liste est affichée en version compacte dans la colonne Search.
     solverPriorityList.setCompactMode(true);
-     // Affiche la liste seulement si le mode Lexicographic est actif.
+    solverPriorityList.setDisplayMode(SolverPriorityList::DisplayMode::rank);
+
+    // La liste reste visible dans Lexicographic et Weighted Sum.
     updateSolverPriorityVisibility();
 
     /*
@@ -338,15 +343,35 @@ void OptionsPanel::setupMinimizationModePanel()
     /*
         L'utilisateur choisit entre Lexicographic et Weighted Sum.
 
-        Pour l'instant, ce choix agit surtout sur l'affichage :
-        - Lexicographic affiche les priorités,
-        - Weighted Sum les masque.
+        Ce choix est stocké dans ConstraintSettings.
+        GenerationService le traduira ensuite vers OBJECTIVE_LEX
+        ou OBJECTIVE_SUMWEIGHTED au moment de créer FuxCP.
     */
     minimizationModePanel.onLexicographicModeChanged = [this](bool isLexicographic)
     {
+        if (appController == nullptr || appController->isGenerating())
+            return;
+
         showLexicographicPriorities = isLexicographic;
 
-        // Met à jour la visibilité de la liste des priorités.
+        auto& settings = appController->getProblem().getSettings();
+
+        // Enregistre le vrai mode de minimisation dans le modèle.
+        settings.setMinimizationMethod(isLexicographic
+            ? ConstraintSettings::MinimizationMethod::lexicographic
+            : ConstraintSettings::MinimizationMethod::weightedSum);
+
+        // Change la lecture de la liste sans changer son ordre interne.
+        solverPriorityList.setDisplayMode(isLexicographic
+            ? SolverPriorityList::DisplayMode::rank
+            : SolverPriorityList::DisplayMode::weight);
+
+        std::cout << "\n=== MINIMIZATION METHOD CHANGED ===\n";
+        std::cout << "minimizationMethod = "
+                  << (isLexicographic ? "Lexicographic" : "Weighted Sum")
+                  << "\n";
+
+        // La liste et les flèches restent disponibles dans les deux modes.
         updateSolverPriorityVisibility();
         // Relance le layout pour réorganiser la colonne Search.
         resized();
@@ -446,17 +471,18 @@ void OptionsPanel::applyShapeToSettings(int counterpointIndex,
 }
 
 /*
-    Affiche ou masque la liste des priorités selon le mode de minimisation.
+    Affiche les contrôles de la liste des coûts.
 
-    En mode Lexicographic, l'ordre des priorités est utile.
-    En mode Weighted Sum, cette liste n'est pas affichée.
+    La liste est utile dans les deux modes :
+    - Lexicographic lit les lignes comme des priorités,
+    - Weighted Sum lit les mêmes lignes comme des poids.
 */
 void OptionsPanel::updateSolverPriorityVisibility()
 {
-    // Même état de visibilité pour la liste et ses deux boutons de déplacement.
-    solverPriorityList.setVisible(showLexicographicPriorities);
-    movePriorityUpButton.setVisible(showLexicographicPriorities);
-    movePriorityDownButton.setVisible(showLexicographicPriorities);
+    // Les flèches restent actives : changer l'ordre change aussi les poids affichés.
+    solverPriorityList.setVisible(true);
+    movePriorityUpButton.setVisible(true);
+    movePriorityDownButton.setVisible(true);
 }
 
 
@@ -584,7 +610,7 @@ void OptionsPanel::resized()
     Place le contenu de la colonne Search.
 
     Le panneau DFS/BAB et Lexicographic/Weighted Sum reste en haut.
-    Si Lexicographic est actif, la liste des priorités apparaît en dessous.
+    La liste apparaît en dessous dans les deux modes.
 */
 void OptionsPanel::layoutMinimizationModePanel(juce::Rectangle<int> columnBounds)
 {
@@ -599,10 +625,6 @@ void OptionsPanel::layoutMinimizationModePanel(juce::Rectangle<int> columnBounds
 
     // Le panneau Search reste toujours placé en haut de la colonne.
     minimizationModePanel.setBounds(area.removeFromTop(modePanelHeight));
-
-    // En Weighted Sum, la liste des priorités est masquée : le layout s'arrête ici.
-    if (! showLexicographicPriorities)
-        return;
 
     // Petit espace entre le panneau Search et la liste des priorités.
     area.removeFromTop(listGap);
@@ -639,7 +661,7 @@ void OptionsPanel::layoutMinimizationModePanel(juce::Rectangle<int> columnBounds
 void OptionsPanel::layoutButtons(juce::Rectangle<int> buttonArea)
 {
     constexpr int buttonWidth = 118;
-    constexpr int buttonHeight = 22;
+    constexpr int buttonHeight = 25;
     constexpr int spacing = 5;
 
     /*

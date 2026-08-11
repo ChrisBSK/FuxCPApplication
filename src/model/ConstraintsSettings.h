@@ -163,6 +163,21 @@ struct ConstraintSettings
         bab
     };
 
+    /*
+        Méthode de minimisation choisie dans la colonne Search.
+
+        Exemple :
+        - lexicographic -> FuxCP minimise finalCosts dans l'ordre des priorités
+        - weightedSum   -> FuxCP minimise la somme coût x poids
+
+        Par défaut, l'application reste en lexicographic.
+    */
+    enum class MinimizationMethod
+    {
+        lexicographic = 0,
+        weightedSum
+    };
+
 
 
 
@@ -284,6 +299,7 @@ struct ConstraintSettings
     {
         int borrowMode = 1;
         SearchMethod searchMethod = SearchMethod::bab;
+        MinimizationMethod minimizationMethod = MinimizationMethod::lexicographic;
     };
 
     /*
@@ -562,6 +578,22 @@ struct ConstraintSettings
     SearchMethod getSearchMethod() const
     {
         return global.searchMethod;
+    }
+
+    /*
+        Choisit la méthode de minimisation du solveur.
+
+        Ce réglage est lu par GenerationService au moment de créer le problème FuxCP.
+    */
+    void setMinimizationMethod(MinimizationMethod method)
+    {
+        global.minimizationMethod = method;
+    }
+
+    /* Retourne la méthode de minimisation actuellement choisie. */
+    MinimizationMethod getMinimizationMethod() const
+    {
+        return global.minimizationMethod;
     }
 
     /*

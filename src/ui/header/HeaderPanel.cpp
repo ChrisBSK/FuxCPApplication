@@ -35,15 +35,18 @@ void HeaderPanel::TabButton::paintButton(juce::Graphics& g,
 HeaderPanel::HeaderPanel()
 {
     setupTabButton(mainScreenButton, "Main Screen");
-    setupTabButton(glossaryButton, "Glossary");
+    setupTabButton(savedSolutionsButton, "Saved configurations");
+    setupTabButton(solverButton, "Solver");
     setupTabButton(aboutButton, "About");
 
     addAndMakeVisible(mainScreenButton);
-    addAndMakeVisible(glossaryButton);
+    addAndMakeVisible(savedSolutionsButton);
+    addAndMakeVisible(solverButton);
     addAndMakeVisible(aboutButton);
 
     mainScreenButton.onClick = [this]() { selectPage(Page::mainScreen); };
-    glossaryButton.onClick   = [this]() { selectPage(Page::glossary); };
+    savedSolutionsButton.onClick = [this]() { selectPage(Page::savedSolutions); };
+    solverButton.onClick = [this]() { selectPage(Page::solver); };
     aboutButton.onClick      = [this]() { selectPage(Page::about); };
 
     selectPage(Page::mainScreen);
@@ -75,7 +78,10 @@ void HeaderPanel::resized()
     mainScreenButton.setBounds(area.removeFromLeft(tabWidth));
     area.removeFromLeft(gap);
 
-    glossaryButton.setBounds(area.removeFromLeft(tabWidth));
+    savedSolutionsButton.setBounds(area.removeFromLeft(tabWidth));
+    area.removeFromLeft(gap);
+
+    solverButton.setBounds(area.removeFromLeft(tabWidth));
     area.removeFromLeft(gap);
 
     aboutButton.setBounds(area.removeFromLeft(tabWidth));
@@ -86,7 +92,8 @@ void HeaderPanel::selectPage(Page page)
     selectedPage = page;
 
     mainScreenButton.setToggleState(selectedPage == Page::mainScreen, juce::dontSendNotification);
-    glossaryButton.setToggleState(selectedPage == Page::glossary, juce::dontSendNotification);
+    savedSolutionsButton.setToggleState(selectedPage == Page::savedSolutions, juce::dontSendNotification);
+    solverButton.setToggleState(selectedPage == Page::solver, juce::dontSendNotification);
     aboutButton.setToggleState(selectedPage == Page::about, juce::dontSendNotification);
 
     if (onPageChanged)
