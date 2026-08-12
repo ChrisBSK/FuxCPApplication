@@ -13,8 +13,8 @@ public:
     {
         addAndMakeVisible(mainComponent);
         setResizable(false, false);
-        setResizeLimits(900, 420, 900, 420);
-        setSize(900, 420);
+        setResizeLimits(960, 420, 960, 420);
+        setSize(960, 420);
     }
 
     void resized() override

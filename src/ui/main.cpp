@@ -3,7 +3,7 @@
 
 namespace
 {
-    constexpr int fixedWindowWidth = 900;
+    constexpr int fixedWindowWidth = 960;
     constexpr int fixedWindowHeight = 420;
 }
 

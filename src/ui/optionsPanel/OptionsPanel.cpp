@@ -549,17 +549,24 @@ void OptionsPanel::resized()
     if (leftPanel != nullptr)
     {
         // Colonne gauche : entrées principales de génération.
+        //
+        // alignSelf::flexStart + une hauteur fixe l'empêchent de s'étirer
+        // sur toute la hauteur disponible (contrairement au workspace et à
+        // Search) : ça laisse une vraie zone libre en dessous pour les boutons,
+        // sans dépendre de l'espace réservé au clavier.
         mainRow.items.add(juce::FlexItem(*leftPanel)
             .withFlex(0.0f, 1.0f, 220.0f)
             .withMinWidth(175.0f)
             .withMaxWidth(245.0f)
+            .withHeight(290.0f)
+            .withAlignSelf(juce::FlexItem::AlignSelf::flexStart)
             .withMargin(juce::FlexItem::Margin(0.0f, (float) columnGap, 0.0f, 0.0f)));
     }
 
     // Zone centrale : contrepoints, sliders et shapes.
     mainRow.items.add(juce::FlexItem(workspaceColumn)
         .withFlex(1.25f, 1.0f, 640.0f)
-        .withMinWidth(480.0f)
+        .withMinWidth(540.0f)
         .withMargin(juce::FlexItem::Margin(0.0f, (float) columnGap, 0.0f, 0.0f)));
 
     // Colonne droite : Search et priorités du solveur.
@@ -577,12 +584,17 @@ void OptionsPanel::resized()
         leftPanelBounds = leftPanel->getBounds();
         leftPanel->setBounds(leftPanelBounds);
 
+        // Les boutons occupent tout l'espace réellement libre entre le bas
+        // du LeftPanel et le bas de la zone de contenu (avant réservation du
+        // clavier) : plus d'approximation, juste ce qui reste vraiment.
+        const int buttonAreaHeight = juce::jmax(0,
+            leftArea.getBottom() - (leftPanelBounds.getBottom() + leftButtonGap));
+
         auto leftButtonArea = juce::Rectangle<int>(
             leftPanelBounds.getX(),
             leftPanelBounds.getBottom() + leftButtonGap,
             leftPanelBounds.getWidth(),
-            104
-        ).withBottom(juce::jmin(leftArea.getBottom(), leftPanelBounds.getBottom() + leftButtonGap + 104));
+            buttonAreaHeight);
 
         // Les boutons restent dans la colonne gauche, mais hors du contour du LeftPanel.
         layoutButtons(leftButtonArea);
@@ -660,9 +672,9 @@ void OptionsPanel::layoutMinimizationModePanel(juce::Rectangle<int> columnBounds
 */
 void OptionsPanel::layoutButtons(juce::Rectangle<int> buttonArea)
 {
-    constexpr int buttonWidth = 150;
-    constexpr int buttonHeight = 34;
-    constexpr int spacing = 8;
+    constexpr int buttonWidth = 130;
+    constexpr int buttonHeight = 16;
+    constexpr int spacing = 4;
 
     /*
         On crée une colonne de boutons.

@@ -321,6 +321,8 @@ private:
     //==============================================================================
 
     // Sliders visuels des trois fonctions de coûts.
+    // juce::Label gère nativement les tooltips (SettableTooltipClient),
+    // utilisé ici pour expliquer chaque fonction de coût au survol du nom.
     std::array<juce::Label, maxCounterpoints> steps1Labels;
     std::array<juce::Label, maxCounterpoints> steps2Labels;
     std::array<juce::Label, maxCounterpoints> harmoLabels;
@@ -384,7 +386,7 @@ private:
 
             counterpointRow.items.add(juce::FlexItem()
                 .withFlex(1.0f)
-                .withMinWidth(130.0f)
+                .withMinWidth(160.0f)
                 .withMargin(juce::FlexItem::Margin(0.0f, rightMargin, 0.0f, leftMargin)));
         }
 
@@ -473,8 +475,11 @@ private:
                                  steps1LeftReferenceLabels[counterpointIndex],
                                  steps1RightReferenceLabels[counterpointIndex],
                                  "Melody moves",
-                                 "Smooth",
-                                 "Jumpy");
+                                 juce::String::fromUTF8("Contrôle si la mélodie avance par mouvements conjoints ou par sauts plus larges.\n"
+                                                        "à gauche --> Mouvements conjoints\n"
+                                                        "à droite --> Sauts mélodiques"),
+                                 juce::String::fromUTF8("+ Mouvements conjoints"),
+                                 juce::String::fromUTF8("+ Sauts mélodiques"));
 
             setupSmallCostSlider(steps2Labels[counterpointIndex],
                                  steps2Sliders[counterpointIndex],
@@ -482,8 +487,11 @@ private:
                                  steps2LeftReferenceLabels[counterpointIndex],
                                  steps2RightReferenceLabels[counterpointIndex],
                                  "Interval colour",
-                                 "Consonant",
-                                 "Dissonant");
+                                 juce::String::fromUTF8("Contrôle si les intervalles mélodiques utilisés sont plutôt consonants ou dissonants.\n"
+                                                        "à gauche --> Consonant\n"
+                                                        "à droite --> Dissonant"),
+                                 juce::String::fromUTF8("+ Intervalles consonants"),
+                                 juce::String::fromUTF8("+ Intervalles dissonants"));
 
             setupSmallCostSlider(harmoLabels[counterpointIndex],
                                  harmoSliders[counterpointIndex],
@@ -491,8 +499,11 @@ private:
                                  harmoLeftReferenceLabels[counterpointIndex],
                                  harmoRightReferenceLabels[counterpointIndex],
                                  "Perfect intervals",
-                                 "Less Octaves",
-                                 "Less fifths");
+                                 juce::String::fromUTF8("Contrôle l'équilibre entre octaves et quintes dans les intervalles parfaits.\n"
+                                                        "à gauche --> Moins d'octaves\n"
+                                                        "à droite --> Moins de quintes"),
+                                 juce::String::fromUTF8("+ Moins d'octaves"),
+                                 juce::String::fromUTF8("+ Moins de quintes"));
 
             // Fonction locale utilisée par les trois sliders pour éviter la répétition.
             auto sendSliderValue = [this, counterpointIndex](CostSliderTarget target, juce::Slider& slider)
@@ -814,15 +825,17 @@ private:
                               juce::Label& leftReferenceLabel,
                               juce::Label& rightReferenceLabel,
                               const juce::String& text,
+                              const juce::String& tooltipText,
                               const juce::String& leftReference,
                               const juce::String& rightReference)
     {
-        // Nom visible du paramètre.
+        // Nom visible du paramètre + explication au survol.
         label.setText(text, juce::dontSendNotification);
-        label.setFont(juce::Font(juce::FontOptions(10.5f, juce::Font::bold)));
+        label.setTooltip(tooltipText);
+        label.setFont(juce::Font(juce::FontOptions(9.5f, juce::Font::bold)));
         label.setJustificationType(juce::Justification::centredLeft);
         label.setColour(juce::Label::textColourId, juce::Colours::white);
-        label.setMinimumHorizontalScale(0.70f);
+        label.setMinimumHorizontalScale(0.55f);
 
         // Slider principal entre 0 et 1.
         slider.setRange(0.0, 1.0, 0.01);
@@ -832,17 +845,24 @@ private:
         slider.setColour(juce::Slider::trackColourId, juce::Colour(0xff2f4f4f));
         slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
 
-        // Shape à droite + repères sous le slider.
+        // Shape à droite.
         setupShapeSelector(shapeSelector);
-        setupReferenceLabel(leftReferenceLabel, leftReference, juce::Justification::centredLeft);
-        setupReferenceLabel(rightReferenceLabel, rightReference, juce::Justification::centredRight);
+
+        /*
+            Les repères gauche/droite (ex: "+ Mouvements conjoints") ne sont plus
+            affichés sous le slider : l'explication est maintenant uniquement
+            dans le tooltip du nom du paramètre, pour un rendu plus propre.
+            On garde les labels en mémoire (inutilisés) pour ne pas toucher
+            à la signature de cette méthode.
+        */
+        juce::ignoreUnused(leftReference, rightReference);
+        leftReferenceLabel.setVisible(false);
+        rightReferenceLabel.setVisible(false);
 
         // Tous les éléments de la ligne deviennent visibles.
         addAndMakeVisible(label);
         addAndMakeVisible(slider);
         addAndMakeVisible(shapeSelector);
-        addAndMakeVisible(leftReferenceLabel);
-        addAndMakeVisible(rightReferenceLabel);
     }
 
     /*
@@ -856,10 +876,10 @@ private:
                              juce::Justification justification)
     {
         referenceLabel.setText(text, juce::dontSendNotification);
-        referenceLabel.setFont(juce::Font(juce::FontOptions(8.4f, juce::Font::bold)));
+        referenceLabel.setFont(juce::Font(juce::FontOptions(7.5f, juce::Font::bold)));
         referenceLabel.setJustificationType(justification);
         referenceLabel.setColour(juce::Label::textColourId, juce::Colours::white.withAlpha(0.9f));
-        referenceLabel.setMinimumHorizontalScale(0.70f);
+        referenceLabel.setMinimumHorizontalScale(0.45f);
     }
 
     /*
@@ -1041,8 +1061,9 @@ private:
                                juce::Label& leftReferenceLabel,
                                juce::Label& rightReferenceLabel)
     {
-        // Ligne des repères (Smooth/Jumpy...) en bas, slider+label+shape au-dessus.
-        auto referenceArea = row.removeFromBottom(10);
+        // Repères gauche/droite retirés de l'affichage : l'explication vit
+        // désormais dans le tooltip du nom. Le slider récupère cet espace.
+        juce::ignoreUnused(leftReferenceLabel, rightReferenceLabel);
 
         /*
             Label, slider et ComboBox Shape se répartissent la largeur réelle
@@ -1054,29 +1075,33 @@ private:
         mainRowBox.flexDirection = juce::FlexBox::Direction::row;
         mainRowBox.alignItems = juce::FlexBox::AlignItems::stretch;
 
+        // Hauteur explicite + centrage : sans ça, le label et le slider
+        // s'étirent sur toute la hauteur de la ligne (trop épais pour le
+        // slider, et assez haut pour que le label retourne le texte à la ligne).
         mainRowBox.items.add(juce::FlexItem(label)
-            .withFlex(0.0f, 1.0f, 60.0f)
-            .withMinWidth(34.0f)
+            .withFlex(0.0f, 1.0f, 62.0f)
+            .withMinWidth(38.0f)
+            .withHeight(15.0f)
+            .withAlignSelf(juce::FlexItem::AlignSelf::center)
             .withMargin(juce::FlexItem::Margin(0.0f, 4.0f, 0.0f, 0.0f)));
 
+        // Flex plus important : le slider principal profite de tout l'espace
+        // libéré par le label et la ComboBox Shape rétrécis.
+        // Hauteur relevée pour correspondre visuellement aux mini-sliders Part.
         mainRowBox.items.add(juce::FlexItem(slider)
             .withFlex(1.0f)
-            .withMinWidth(20.0f));
+            .withMinWidth(20.0f)
+            .withHeight(12.0f)
+            .withAlignSelf(juce::FlexItem::AlignSelf::center));
 
         mainRowBox.items.add(juce::FlexItem(shapeSelector)
-            .withFlex(0.0f, 1.0f, 44.0f)
-            .withMinWidth(30.0f)
+            .withFlex(0.0f, 1.0f, 38.0f)
+            .withMinWidth(26.0f)
             .withHeight(17.0f)
+            .withAlignSelf(juce::FlexItem::AlignSelf::center)
             .withMargin(juce::FlexItem::Margin(0.0f, 0.0f, 0.0f, 5.0f)));
 
         mainRowBox.performLayout(row);
-
-        // Les repères gauche/droite restent alignés sous le slider, pas sous toute la ligne.
-        const auto sliderBounds = mainRowBox.items[1].currentBounds.toNearestInt();
-        auto referenceRow = referenceArea.withX(sliderBounds.getX()).withWidth(sliderBounds.getWidth());
-
-        leftReferenceLabel.setBounds(referenceRow.removeFromLeft(referenceRow.getWidth() / 2));
-        rightReferenceLabel.setBounds(referenceRow);
     }
 
     /*
@@ -1088,7 +1113,9 @@ private:
     {
         // Indentation proportionnelle à la largeur réelle de la colonne,
         // plutôt qu'une marge fixe qui peut dépasser une colonne étroite.
-        const int indent = juce::jmax(6, row.getWidth() / 12);
+        // Plus marquée qu'avant : les mini-sliders Part. restent volontairement
+        // plus étroits que le slider principal, pour un rendu plus propre.
+        const int indent = juce::jmax(10, row.getWidth() / 5);
         row = row.withTrimmedLeft(indent).withTrimmedRight(indent);
 
         for (int controlIndex = 0; controlIndex < shapeControlCount; ++controlIndex)

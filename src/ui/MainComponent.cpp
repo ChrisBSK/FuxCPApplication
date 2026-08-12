@@ -138,7 +138,7 @@ MainComponent::MainComponent()
 MainComponent::MainComponent(AppController& controllerToUse, juce::MidiKeyboardState& keyboardStateToUse)
     : appController(controllerToUse), keyboardState(keyboardStateToUse)
 {
-    setSize(900, 420);
+    setSize(960, 420);
 
     addAndMakeVisible(header);
     addAndMakeVisible(optionsPanel);
