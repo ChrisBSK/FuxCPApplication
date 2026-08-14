@@ -1,0 +1,12 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/chris/Documents/Me\u0301moire/Fuxophone/build-arm/cmake_install.cmake",
+		"/Users/chris/Documents/Me\u0301moire/Fuxophone/build-arm/externals/JUCE/cmake_install.cmake",
+		"/Users/chris/Documents/Me\u0301moire/Fuxophone/build-arm/externals/JUCE/modules/cmake_install.cmake",
+		"/Users/chris/Documents/Me\u0301moire/Fuxophone/build-arm/externals/JUCE/extras/Build/cmake_install.cmake",
+		"/Users/chris/Documents/Me\u0301moire/Fuxophone/build-arm/externals/JUCE/extras/Build/juceaide/cmake_install.cmake",
+		"/Users/chris/Documents/Me\u0301moire/Fuxophone/build-arm/externals/FuxCP/FuxCP/c++/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

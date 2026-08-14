@@ -1,0 +1,2 @@
+/usr/bin/ar qc libAppAssets.a CMakeFiles/AppAssets.dir/juce_binarydata_AppAssets/JuceLibraryCode/BinaryData1.cpp.o
+/usr/bin/ranlib libAppAssets.a

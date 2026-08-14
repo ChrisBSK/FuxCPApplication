@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.15)
-project(myproject VERSION 0.1.0)
+project(Fuxophone VERSION 0.1.0)
 
 if(APPLE)
-    set(CMAKE_OSX_ARCHITECTURES "x86_64" CACHE STRING "Build architecture" FORCE)
+    if(NOT CMAKE_OSX_ARCHITECTURES)
+        set(CMAKE_OSX_ARCHITECTURES "x86_64" CACHE STRING "Build architecture")
+    endif()
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
@@ -10,8 +12,8 @@ set(CMAKE_CXX_STANDARD 17)
 add_subdirectory(externals/JUCE)
 add_subdirectory(externals/FuxCP/FuxCP/c++)
 
-juce_add_plugin(myproject
-        PRODUCT_NAME "myproject"
+juce_add_plugin(Fuxophone
+        PRODUCT_NAME "Fuxophone"
         COMPANY_NAME "ChrisBakashika"
         IS_SYNTH TRUE                   # Dit à GarageBand de proposer le plug-in sur une piste "instrument logiciel"
         NEEDS_MIDI_INPUT TRUE           # Permet de jouer le Cantus firmus sur un clavier MIDI (amélioration future)
@@ -20,7 +22,7 @@ juce_add_plugin(myproject
         PLUGIN_CODE Fuxp                # CODE à 4 lettres exigés par Apple
         FORMATS AU Standalone           # Version Standalone (perso) + Version AU (publique)
         COPY_PLUGIN_AFTER_BUILD FALSE    # installe .component généré dans ~/Library/Audio/Plug-Ins/Components/
-                                        # à chaque build.
+        # à chaque build.
 )
 
 juce_add_binary_data(AppAssets
@@ -28,7 +30,7 @@ juce_add_binary_data(AppAssets
         assets/logoApp.png
 )
 
-target_sources(myproject PRIVATE
+target_sources(Fuxophone PRIVATE
 
         #src/ui/main.cpp # Version Standalone
 
@@ -83,11 +85,11 @@ target_sources(myproject PRIVATE
         src/controller/AppController.h
 )
 
-target_include_directories(myproject PRIVATE
+target_include_directories(Fuxophone PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/externals/FuxCP/FuxCP/c++/headers
 )
 
-target_link_libraries(myproject PRIVATE
+target_link_libraries(Fuxophone PRIVATE
         juce::juce_gui_basics
         juce::juce_gui_extra
         juce::juce_recommended_config_flags
@@ -107,27 +109,26 @@ target_link_libraries(myproject PRIVATE
         FuxCPLib
 )
 # Optionnel, pour éviter dépendances web/curl au début
-target_compile_definitions(myproject PRIVATE
+target_compile_definitions(Fuxophone PRIVATE
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
 )
 
 # =========================
-# Embarque Gecode dans le bundle de l'app
-#
-# Pour que l'app ne dépende plus du Gecode.framework installé localement
-#
-# Tout le monde peut l'utiliser maintenant.
-# =========================
-# =========================
 # Embarque Gecode dans chaque bundle généré (AU + Standalone)
 # =========================
-foreach(format_target myproject_AU myproject_Standalone)
+if(CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+    set(GECODE_BINARY_TO_EMBED "${CMAKE_SOURCE_DIR}/externals/gecode-arm64/gecode")
+else()
+    set(GECODE_BINARY_TO_EMBED "/Library/Frameworks/gecode.framework/Versions/49/gecode")
+endif()
+
+foreach(format_target Fuxophone_AU Fuxophone_Standalone)
     add_custom_command(TARGET ${format_target} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E make_directory
             "$<TARGET_BUNDLE_CONTENT_DIR:${format_target}>/Frameworks"
             COMMAND ${CMAKE_COMMAND} -E copy
-            "/Library/Frameworks/gecode.framework/Versions/49/gecode"
+            "${GECODE_BINARY_TO_EMBED}"
             "$<TARGET_BUNDLE_CONTENT_DIR:${format_target}>/Frameworks/libgecode.dylib"
             COMMAND install_name_tool -id "@rpath/libgecode.dylib"
             "$<TARGET_BUNDLE_CONTENT_DIR:${format_target}>/Frameworks/libgecode.dylib"
@@ -146,11 +147,11 @@ foreach(format_target myproject_AU myproject_Standalone)
 endforeach()
 
 #propre ajout de la copie
-add_custom_command(TARGET myproject_AU POST_BUILD
+add_custom_command(TARGET Fuxophone_AU POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E remove_directory
-        "$ENV{HOME}/Library/Audio/Plug-Ins/Components/myproject.component"
+        "$ENV{HOME}/Library/Audio/Plug-Ins/Components/Fuxophone.component"
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "$<TARGET_BUNDLE_DIR:myproject_AU>"
-        "$ENV{HOME}/Library/Audio/Plug-Ins/Components/myproject.component"
+        "$<TARGET_BUNDLE_DIR:Fuxophone_AU>"
+        "$ENV{HOME}/Library/Audio/Plug-Ins/Components/Fuxophone.component"
         VERBATIM
 )

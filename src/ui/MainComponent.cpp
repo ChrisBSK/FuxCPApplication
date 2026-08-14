@@ -154,6 +154,31 @@ MainComponent::MainComponent(AppController& controllerToUse, juce::MidiKeyboardS
     };
 
     // =========================
+    // HEADER - changement de PAGES
+    // =========================
+    header.onPageChanged = [this](HeaderPanel::Page page)
+    {
+        switch (page)
+        {
+            case HeaderPanel::Page::mainScreen:
+                showPage(CurrentPage::mainScreen);
+                break;
+
+            case HeaderPanel::Page::savedSolutions:
+                showPage(CurrentPage::savedSolutions);
+                break;
+
+            case HeaderPanel::Page::solver:
+                showPage(CurrentPage::solver);
+                break;
+
+            case HeaderPanel::Page::about:
+                showPage(CurrentPage::about);
+                break;
+        }
+    };
+
+    // =========================
     // SYNCHRONISATION UI (liaisons entre composants)
     // =========================
 

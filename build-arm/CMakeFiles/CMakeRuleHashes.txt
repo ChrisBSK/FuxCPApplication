@@ -1,0 +1,4 @@
+# Hashes of file build rules.
+b6c8309a32352a9276ae971c838f484b Fuxophone_artefacts/JuceLibraryCode/Fuxophone_AU/PkgInfo
+76bb75eafe1c5d2cf15af8481ba5e3b5 Fuxophone_artefacts/JuceLibraryCode/Fuxophone_Standalone/PkgInfo
+e0032381734f62eeed6ea12c485af19c juce_binarydata_AppAssets/JuceLibraryCode/BinaryData1.cpp
