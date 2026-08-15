@@ -170,6 +170,13 @@ public:
                                   "Counterpoint " + juce::String(counterpointIndex + 1),
                                   counterpointIndex < activeCounterpointCount);
         }
+
+        // Un trait vertical entre chaque paire de colonnes voisines,
+        // pour bien les distinguer visuellement les unes des autres.
+        for (int counterpointIndex = 0; counterpointIndex < maxCounterpoints - 1; ++counterpointIndex)
+            drawColumnSeparator(g,
+                                counterpointAreas[counterpointIndex],
+                                counterpointAreas[counterpointIndex + 1]);
     }
 
     /*
@@ -203,6 +210,104 @@ public:
         costScrollOffsetY += delta;
         clampCostScrollOffset();
         resized();
+    }
+
+    //==============================================================================
+    // Réaffichage depuis une configuration chargée
+    //
+    // Ces méthodes ne modifient que l'affichage : contrairement aux callbacks
+    // onXChanged, elles n'envoient rien à OptionsPanel.
+    //
+    //
+    // Elles servent quand
+    // le modèle vient d'être remplacé (chargement d'une configuration
+    // sauvegardée) et qu'il ne reste qu'à montrer ce nouvel état.
+    //==============================================================================
+
+    /*
+        Affiche l'espèce et le type d'un contrepoint, sans déclencher
+        onSpeciesChanged/onTypeChanged.
+    */
+    void setCounterpointSelection(int counterpointIndex, int species, int type)
+    {
+        if (counterpointIndex < 0 || counterpointIndex >= maxCounterpoints)
+            return;
+
+        speciesSelectors[counterpointIndex].setSelectedId(species, juce::dontSendNotification);
+        typeSelectors[counterpointIndex].setSelectedId(typeToComboBoxId(type), juce::dontSendNotification);
+    }
+
+    /*
+        Affiche la valeur d'un slider de coût, sans déclencher onCostSliderChanged.
+    */
+    void setCostSliderValue(int counterpointIndex, CostSliderTarget target, double value)
+    {
+        if (counterpointIndex < 0 || counterpointIndex >= maxCounterpoints)
+            return;
+
+        getCostSlider(counterpointIndex, target).setValue(value, juce::dontSendNotification);
+    }
+
+    /*
+        Affiche une shape déjà enregistrée : sélectionne la bonne entrée de
+        la ComboBox Shape, puis montre les 5 mini-sliders part1-part5 avec
+        les valeurs sauvegardées.
+
+        shapeId doit être l'id de ComboBox correspondant à la shape (le même
+        id que celui utilisé par mapShapeId/shapeTypeToComboBoxId dans
+        OptionsPanel).
+    */
+    void displayShapeAssignment(int counterpointIndex,
+                                CostSliderTarget target,
+                                int shapeId,
+                                const std::vector<double>& values)
+    {
+        if (counterpointIndex < 0 || counterpointIndex >= maxCounterpoints)
+            return;
+
+        getShapeSelector(counterpointIndex, target).setSelectedId(shapeId, juce::dontSendNotification);
+
+        auto& controls = getShapeControls(counterpointIndex, target);
+        auto& labels = getShapeControlLabels(counterpointIndex, target);
+
+        // shapeControlCount reste la seule référence de longueur : si values
+        // en contient moins (fichier plus ancien, format différent...), les
+        // parties manquantes retombent simplement à 0.
+        for (int controlIndex = 0; controlIndex < shapeControlCount; ++controlIndex)
+        {
+            labels[controlIndex].setVisible(true);
+            controls[controlIndex].setVisible(true);
+
+            const double value = controlIndex < (int) values.size()
+                ? values[(size_t) controlIndex]
+                : 0.0;
+            controls[controlIndex].setValue(value, juce::dontSendNotification);
+        }
+    }
+
+    /*
+        Remet à "aucune shape" l'affichage d'un contrepoint qui n'a pas de
+        shape enregistrée dans la configuration chargée.
+
+        Nécessaire pour qu'une shape affichée par une configuration
+        précédente ne reste pas visible par erreur.
+    */
+    void clearShapeDisplay(int counterpointIndex, CostSliderTarget target)
+    {
+        if (counterpointIndex < 0 || counterpointIndex >= maxCounterpoints)
+            return;
+
+        clearShapeSelector(getShapeSelector(counterpointIndex, target));
+
+        auto& controls = getShapeControls(counterpointIndex, target);
+        auto& labels = getShapeControlLabels(counterpointIndex, target);
+
+        for (int controlIndex = 0; controlIndex < shapeControlCount; ++controlIndex)
+        {
+            controls[controlIndex].setVisible(false);
+            labels[controlIndex].setVisible(false);
+            controls[controlIndex].setValue(0.0, juce::dontSendNotification);
+        }
     }
 
 private:
@@ -420,15 +525,37 @@ private:
             for (int species = 1; species <= 5; ++species)
                 speciesSelector.addItem("Species " + juce::String(species), species);
 
-            // Ordre visuel : les voix hautes sont affichées en haut du menu.
-            for (int type = 2; type >= -3; --type)
-                typeSelector.addItem("Type " + juce::String(type), typeToComboBoxId(type));
+            /*
+                Seules les 3 tessitures nommées (Soprano, Alto, Tenor) sont
+                proposées dans le menu : -1, -2 et -3 restent des types
+                valides pour le modèle (typeToComboBoxId/comboBoxIdToType
+                continuent de les gérer), mais ne servent pas en pratique
+                puisque le CF tient déjà la place de la voix de basse.
+
+                Ordre visuel : les voix hautes sont affichées en haut du menu.
+            */
+            for (int type = 2; type >= 0; --type)
+                typeSelector.addItem(getTypeDisplayName(type), typeToComboBoxId(type));
 
             // Applique le style compact commun aux ComboBox.
             styleSelector(speciesSelector);
             styleSelector(typeSelector);
 
-            // Valeurs par défaut : Species 1, Type 0.
+            /*
+                Courte explication au survol de chaque menu.
+
+                juce::ComboBox hérite déjà de SettableTooltipClient : setTooltip()
+                suffit, le TooltipWindow créé dans MainComponent affiche le texte
+                automatiquement, comme pour les autres contrôles de l'interface.
+            */
+            speciesSelector.setTooltip(juce::String::fromUTF8(
+                "Species : définit l'espèce du contrepoint."));
+
+            typeSelector.setTooltip(juce::String::fromUTF8(
+                "Pitch range : définit l'étendue de hauteurs de voix du contrepoint "
+                "par rapport à celle du Cantus firmus."));
+
+            // Valeurs par défaut : Species 1, Tenor.
             speciesSelector.setSelectedId(1, juce::dontSendNotification);
             typeSelector.setSelectedId(typeToComboBoxId(0), juce::dontSendNotification);
 
@@ -676,6 +803,26 @@ private:
     }
 
     /*
+        Retourne le slider principal lié à une fonction de coût précise.
+    */
+    juce::Slider& getCostSlider(int counterpointIndex, CostSliderTarget target)
+    {
+        switch (target)
+        {
+            case CostSliderTarget::melodyMovement:
+                return steps1Sliders[counterpointIndex];
+
+            case CostSliderTarget::intervalColour:
+                return steps2Sliders[counterpointIndex];
+
+            case CostSliderTarget::perfectIntervals:
+                return harmoSliders[counterpointIndex];
+        }
+
+        return steps1Sliders[counterpointIndex];
+    }
+
+    /*
         Retourne la ComboBox Shape liée à une fonction de coût précise.
     */
     juce::ComboBox& getShapeSelector(int counterpointIndex, CostSliderTarget target)
@@ -899,6 +1046,16 @@ private:
         shapeSelector.addItem("Step desc", 8);
         shapeSelector.setTextWhenNothingSelected("Shape");
         styleSelector(shapeSelector);
+
+        /*
+            Explication au survol : cette méthode est partagée par les trois
+            ComboBox Shape de chaque contrepoint (Melody moves, Interval
+            colour, Perfect intervals), le tooltip s'applique donc à toutes
+            en une seule fois. juce::ComboBox hérite déjà de
+            SettableTooltipClient, le TooltipWindow de MainComponent fait le reste.
+        */
+        shapeSelector.setTooltip(juce::String::fromUTF8(
+            "Shape : définit la shape associée à la fonction de coûts."));
     }
 
     /*
@@ -1354,6 +1511,55 @@ private:
         g.drawText(title,
                    titleBox.reduced(10, 0),
                    juce::Justification::centredLeft);
+    }
+
+    /*
+        Dessine un trait vertical fin et blanc entre deux colonnes de
+        contrepoint voisines, pour bien les différencier visuellement.
+
+        Le trait est centré dans l'espace qui sépare les deux colonnes
+        (calculé à partir de leurs bounds réels, jamais d'une largeur fixe),
+        et s'étend sur toute leur hauteur.
+    */
+    void drawColumnSeparator(juce::Graphics& g,
+                             juce::Rectangle<int> leftColumn,
+                             juce::Rectangle<int> rightColumn)
+    {
+        if (leftColumn.isEmpty() || rightColumn.isEmpty())
+            return;
+
+        const float separatorX = (float) (leftColumn.getRight() + rightColumn.getX()) / 2.0f;
+
+        g.setColour(juce::Colours::white.withAlpha(0.35f));
+        g.drawLine(separatorX, (float) leftColumn.getY(),
+                  separatorX, (float) leftColumn.getBottom(),
+                  1.0f);
+    }
+
+    /*
+        Traduit un type en nom de voix musical, quand on en a un.
+
+        Le CF est conventionnellement écrit comme voix de basse : les trois
+        types les plus utiles pour un contrepoint (les plus proches du CF,
+        en montant) reçoivent donc les noms Tenor/Alto/Soprano, dans l'ordre.
+
+        Les trois types restants (-1, -2, -3) placent la voix sous le CF :
+        cas plus rare, pas encore associé à un nom précis, donc affiché
+        comme avant ("Type -1", etc.).
+
+        Important : cette fonction ne change que le texte affiché.
+        Le type réel envoyé au modèle (via typeToComboBoxId/comboBoxIdToType)
+        reste exactement le même entier qu'avant.
+    */
+    static juce::String getTypeDisplayName(int type)
+    {
+        switch (type)
+        {
+            case 0: return "Tenor";
+            case 1: return "Alto";
+            case 2: return "Soprano";
+            default: return "Type " + juce::String(type);
+        }
     }
 
     /*

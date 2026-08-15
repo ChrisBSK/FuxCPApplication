@@ -43,6 +43,10 @@ public:
     // Remet les contrôles de génération dans l'état initial.
     void clearGenerationInputs();
 
+    // Réaffiche tous les contrôles à partir du problème actuel d'AppController.
+    // Utilisé après le chargement d'une configuration sauvegardée.
+    void loadFromModel();
+
     // Limite de la grande zone de travail, en coordonnées de OptionsPanel.
     juce::Rectangle<int> getWorkspaceBounds() const;
 
@@ -70,6 +74,13 @@ private:
     ColumnBox searchColumn;
 
 
+
+    // Titre "Priority vector" au-dessus de la liste des priorités.
+    // Vit ici (et pas dans SolverPriorityList) car il doit être centré sur
+    // toute la largeur de la colonne Search, comme "Search Method" et
+    // "Minimization Method" : SolverPriorityList, elle, n'occupe que la
+    // largeur restante une fois les flèches haut/bas retirées.
+    juce::Label priorityVectorTitle;
 
     // Ancienne colonne Solver Priorities.
     // Conservée pour pouvoir la réutiliser plus tard.

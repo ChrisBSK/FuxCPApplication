@@ -1,5 +1,7 @@
 #include "AppController.h"
 
+#include <algorithm>
+
 #include <juce_audio_basics/juce_audio_basics.h>
 
 #include "../ui/leftPanel/LeftPanel.h"
@@ -272,4 +274,173 @@ bool AppController::isGenerating() const
         return false;
 
     return generationService->isGenerating();
+}
+
+//==============================================================================
+// CONFIGURATIONS SAUVEGARDÉES
+//
+// Une configuration sauvegardée est un fichier XML : le ValueTree produit
+// par CantusProblem::toValueTree(), auquel on ajoute juste un nom et une
+// date avant de l'écrire sur le disque.
+//
+//
+//
+// AppController ne connaît pas
+// le détail de ce que contient un problème : il se contente de déléguer
+// à CantusProblem, puis de gérer le fichier.
+//==============================================================================
+
+/*
+    Retourne le dossier utilisé pour stocker les configurations, et le crée
+    s'il n'existe pas encore.
+
+    Emplacement standard des données d'application sur macOS :
+    ~/Library/Application Support/Fuxophone/SavedConfigurations/
+*/
+juce::File AppController::getSavedConfigurationsDirectory()
+{
+    auto directory = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+        .getChildFile("Fuxophone")
+        .getChildFile("SavedConfigurations");
+
+    if (! directory.exists())
+        directory.createDirectory();
+
+    return directory;
+}
+
+/*
+    Sauvegarde l'état complet du problème courant sous le nom donné par
+    l'utilisateur.
+
+    On part du ValueTree renvoyé par CantusProblem::toValueTree() (qui ne
+    connaît que le problème lui-même), et on lui ajoute deux propriétés
+    supplémentaires - le nom choisi et la date - avant de l'écrire en XML.
+
+
+
+    C'est ce même ValueTree, avec ces mêmes propriétés, que loadConfiguration()
+    et getSavedConfigurations() relisent ensuite.
+*/
+bool AppController::saveConfiguration(const juce::String& name)
+{
+    auto state = problem.toValueTree();
+
+    const auto now = juce::Time::getCurrentTime();
+
+    // Nom affiché tel quel dans la liste des configurations.
+    state.setProperty("name", name, nullptr);
+    // Texte affiché sous le nom, dans la liste.
+    state.setProperty("dateDisplay", now.toString(true, true, false, true), nullptr);
+
+    /*
+        Le nom du fichier sur le disque n'est jamais montré à l'utilisateur :
+        seule la propriété "name" ci-dessus l'est.
+
+
+        -On simplifie le nom choisi pour qu'il reste un nom de fichier valide
+
+        -On ajoute l'horodatage pour être certain de ne jamais écraser une ancienne
+        sauvegarde qui porterait le même nom.
+    */
+    auto fileName = juce::File::createLegalFileName(name.isNotEmpty() ? name : "Configuration")
+        + "_" + juce::String(now.toMilliseconds()) + ".xml";
+
+    auto file = getSavedConfigurationsDirectory().getChildFile(fileName);
+
+    if (auto xml = state.createXml())
+        return xml->writeTo(file);
+
+    return false;
+}
+
+/*
+    Parcourt le dossier de sauvegarde et lit, pour chaque fichier, juste de
+    quoi remplir une ligne de la liste (nom + date) : pas besoin de
+    reconstruire tout le problème seulement pour l'afficher.
+*/
+std::vector<AppController::SavedConfigurationInfo> AppController::getSavedConfigurations() const
+{
+    std::vector<SavedConfigurationInfo> entries;
+
+    for (const auto& file : getSavedConfigurationsDirectory().findChildFiles(juce::File::findFiles, false, "*.xml"))
+    {
+        auto xml = juce::XmlDocument::parse(file);
+
+        if (xml == nullptr)
+            continue;
+
+        auto state = juce::ValueTree::fromXml(*xml);
+
+        if (! state.isValid())
+            continue;
+
+        SavedConfigurationInfo entry;
+        entry.name = state.getProperty("name", "Sans nom").toString();
+        entry.dateDisplay = state.getProperty("dateDisplay", "").toString();
+        entry.file = file;
+
+        entries.push_back(entry);
+    }
+
+    // La configuration sauvegardée le plus récemment apparaît en premier.
+    std::sort(entries.begin(), entries.end(), [](const SavedConfigurationInfo& a, const SavedConfigurationInfo& b)
+    {
+        return a.file.getLastModificationTime() > b.file.getLastModificationTime();
+    });
+
+    return entries;
+}
+
+/*
+    Charge une configuration sauvegardée et remplace le problème courant.
+
+    Toute la reconstruction du problème (Cantus Firmus, voix, réglages) est
+    déléguée à CantusProblem::restoreFromValueTree() : AppController se
+    contente de relire le fichier XML et de refaire ensuite le lien avec
+    voiceSettings, qui sert uniquement à la synchronisation UI.
+*/
+bool AppController::loadConfiguration(const juce::File& file)
+{
+    auto xml = juce::XmlDocument::parse(file);
+
+    if (xml == nullptr)
+        return false;
+
+    auto state = juce::ValueTree::fromXml(*xml);
+
+    if (! state.isValid())
+        return false;
+
+    problem.restoreFromValueTree(state);
+
+    /*
+        voiceSettings sert uniquement à synchroniser LeftPanel <-> OptionsPanel
+        avant un Generate : on le reconstruit à partir des voix qui viennent
+        d'être chargées, pour que l'espèce et le type de chaque contrepoint
+        restent corrects si l'utilisateur relance une génération sans rien
+        modifier.
+    */
+    const auto& counterpoints = problem.getCounterpoints();
+    voiceSettings.assign(counterpoints.size(), {});
+
+    for (size_t i = 0; i < counterpoints.size(); ++i)
+    {
+        voiceSettings[i].species = counterpoints[i].species;
+        voiceSettings[i].type    = counterpoints[i].type;
+    }
+
+    return true;
+}
+
+/*
+    Supprime définitivement le fichier d'une configuration sauvegardée.
+
+    Une simple suppression de fichier : rien à faire côté CantusProblem ou
+    ValueTree, la configuration supprimée n'était de toute façon pas
+    chargée en mémoire (seule sa fiche name/date l'était, pour la liste).
+*/
+bool AppController::deleteConfiguration(const juce::File& file)
+{
+    return file.deleteFile();
 }

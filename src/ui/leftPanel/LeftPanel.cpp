@@ -21,6 +21,10 @@ LeftPanel::~LeftPanel()
 {
     if (generationState.isValid())
         generationState.removeListener(this);
+
+    // JUCE exige de détacher le LookAndFeel avant que l'objet qui le
+    // possède (numVoicesLookAndFeel) ne soit détruit.
+    numVoicesCB.setLookAndFeel(nullptr);
 }
 //==============================================================================
 // PARSING : Cantus Firmus (texte --> MIDI)
@@ -92,6 +96,22 @@ LeftPanel::LeftPanel(AppController& controller)
     cfInput.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
     cfInput.setColour(juce::TextEditor::focusedOutlineColourId, juce::Colours::transparentBlack);
     cfInput.setColour(juce::TextEditor::textColourId, juce::Colours::white);
+
+    /*
+        Texte d'exemple affiché uniquement quand le champ est vide.
+
+        setTextToShowWhenEmpty gère tout automatiquement : le texte
+        disparaît dès que l'utilisateur tape un caractère, et réapparaît
+        de lui-même s'il efface tout ensuite (retour à un champ vide) -
+        que ce soit à l'état initial ou après un Clear.
+    */
+    cfInput.setTextToShowWhenEmpty(
+        juce::String::fromUTF8("Entrez le CF\n"
+                               "(MIDI ou Lettres)\n\n"
+                               "Ex : 60 62 64 65 67 (MIDI)\n"
+                               "Ex : C2 D2 E2 F2 G2 (Lettres)"),
+        juce::Colours::white.withAlpha(0.4f));
+
     addAndMakeVisible(cfInput);
 
     // =========================
@@ -101,6 +121,14 @@ LeftPanel::LeftPanel(AppController& controller)
     numVoicesCB.addItem("2", 2);
     numVoicesCB.addItem("3", 3);
     numVoicesCB.addItem("4", 4);
+
+    // Texte affiché tant qu'aucun nombre de voix n'est choisi
+    // (au lancement de l'application, ou après un Clear).
+    numVoicesCB.setTextWhenNothingSelected(juce::String::fromUTF8("Sélectionnez"));
+
+    // Réduit la taille du texte affiché dans la ComboBox.
+    numVoicesCB.setLookAndFeel(&numVoicesLookAndFeel);
+
     addAndMakeVisible(numVoicesCB);
 
 
@@ -269,7 +297,7 @@ void LeftPanel::triggerGeneration()
     // Contrepoints
 
     // Récupère les paramètres des contrepoints sélectionnés dans l'interface
-    // (espèce et type pour chaque voix).
+    // (espèce et tessiture pour chaque voix).
     auto& settings = appController.getVoiceSettings();
     for (int i = 0; i < numCounterpoints; ++i)
     {
@@ -320,21 +348,113 @@ void LeftPanel::triggerNextSolution()
 
 /*
 //==============================================================================
-   Demande la sauvegarde de la solution courante.
+   Demande la sauvegarde de la configuration courante.
 
-   Pour sauvegarder, il faut d'abord qu'une solution ait été générée
-   et affichée dans la Drag Zone.
+   Contrairement à Generate, on n'exige pas qu'une solution ait déjà été
+   produite : "Save configuration" sauvegarde l'état de saisie actuel
+   (Cantus Firmus, voix, réglages), pas un résultat du solveur. On construit
+   donc le problème exactement comme triggerGeneration le ferait, sans
+   lancer le solveur, puis on demande un nom avant d'écrire le fichier.
 //==============================================================================
 */
 void LeftPanel::triggerSaveSolution()
 {
-    if (midiItem == nullptr || ! midiItem->file.existsAsFile())
+    // =========================
+    //  VALIDATION INPUT (mêmes règles que pour Generate)
+    // =========================
+
+    auto rawText = cfInput.getText().trim();
+
+    if (rawText.isEmpty())
     {
         showAlert(juce::AlertWindow::WarningIcon,
-                  juce::String::fromUTF8("Save solution"),
-                  juce::String::fromUTF8("Veuillez générer une solution avant de la sauvegarder."));
+                  juce::String::fromUTF8("Save configuration"),
+                  juce::String::fromUTF8("Le Cantus Firmus est vide."));
         return;
     }
+
+    auto cf = parseCantusFirmus(rawText);
+
+    if (cf.empty())
+    {
+        showAlert(juce::AlertWindow::WarningIcon,
+                  juce::String::fromUTF8("Save configuration"),
+                  juce::String::fromUTF8("Cantus Firmus invalide."));
+        return;
+    }
+
+    if (numVoicesCB.getSelectedItemIndex() == -1)
+    {
+        showAlert(juce::AlertWindow::WarningIcon,
+                  juce::String::fromUTF8("Save configuration"),
+                  juce::String::fromUTF8("Veuillez sélectionner un nombre de voix."));
+        return;
+    }
+
+    // =========================
+    //  CONSTRUCTION DU PROBLEME
+    // =========================
+    // Même construction que dans triggerGeneration : on sauvegarde
+    // exactement ce que Generate utiliserait si on cliquait dessus.
+    // numCounterpoints vient du nombre de voix choisi : rien n'est figé
+    // à un nombre précis de contrepoints.
+
+    int numVoices = numVoicesCB.getSelectedId();
+    int numCounterpoints = numVoices - 1;
+
+    CantusProblem::Voices v;
+    v.cf = cf;
+
+    auto& voiceSettings = appController.getVoiceSettings();
+    for (int i = 0; i < numCounterpoints; ++i)
+    {
+        CantusProblem::Counterpoint cp;
+        cp.species = voiceSettings[i].species;
+        cp.type    = voiceSettings[i].type;
+        v.counterpoints.push_back(cp);
+    }
+
+    auto& problem = appController.getProblem();
+    problem.setVoices(v);
+    problem.setVoiceCount(numVoices);
+
+    // =========================
+    //  DEMANDE DU NOM
+    // =========================
+    // JUCE ne propose pas de boîte "texte à saisir" toute prête : on
+    // construit donc l'AlertWindow à la main, avec un seul champ texte.
+    auto* nameWindow = new juce::AlertWindow(
+        juce::String::fromUTF8("Save configuration"),
+        juce::String::fromUTF8("Donnez un nom à cette configuration :"),
+        juce::AlertWindow::QuestionIcon);
+
+    nameWindow->addTextEditor("configName", juce::String::fromUTF8("Ma configuration"));
+    nameWindow->addButton(juce::String::fromUTF8("Enregistrer"), 1, juce::KeyPress(juce::KeyPress::returnKey));
+    nameWindow->addButton(juce::String::fromUTF8("Annuler"), 0, juce::KeyPress(juce::KeyPress::escapeKey));
+
+    nameWindow->enterModalState(true, juce::ModalCallbackFunction::create(
+        [this, nameWindow](int result)
+        {
+            // La fenêtre doit être détruite nous-mêmes une fois le résultat
+            // lu : unique_ptr s'en charge à la sortie de ce callback.
+            std::unique_ptr<juce::AlertWindow> windowToDelete(nameWindow);
+
+            if (result != 1)
+                return;
+
+            auto name = nameWindow->getTextEditorContents("configName").trim();
+
+            if (name.isEmpty())
+                name = juce::String::fromUTF8("Configuration sans nom");
+
+            const bool success = appController.saveConfiguration(name);
+
+            showAlert(success ? juce::AlertWindow::InfoIcon : juce::AlertWindow::WarningIcon,
+                      juce::String::fromUTF8("Save configuration"),
+                      success
+                          ? juce::String::fromUTF8("Configuration « ") + name + juce::String::fromUTF8(" » enregistrée.")
+                          : juce::String::fromUTF8("Impossible d'enregistrer la configuration."));
+        }));
 }
 
 
@@ -524,6 +644,36 @@ void LeftPanel::updateCantusDisplay()
 
 /*
 //==============================================================================
+   Affiche un nombre de voix donné, comme si l'utilisateur l'avait
+   sélectionné lui-même dans la ComboBox.
+
+   sendNotification déclenche onChange, qui met à jour OptionsPanel et le
+   workspace des contrepoints : c'est exactement la cascade voulue au
+   chargement d'une configuration sauvegardée.
+//==============================================================================
+*/
+void LeftPanel::setNumVoicesDisplay(int numVoices)
+{
+    numVoicesCB.setSelectedId(numVoices, juce::sendNotification);
+}
+
+/*
+//==============================================================================
+   Retire le fichier MIDI affiché dans la Drag Zone.
+
+   Utilisé au chargement d'une configuration : l'ancien fichier MIDI généré
+   ne correspond plus à la nouvelle configuration affichée.
+//==============================================================================
+*/
+void LeftPanel::clearGeneratedMidiDisplay()
+{
+    midiItem.reset();
+    resized();
+    repaint();
+}
+
+/*
+//==============================================================================
    Nettoie la saisie comme au lancement de l'application.
 
    Le Cantus Firmus, le nombre de voix, le MIDI affiché
@@ -544,6 +694,24 @@ void LeftPanel::clearInputState()
 
     resized();
     repaint();
+}
+
+/*
+//==============================================================================
+   Vérifie si la saisie est déjà vide.
+
+   Les trois mêmes champs que clearInputState() remet à zéro sont vérifiés
+   ici : Cantus Firmus, nombre de voix, fichier MIDI affiché. Si les trois
+   sont déjà vides, alors appuyer sur Clear ne changerait rien à l'écran.
+//==============================================================================
+*/
+bool LeftPanel::isAtInitialState() const
+{
+    const bool cantusFirmusIsEmpty = cfInput.getText().trim().isEmpty();
+    const bool noVoiceCountSelected = numVoicesCB.getSelectedId() == 0;
+    const bool noGeneratedMidiShown = midiItem == nullptr;
+
+    return cantusFirmusIsEmpty && noVoiceCountSelected && noGeneratedMidiShown;
 }
 
 /*

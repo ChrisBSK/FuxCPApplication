@@ -58,6 +58,8 @@ target_sources(Fuxophone PRIVATE
         src/ui/pages/SolverExplanationPage.h
         src/ui/pages/AboutPage.cpp
         src/ui/pages/AboutPage.h
+        src/ui/pages/SavedConfigurationsPage.cpp
+        src/ui/pages/SavedConfigurationsPage.h
 
         src/ui/keyboard/KeyboardComponent.cpp
         src/ui/keyboard/KeyboardComponent.h

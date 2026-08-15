@@ -15,6 +15,80 @@
 //==============================================================================
 */
 
+namespace
+{
+    /*
+        =====================================================================
+        Identifiants des noeuds utilisés par toValueTree()/restoreFromValueTree().
+
+        un seul identifiant, réutilisé côté écriture
+        et côté lecture, garantit qu'on lit toujours ce qu'on a écrit.
+        =====================================================================
+    */
+    const juce::Identifier idRoot              { "CantusProblemState" };
+    const juce::Identifier idCantusFirmus       { "CantusFirmus" };
+    const juce::Identifier idVoices             { "Voices" };
+    const juce::Identifier idVoice              { "Voice" };
+    const juce::Identifier idGlobalSettings     { "GlobalSettings" };
+    const juce::Identifier idImportance         { "Importance" };
+    const juce::Identifier idCounterpointParams { "CounterpointParams" };
+    const juce::Identifier idParams             { "Params" };
+    const juce::Identifier idShapeAssignments   { "ShapeAssignments" };
+    const juce::Identifier idShape              { "Shape" };
+
+    /*
+        Transforme un vecteur de nombres en une seule chaîne de texte,
+        les valeurs étant séparées par un espace.
+
+        Utilisé pour stocker un vecteur entier (Cantus Firmus, importance,
+        valeurs d'une shape...) dans une seule propriété de ValueTree,
+        quelle que soit sa longueur : rien n'est jamais figé à un nombre
+        précis de voix ou de valeurs.
+    */
+    template <typename NumberType>
+    juce::String numbersToString(const std::vector<NumberType>& values)
+    {
+        juce::StringArray parts;
+
+        for (auto value : values)
+            parts.add(juce::String(value));
+
+        return parts.joinIntoString(" ");
+    }
+
+    /*
+        Reconstruit un vecteur d'entiers à partir d'une chaîne de texte
+        produite par numbersToString().
+    */
+    std::vector<int> stringToIntVector(const juce::String& text)
+    {
+        std::vector<int> result;
+        auto tokens = juce::StringArray::fromTokens(text, " ", "");
+        tokens.removeEmptyStrings();
+
+        for (const auto& token : tokens)
+            result.push_back(token.getIntValue());
+
+        return result;
+    }
+
+    /*
+        Reconstruit un vecteur de doubles à partir d'une chaîne de texte
+        produite par numbersToString().
+    */
+    std::vector<double> stringToDoubleVector(const juce::String& text)
+    {
+        std::vector<double> result;
+        auto tokens = juce::StringArray::fromTokens(text, " ", "");
+        tokens.removeEmptyStrings();
+
+        for (const auto& token : tokens)
+            result.push_back(token.getDoubleValue());
+
+        return result;
+    }
+}
+
 //==============================================================================
 // Construction
 //==============================================================================
@@ -234,4 +308,207 @@ void CantusProblem::recalculateCosts() {
     /*std::cout << "melodicCosts size = "
           << melodicCosts.size()
           << std::endl;*/
+}
+
+//==============================================================================
+// Sauvegarde / Chargement (ValueTree)
+//
+// toValueTree() range tout l'état du problème dans un seul ValueTree.
+// restoreFromValueTree() fait l'inverse : elle relit ce ValueTree et
+// réécrit chaque champ du problème.
+//
+// Les deux méthodes se répondent noeud par noeud, dans le même ordre,
+// pour rester faciles à comparer et à faire évoluer ensemble.
+//==============================================================================
+
+/*
+    Construit un ValueTree représentant l'état complet du problème :
+    Cantus Firmus, voix (espèce/type de chaque contrepoint) et tous les
+    réglages du solveur contenus dans ConstraintSettings.
+
+    Chaque groupe de données (voix, priorités, shapes...) est écrit dans
+    son propre noeud, avec autant d'enfants que nécessaire : la structure
+    s'adapte donc au nombre réel de voix ou de shapes, sans jamais supposer
+    un nombre fixe à l'avance.
+*/
+juce::ValueTree CantusProblem::toValueTree() const
+{
+    juce::ValueTree root(idRoot);
+    root.setProperty("title", title, nullptr);
+
+    // ----- Cantus Firmus -----
+    juce::ValueTree cantusFirmusNode(idCantusFirmus);
+    cantusFirmusNode.setProperty("notes", numbersToString(voices.cf), nullptr);
+    root.addChild(cantusFirmusNode, -1, nullptr);
+
+    // ----- Voix (une entrée par contrepoint, dans leur ordre réel) -----
+    juce::ValueTree voicesNode(idVoices);
+    voicesNode.setProperty("count", voiceCount, nullptr);
+
+    for (const auto& counterpoint : voices.counterpoints)
+    {
+        juce::ValueTree voiceNode(idVoice);
+        voiceNode.setProperty("species", counterpoint.species, nullptr);
+        voiceNode.setProperty("type", counterpoint.type, nullptr);
+        voicesNode.addChild(voiceNode, -1, nullptr);
+    }
+    root.addChild(voicesNode, -1, nullptr);
+
+    // ----- Réglages globaux du solveur -----
+    // Les enums sont stockés tels quels (static_cast en int) : ConstraintSettings
+    // reste la seule source de vérité sur leur signification.
+    juce::ValueTree globalSettingsNode(idGlobalSettings);
+    globalSettingsNode.setProperty("borrowMode", settings.getBorrowMode(), nullptr);
+    globalSettingsNode.setProperty("searchMethod",
+                                   static_cast<int>(settings.getSearchMethod()),
+                                   nullptr);
+    globalSettingsNode.setProperty("minimizationMethod",
+                                   static_cast<int>(settings.getMinimizationMethod()),
+                                   nullptr);
+    root.addChild(globalSettingsNode, -1, nullptr);
+
+    // ----- Ordre d'importance des priorités -----
+    juce::ValueTree importanceNode(idImportance);
+    importanceNode.setProperty("costs", numbersToString(settings.getImportanceCosts()), nullptr);
+    root.addChild(importanceNode, -1, nullptr);
+
+    // ----- Sliders de coûts, un groupe de valeurs par contrepoint -----
+    juce::ValueTree counterpointParamsNode(idCounterpointParams);
+
+    for (const auto& params : settings.getAllCounterpointCostParameters())
+    {
+        juce::ValueTree paramsNode(idParams);
+        paramsNode.setProperty("melodyMovement", params.melodyMovement, nullptr);
+        paramsNode.setProperty("intervalColour", params.intervalColour, nullptr);
+        paramsNode.setProperty("perfectIntervals", params.perfectIntervals, nullptr);
+        counterpointParamsNode.addChild(paramsNode, -1, nullptr);
+    }
+    root.addChild(counterpointParamsNode, -1, nullptr);
+
+    // ----- Shapes assignées (aucune, une ou plusieurs par contrepoint) -----
+    juce::ValueTree shapeAssignmentsNode(idShapeAssignments);
+
+    for (const auto& assignment : settings.getShapeAssignments())
+    {
+        juce::ValueTree shapeNode(idShape);
+        shapeNode.setProperty("voiceIndex", assignment.voiceIndex, nullptr);
+        shapeNode.setProperty("target", static_cast<int>(assignment.target), nullptr);
+        shapeNode.setProperty("shape", static_cast<int>(assignment.shape), nullptr);
+        shapeNode.setProperty("values", numbersToString(assignment.controlValues), nullptr);
+        shapeAssignmentsNode.addChild(shapeNode, -1, nullptr);
+    }
+    root.addChild(shapeAssignmentsNode, -1, nullptr);
+
+    return root;
+}
+
+/*
+    Relit un ValueTree produit par toValueTree() et remplace l'état actuel
+    du problème par celui qu'il décrit.
+
+    La lecture suit exactement le même ordre que l'écriture, noeud par
+    noeud, pour rester simple à vérifier.
+*/
+void CantusProblem::restoreFromValueTree(const juce::ValueTree& state)
+{
+    // Un ValueTree invalide ou d'un autre type ne doit rien modifier :
+    // on préfère ne rien faire plutôt que d'écraser le problème actuel
+    // avec des données incohérentes.
+    if (! state.isValid() || state.getType() != idRoot)
+        return;
+
+    title = state.getProperty("title", "").toString();
+
+    // ----- Cantus Firmus -----
+    Voices restoredVoices;
+
+    if (auto cantusFirmusNode = state.getChildWithName(idCantusFirmus); cantusFirmusNode.isValid())
+        restoredVoices.cf = stringToIntVector(cantusFirmusNode.getProperty("notes").toString());
+
+    // ----- Voix -----
+    // On reconstruit la liste des contrepoints en parcourant les enfants
+    // "Voice" dans leur ordre d'origine : ni plus ni moins que ce qui a
+    // réellement été sauvegardé.
+    if (auto voicesNode = state.getChildWithName(idVoices); voicesNode.isValid())
+    {
+        voiceCount = (int) voicesNode.getProperty("count", 0);
+
+        for (int i = 0; i < voicesNode.getNumChildren(); ++i)
+        {
+            auto voiceNode = voicesNode.getChild(i);
+
+            Counterpoint counterpoint;
+            counterpoint.species = (int) voiceNode.getProperty("species", 1);
+            counterpoint.type    = (int) voiceNode.getProperty("type", 0);
+
+            restoredVoices.counterpoints.push_back(counterpoint);
+        }
+    }
+
+    voices = restoredVoices;
+
+    // ----- Réglages globaux -----
+    if (auto globalSettingsNode = state.getChildWithName(idGlobalSettings); globalSettingsNode.isValid())
+    {
+        settings.setBorrowMode((int) globalSettingsNode.getProperty("borrowMode", 1));
+
+        settings.setSearchMethod(static_cast<ConstraintSettings::SearchMethod>(
+            (int) globalSettingsNode.getProperty("searchMethod",
+                                                 static_cast<int>(ConstraintSettings::SearchMethod::bab))));
+
+        settings.setMinimizationMethod(static_cast<ConstraintSettings::MinimizationMethod>(
+            (int) globalSettingsNode.getProperty("minimizationMethod",
+                                                 static_cast<int>(ConstraintSettings::MinimizationMethod::lexicographic))));
+    }
+
+    // ----- Ordre d'importance -----
+    if (auto importanceNode = state.getChildWithName(idImportance); importanceNode.isValid())
+        settings.setImportanceCosts(stringToIntVector(importanceNode.getProperty("costs").toString()));
+
+    // ----- Sliders de coûts par contrepoint -----
+    // setCounterpointCount prépare d'abord une case par contrepoint,
+    // pour que chaque setCounterpoint*() ci-dessous écrive au bon endroit.
+    settings.setCounterpointCount((int) restoredVoices.counterpoints.size());
+
+    if (auto counterpointParamsNode = state.getChildWithName(idCounterpointParams); counterpointParamsNode.isValid())
+    {
+        for (int i = 0; i < counterpointParamsNode.getNumChildren(); ++i)
+        {
+            auto paramsNode = counterpointParamsNode.getChild(i);
+
+            settings.setCounterpointMelodyMovement(i, (double) paramsNode.getProperty("melodyMovement", 0.0));
+            settings.setCounterpointIntervalColour(i, (double) paramsNode.getProperty("intervalColour", 0.0));
+            settings.setCounterpointPerfectIntervals(i, (double) paramsNode.getProperty("perfectIntervals", 0.0));
+        }
+    }
+
+    // ----- Shapes assignées -----
+    // On repart d'une liste vide avant de réajouter uniquement les shapes
+    // réellement présentes dans le ValueTree.
+    settings.setShapeAssignments({});
+
+    if (auto shapeAssignmentsNode = state.getChildWithName(idShapeAssignments); shapeAssignmentsNode.isValid())
+    {
+        for (int i = 0; i < shapeAssignmentsNode.getNumChildren(); ++i)
+        {
+            auto shapeNode = shapeAssignmentsNode.getChild(i);
+
+            const int voiceIndex = (int) shapeNode.getProperty("voiceIndex", 0);
+
+            const auto target = static_cast<ConstraintSettings::ShapeCostTarget>(
+                (int) shapeNode.getProperty("target", 0));
+
+            const auto shape = static_cast<ConstraintSettings::ShapeType>(
+                (int) shapeNode.getProperty("shape", 0));
+
+            settings.setShapeAssignment(voiceIndex,
+                                        target,
+                                        shape,
+                                        stringToDoubleVector(shapeNode.getProperty("values").toString()));
+        }
+    }
+
+    // Les vecteurs de coûts envoyés au solveur dépendent des réglages
+    // qu'on vient de restaurer : on les reconstruit avant de rendre la main.
+    recalculateCosts();
 }

@@ -45,6 +45,33 @@ public:
         addAndMakeVisible(lexicographicButton);
         addAndMakeVisible(weightedSumButton);
 
+        /*
+            Explication brève au survol de chaque méthode.
+
+            juce::Button hérite déjà de SettableTooltipClient : setTooltip()
+            suffit, le TooltipWindow créé dans MainComponent affiche le
+            texte automatiquement, comme pour les priorités du solveur.
+        */
+        dfsButton.setTooltip(juce::String::fromUTF8(
+            "Depth-first Search : explore les solutions en profondeur et "
+            "s'arrête à la première trouvée, sans chercher à minimiser les coûts."));
+
+        babButton.setTooltip(juce::String::fromUTF8(
+            "Branch and Bound : explore les solutions en écartant celles "
+            "qui ne peuvent pas faire mieux que la meilleure déjà trouvée."));
+
+        lexicographicButton.setTooltip(juce::String::fromUTF8(
+            "Lexicographic : minimise le coût de chaque contrainte du "
+            "vecteur de priorités, une à la fois, dans l'ordre choisi. Le "
+            "coût d'une contrainte plus importante n'est jamais sacrifié "
+            "pour réduire celui d'une contrainte moins prioritaire."));
+
+        weightedSumButton.setTooltip(juce::String::fromUTF8(
+            "Weighted Sum : minimise la somme des coûts de chaque "
+            "contrainte du vecteur de priorités, chacun multiplié par son "
+            "poids. Contrairement à Lexicographic, toutes les contraintes "
+            "comptent en même temps, pas une à la fois."));
+
         // Chaque bouton sélectionne son mode correspondant.
         dfsButton.onClick = [this]()
         {
@@ -69,6 +96,37 @@ public:
         // État initial affiché au lancement de l'application.
         selectSearchMethod(SearchMethod::bab);
         selectMinimizationMode(MinimizationMode::lexicographic);
+    }
+
+    //==============================================================================
+    // Réaffichage depuis une configuration chargée
+    //==============================================================================
+
+    /*
+        Affiche la méthode de recherche chargée (BAB ou DFS).
+
+        Passe par selectSearchMethod : le callback onBabSearchMethodChanged
+        est donc bien déclenché. Ce n'est pas un problème ici, puisque
+        OptionsPanel réécrirait alors dans ConstraintSettings exactement la
+        valeur qui vient d'être chargée - sans effet, mais sans code
+        dupliqué non plus.
+    */
+    void setSearchMethod(bool useBab)
+    {
+        selectSearchMethod(useBab ? SearchMethod::bab : SearchMethod::dfs);
+    }
+
+    /*
+        Affiche la méthode de minimisation chargée (Lexicographic ou Weighted Sum).
+
+        Déclenche aussi onLexicographicModeChanged, ce qui permet à
+        OptionsPanel de remettre solverPriorityList dans le bon mode
+        d'affichage (rank ou weight) sans dupliquer cette logique ici.
+    */
+    void setMinimizationMode(bool isLexicographic)
+    {
+        selectMinimizationMode(isLexicographic ? MinimizationMode::lexicographic
+                                               : MinimizationMode::weightedSum);
     }
 
     /*

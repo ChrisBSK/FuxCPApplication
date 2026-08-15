@@ -107,8 +107,65 @@ public:
     }
 
 
+    // =========================
+    // Configurations sauvegardées
+    //
+    // Une configuration sauvegardée est un fichier XML qui contient le
+    // ValueTree renvoyé par CantusProblem::toValueTree() (voir
+    // CantusProblem.h), complété par un nom choisi par l'utilisateur et
+    // une date. AppController ne fait que lire/écrire ce fichier : toute
+    // la connaissance de "ce qu'est l'état du problème" reste dans
+    // CantusProblem.
+    // =========================
+
+    /**
+     * Une ligne de la liste des configurations sauvegardées, affichée par
+     * la page "Saved configurations" : le nom choisi par l'utilisateur et
+     * la date de sauvegarde.
+     */
+    struct SavedConfigurationInfo
+    {
+        juce::String name;
+        juce::String dateDisplay;
+        juce::File file;
+    };
+
+    /**
+     * Sauvegarde l'état complet du problème courant (Cantus Firmus, voix,
+     * réglages) sous le nom donné par l'utilisateur.
+     *
+     * Retourne false si l'écriture du fichier a échoué.
+     */
+    bool saveConfiguration(const juce::String& name);
+
+    /**
+     * Retourne la liste des configurations sauvegardées, triée de la plus
+     * récente à la plus ancienne.
+     */
+    std::vector<SavedConfigurationInfo> getSavedConfigurations() const;
+
+    /**
+     * Remplace le problème courant par la configuration lue dans ce fichier.
+     *
+     * Reconstruit aussi voiceSettings à partir des voix chargées, pour que
+     * le prochain Generate reste cohérent avec ce qui vient d'être restauré.
+     *
+     * Retourne false si le fichier est invalide ou introuvable.
+     */
+    bool loadConfiguration(const juce::File& file);
+
+    /**
+     * Supprime définitivement une configuration sauvegardée.
+     *
+     * Retourne false si le fichier n'a pas pu être supprimé.
+     */
+    bool deleteConfiguration(const juce::File& file);
 
 private:
+    // Dossier où sont stockées les configurations sauvegardées.
+    // Créé automatiquement au premier appel s'il n'existe pas encore.
+    static juce::File getSavedConfigurationsDirectory();
+
     // =========================
     // Modèle principal
     // =========================

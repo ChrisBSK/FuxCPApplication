@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <juce_core/juce_core.h>
+#include <juce_data_structures/juce_data_structures.h>
 #include "ConstraintsSettings.h"
 
 /*
@@ -78,6 +79,24 @@ public:
     // =========================
 
     bool isEmpty() const;
+
+    // =========================
+    // Sauvegarde / Chargement (ValueTree)
+    //
+    // Ces deux méthodes transforment le problème en un seul ValueTree,
+    // et inversement.
+    //
+    // Ce ValueTree représente TOUT l'état du système
+    // (Cantus Firmus, voix, réglages du solveur) : c'est lui qui est
+    // écrit sur le disque par AppController pour créer une configuration
+    // sauvegardée, puis relu pour la restaurer.
+    // =========================
+
+    // Construit un ValueTree représentant l'état complet du problème.
+    juce::ValueTree toValueTree() const;
+
+    // Remplace l'état du problème par celui contenu dans ce ValueTree.
+    void restoreFromValueTree(const juce::ValueTree& state);
 
     const std::vector<int> &getMelodicCosts() const;
 

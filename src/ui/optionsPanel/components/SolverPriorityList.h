@@ -282,14 +282,49 @@ private:
     }};
 
     /*
+        Courtes explications affichées en tooltip au survol de chaque ligne.
+
+        Même ordre que fixedPriorityNames : la description à l'index i
+        correspond toujours au nom à l'index i, quel que soit l'ordre
+        affiché à l'écran (voir getPriorityDescription()).
+
+        Ce texte reste identique en Lexicographic et en Weighted Sum :
+        seul le nombre affiché à côté change de sens (rang ou poids),
+        mais la contrainte décrite reste la même.
+    */
+    static constexpr std::array<const char*, priorityCount> fixedPriorityDescriptions
+    {{
+        "Notes empruntées hors de la tonalité (altérations).",
+        "Quintes justes utilisées comme intervalle harmonique.",
+        "Octaves justes utilisées comme intervalle harmonique.",
+        "Quintes ou octaves parallèles entre deux mesures.",
+        "Répétition d'une même note dans une voix.",
+        "Absence de triade harmonique complète.",
+        "Quinte ou octave atteinte par mouvement direct.",
+        "Voix qui avancent dans la même direction.",
+        "Avant-dernière note, juste avant la cadence finale.",
+        "Nota cambiata, une dissonance mélodique particulière.",
+        "Doublement de la tierce dans la triade harmonique.",
+        "Note qui se répète trop vite (deux temps plus tard).",
+        "Usage des syncopes (notes liées d'un temps à l'autre).",
+        "Mouvements mélodiques et couleur des intervalles."
+    }};
+
+    /*
         Ligne visuelle d'une priorité.
 
         Elle affiche :
         - une bulle avec le rang visible,
         - un rectangle avec le nom de la contrainte,
         - un fond léger si la ligne est sélectionnée.
+
+        Hérite aussi de juce::SettableTooltipClient : cela lui ajoute
+        setTooltip()/getTooltip(), ce qui suffit pour que le TooltipWindow
+        déjà créé dans MainComponent affiche automatiquement un texte
+        d'aide au survol de la ligne (voir refreshRows()).
     */
-    class PriorityRow : public juce::Component
+    class PriorityRow : public juce::Component,
+                        public juce::SettableTooltipClient
     {
     public:
         // Callback appelé quand l'utilisateur clique sur cette ligne.
@@ -504,6 +539,25 @@ private:
     }
 
     /*
+        Retourne la courte explication associée à une priorité, à partir
+        de son nom.
+
+        On réutilise findPriorityIndex() pour retrouver la bonne case dans
+        fixedPriorityDescriptions : les deux tableaux restent alignés par
+        index, jamais par la position visuelle qui change.
+    */
+    static juce::String getPriorityDescription(const juce::String& priorityName)
+    {
+        const int index = findPriorityIndex(priorityName);
+
+        if (index < 0)
+            return {};
+
+        // fromUTF8 garantit que les accents du texte s'affichent correctement.
+        return juce::String::fromUTF8(fixedPriorityDescriptions[static_cast<size_t>(index)]);
+    }
+
+    /*
         Échange la priorité sélectionnée avec une autre ligne.
         Sert au déplacement simple quand on n'est pas au bord de la liste.
     */
@@ -560,6 +614,15 @@ private:
                                getWeightForRank(rank),
                                displayMode == DisplayMode::weight);
             rows[i].setSelected(static_cast<int>(i) == selectedIndex);
+
+            /*
+                Le tooltip suit toujours le nom de la contrainte, pas la
+                position de la ligne : si l'utilisateur déplace "melodic"
+                en première place, c'est bien l'explication de "melodic"
+                qui doit rester affichée sur cette ligne, quel que soit
+                le mode d'affichage (rang ou poids).
+            */
+            rows[i].setTooltip(getPriorityDescription(priorityNames[i]));
         }
     }
 

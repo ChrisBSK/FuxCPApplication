@@ -76,6 +76,49 @@ namespace
             default: return ConstraintSettings::ShapeType::fixedZero;
         }
     }
+
+    /*
+        Conversion inverse de mapShapeId.
+
+        Nécessaire pour réafficher une shape chargée depuis une
+        configuration sauvegardée dans la bonne entrée de la ComboBox.
+    */
+    int shapeTypeToComboBoxId(ConstraintSettings::ShapeType shape)
+    {
+        switch (shape)
+        {
+            case ConstraintSettings::ShapeType::fixedZero:        return 1;
+            case ConstraintSettings::ShapeType::linear:           return 2;
+            case ConstraintSettings::ShapeType::linearDescending: return 3;
+            case ConstraintSettings::ShapeType::invertedV:        return 4;
+            case ConstraintSettings::ShapeType::v:                return 5;
+            case ConstraintSettings::ShapeType::m:                return 6;
+            case ConstraintSettings::ShapeType::step:             return 7;
+            case ConstraintSettings::ShapeType::stepDescending:   return 8;
+            default:                                              return 1;
+        }
+    }
+
+    /*
+        Conversion inverse de mapShapeTarget : traduit la cible du modèle
+        (ConstraintSettings) vers la cible comprise par VoiceWorkspace.
+    */
+    VoiceWorkspace::CostSliderTarget mapShapeTargetToUI(ConstraintSettings::ShapeCostTarget target)
+    {
+        switch (target)
+        {
+            case ConstraintSettings::ShapeCostTarget::intervalColour:
+                return VoiceWorkspace::CostSliderTarget::intervalColour;
+
+            case ConstraintSettings::ShapeCostTarget::perfectIntervals:
+                return VoiceWorkspace::CostSliderTarget::perfectIntervals;
+
+            case ConstraintSettings::ShapeCostTarget::melodyMovement:
+                return VoiceWorkspace::CostSliderTarget::melodyMovement;
+        }
+
+        return VoiceWorkspace::CostSliderTarget::melodyMovement;
+    }
 }
 
 //==============================================================================
@@ -246,6 +289,18 @@ void OptionsPanel::setupButtons()
 */
 void OptionsPanel::setupSolverPriorities()
 {
+    /*
+        Titre "Priority vector", dans le même style que "Search Method" et
+        "Minimization Method" (voir MinimizationModePanel::setupGroupTitle) :
+        petit texte centré, blanc, en gras.
+    */
+    priorityVectorTitle.setText(juce::String::fromUTF8("Priority vector"),
+                                juce::dontSendNotification);
+    priorityVectorTitle.setJustificationType(juce::Justification::centred);
+    priorityVectorTitle.setFont(juce::Font(juce::FontOptions(8.5f, juce::Font::bold)));
+    priorityVectorTitle.setColour(juce::Label::textColourId, juce::Colours::white);
+    addAndMakeVisible(priorityVectorTitle);
+
     // Ajoute la liste des priorités et les deux boutons de déplacement.
     addAndMakeVisible(solverPriorityList);
     addAndMakeVisible(movePriorityUpButton);
@@ -630,6 +685,8 @@ void OptionsPanel::layoutMinimizationModePanel(juce::Rectangle<int> columnBounds
     auto area = columnBounds.reduced(9, 10);
 
     constexpr int modePanelHeight = 86;
+    constexpr int titleHeight = 14;
+    constexpr int titleGap = 1;
     constexpr int listGap = 7;
     constexpr int arrowColumnWidth = 24;
     constexpr int arrowSize = 22;
@@ -641,12 +698,27 @@ void OptionsPanel::layoutMinimizationModePanel(juce::Rectangle<int> columnBounds
     // Petit espace entre le panneau Search et la liste des priorités.
     area.removeFromTop(listGap);
 
+    /*
+        Le titre "Priority vector" est placé ici, sur toute la largeur
+        encore disponible de "area" - la même largeur que celle utilisée
+        juste au-dessus pour minimizationModePanel. C'est ce qui garantit
+        qu'il reste centré au même endroit que "Search Method" et
+        "Minimization Method" : la liste elle-même (solverPriorityList),
+        plus bas, n'occupe qu'une largeur réduite par la colonne des flèches.
+    */
+    priorityVectorTitle.setBounds(area.removeFromTop(titleHeight));
+    area.removeFromTop(titleGap);
+
     // La liste prend la zone principale ; les flèches occupent une petite colonne à droite.
     // removeFromRight coupe la colonne en deux :
     // - arrowArea reçoit la bande de droite pour les flèches,
     // - area garde le reste pour la liste.
     auto arrowArea = area.removeFromRight(arrowColumnWidth);
-    auto listArea = area.reduced(0, 2);
+
+    // Seul le bas garde un peu de marge : le haut reste collé à
+    // titleGap, comme "Search Method"/"Minimization Method" collent
+    // directement à leurs boutons juste en dessous.
+    auto listArea = area.withTrimmedBottom(2);
 
     solverPriorityList.setBounds(listArea);
 
@@ -745,9 +817,22 @@ void OptionsPanel::bringActionButtonsToFront()
     - les paramètres de coûts,
     - les shapes,
     - les sélecteurs de contrepoint.
+
+    Si tout est déjà vide (au lancement de l'application, ou après un
+    premier appui sur Clear), on prévient l'utilisateur au lieu de refaire
+    silencieusement un nettoyage qui ne changerait rien à l'écran.
 */
 void OptionsPanel::clearGenerationInputs()
 {
+    if (leftPanel != nullptr && leftPanel->isAtInitialState())
+    {
+        juce::AlertWindow::showMessageBoxAsync(
+            juce::AlertWindow::InfoIcon,
+            juce::String::fromUTF8("Clear"),
+            juce::String::fromUTF8("Le problème est déjà à son état initial."));
+        return;
+    }
+
     // Nettoie les champs visibles : Cantus Firmus, nombre de voix, Drag Zone.
     if (leftPanel != nullptr)
     {
@@ -789,6 +874,75 @@ void OptionsPanel::clearGenerationInputs()
     voiceWorkspace.resetCounterpointSelectors();
     // Repasse l'interface en mode 0 voix sélectionnées.
     setNumVoices(0);
+}
+
+//==============================================================================
+// Chargement d'une configuration sauvegardée
+//==============================================================================
+
+/*
+    Réaffiche tous les contrôles du panneau à partir du problème actuellement
+    chargé dans AppController.
+
+    À la différence des callbacks onXChanged, on n'écrit rien dans le modèle
+    ici : AppController::loadConfiguration() vient déjà de le remplacer par
+    la configuration sauvegardée (voir CantusProblem::restoreFromValueTree).
+    Cette méthode ne fait donc que rafraîchir l'affichage, colonne par
+    colonne, en s'appuyant sur la taille réelle des données chargées
+    (aucun nombre de voix ou de shapes n'est supposé à l'avance).
+*/
+void OptionsPanel::loadFromModel()
+{
+    if (appController == nullptr)
+        return;
+
+    auto& problem = appController->getProblem();
+    auto& settings = problem.getSettings();
+    const auto& counterpoints = problem.getCounterpoints();
+
+    // Ordre des priorités + modes de recherche et de minimisation.
+    solverPriorityList.setImportanceCosts(settings.getImportanceCosts());
+
+    minimizationModePanel.setSearchMethod(
+        settings.getSearchMethod() == ConstraintSettings::SearchMethod::bab);
+
+    minimizationModePanel.setMinimizationMode(
+        settings.getMinimizationMethod() == ConstraintSettings::MinimizationMethod::lexicographic);
+
+    // Espèce, type et sliders de coûts de chaque contrepoint réellement chargé.
+    for (int i = 0; i < (int) counterpoints.size(); ++i)
+    {
+        voiceWorkspace.setCounterpointSelection(i,
+                                                counterpoints[(size_t) i].species,
+                                                counterpoints[(size_t) i].type);
+
+        const auto params = settings.getCounterpointCostParameters(i);
+        voiceWorkspace.setCostSliderValue(i, VoiceWorkspace::CostSliderTarget::melodyMovement, params.melodyMovement);
+        voiceWorkspace.setCostSliderValue(i, VoiceWorkspace::CostSliderTarget::intervalColour, params.intervalColour);
+        voiceWorkspace.setCostSliderValue(i, VoiceWorkspace::CostSliderTarget::perfectIntervals, params.perfectIntervals);
+
+        /*
+            Chaque fonction de coût revient d'abord à "aucune shape" : seules
+            les shapes réellement présentes dans settings seront réaffichées
+            juste après. Sans ce reset, une shape affichée par une
+            configuration précédente pourrait rester visible par erreur.
+        */
+        voiceWorkspace.clearShapeDisplay(i, VoiceWorkspace::CostSliderTarget::melodyMovement);
+        voiceWorkspace.clearShapeDisplay(i, VoiceWorkspace::CostSliderTarget::intervalColour);
+        voiceWorkspace.clearShapeDisplay(i, VoiceWorkspace::CostSliderTarget::perfectIntervals);
+    }
+
+    // Réaffiche uniquement les shapes réellement enregistrées, quel qu'en
+    // soit le nombre.
+    for (const auto& assignment : settings.getShapeAssignments())
+    {
+        voiceWorkspace.displayShapeAssignment(assignment.voiceIndex,
+                                              mapShapeTargetToUI(assignment.target),
+                                              shapeTypeToComboBoxId(assignment.shape),
+                                              assignment.controlValues);
+    }
+
+    voiceWorkspace.resized();
 }
 
 //==============================================================================

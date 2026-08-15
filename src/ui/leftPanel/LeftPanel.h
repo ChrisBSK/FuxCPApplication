@@ -146,8 +146,34 @@ public:
     // Met à jour l'affichage textuel du Cantus Firmus.
     void updateCantusDisplay();
 
+    /*
+        Affiche un nombre de voix donné dans la ComboBox correspondante,
+        comme si l'utilisateur l'avait choisi lui-même.
+
+        sendNotification déclenche onChange, qui met à jour OptionsPanel et
+        le workspace des contrepoints : exactement la cascade voulue au
+        chargement d'une configuration sauvegardée.
+    */
+    void setNumVoicesDisplay(int numVoices);
+
+    // Retire le fichier MIDI affiché dans la Drag Zone, sans toucher au
+    // Cantus Firmus ni au nombre de voix. Utilisé au chargement d'une
+    // configuration : l'ancien fichier généré ne lui correspond plus.
+    void clearGeneratedMidiDisplay();
+
     // Remet la saisie utilisateur dans l'état initial de l'application.
     void clearInputState();
+
+    /*
+        Indique si la saisie est déjà dans son état initial : c'est le cas
+        juste après le lancement de l'application, ou juste après un
+        premier appui sur Clear.
+
+        Utilisé par OptionsPanel avant de nettoyer les champs, pour éviter
+        de réafficher inutilement le même message "déjà vide" si l'appui
+        sur Clear ne changerait en réalité rien à l'écran.
+    */
+    bool isAtInitialState() const;
 
     /*
     //==============================================================================
@@ -192,6 +218,23 @@ private:
     // =========================
     // UI - Nombre de voix
     // =========================
+
+    /*
+        LookAndFeel utilisé uniquement pour réduire la taille du texte de
+        numVoicesCB. juce::ComboBox n'expose pas de setFont() directement :
+        il faut passer par un LookAndFeel qui redéfinit getComboBoxFont().
+        Le reste de l'apparence (fond, contour, flèche...) n'est pas touché.
+    */
+    class SmallerComboBoxLookAndFeel : public juce::LookAndFeel_V4
+    {
+    public:
+        juce::Font getComboBoxFont(juce::ComboBox&) override
+        {
+            return juce::Font(juce::FontOptions(13.5f, juce::Font::plain));
+        }
+    };
+
+    SmallerComboBoxLookAndFeel numVoicesLookAndFeel;
     juce::ComboBox numVoicesCB;
     juce::Label numVoicesCBLabel;
 

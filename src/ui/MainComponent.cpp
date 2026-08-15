@@ -201,6 +201,14 @@ MainComponent::MainComponent(AppController& controllerToUse, juce::MidiKeyboardS
 
     optionsPanel.setNumVoices(defaultVoiceCount);
 
+    // Onglet Saved configurations : lit la liste sauvegardée et charge la
+    // configuration choisie par l'utilisateur.
+    savedSolutionsPage.setAppController(&appController);
+    savedSolutionsPage.onConfigurationSelected = [this](const juce::File& file)
+    {
+        loadSavedConfiguration(file);
+    };
+
 
     tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 500);
     showPage(CurrentPage::mainScreen);
@@ -316,12 +324,55 @@ void MainComponent::showPage(CurrentPage page)
     currentPage = page;
 
     const bool showMainScreen = currentPage == CurrentPage::mainScreen;
+    const bool showSavedSolutions = currentPage == CurrentPage::savedSolutions;
 
     optionsPanel.setVisible(showMainScreen);
     keyboard.setVisible(showMainScreen);
 
-    savedSolutionsPage.setVisible(currentPage == CurrentPage::savedSolutions);
+    savedSolutionsPage.setVisible(showSavedSolutions);
     solverExplanationPage.setVisible(currentPage == CurrentPage::solver);
     aboutPage.setVisible(currentPage == CurrentPage::about);
+
+    // La liste peut avoir changé depuis la dernière visite de cet onglet
+    // (une nouvelle configuration a pu être sauvegardée entre-temps).
+    if (showSavedSolutions)
+        savedSolutionsPage.refresh();
+}
+
+/*
+    Charge la configuration sauvegardée choisie par l'utilisateur et
+    rafraîchit toute l'interface pour refléter ce nouvel état.
+
+    L'ordre compte : AppController remplace d'abord le modèle (voir
+    CantusProblem::restoreFromValueTree), puis chaque panneau se recale
+    dessus (Cantus Firmus, nombre de voix, sliders, shapes, priorités du
+    solveur), et on revient enfin à l'écran principal.
+*/
+void MainComponent::loadSavedConfiguration(const juce::File& file)
+{
+    if (! appController.loadConfiguration(file))
+    {
+        juce::AlertWindow::showMessageBoxAsync(
+            juce::AlertWindow::WarningIcon,
+            juce::String::fromUTF8("Saved configurations"),
+            juce::String::fromUTF8("Impossible de charger cette configuration."));
+        return;
+    }
+
+    // Plus aucun fichier MIDI généré ne correspond à cette configuration.
+    leftPanel.clearGeneratedMidiDisplay();
+
+    // Cantus Firmus affiché à partir du modèle qui vient d'être remplacé.
+    leftPanel.updateCantusDisplay();
+
+    // Déclenche la cascade normale (OptionsPanel::setNumVoices, colonnes
+    // des contrepoints...), comme si l'utilisateur choisissait ce nombre
+    // de voix lui-même.
+    leftPanel.setNumVoicesDisplay(appController.getProblem().getVoiceCount());
+
+    // Sliders, shapes, méthode de recherche et de minimisation, priorités.
+    optionsPanel.loadFromModel();
+
+    showPage(CurrentPage::mainScreen);
 }
 

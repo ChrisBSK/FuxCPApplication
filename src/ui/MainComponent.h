@@ -10,6 +10,7 @@
 #include "optionsPanel/OptionsPanel.h"
 #include "pages/AboutPage.h"
 #include "pages/SolverExplanationPage.h"
+#include "pages/SavedConfigurationsPage.h"
 
 // ===== Core =====
 #include "../controller/AppController.h"
@@ -99,10 +100,7 @@ private:
     HeaderPanel header;
     LeftPanel leftPanel { appController };
     OptionsPanel optionsPanel;
-    SimplePage savedSolutionsPage {
-        juce::String::fromUTF8("Saved configurations"),
-        juce::String::fromUTF8("Cette page servira à retrouver les configurations sauvegardées.")
-    };
+    SavedConfigurationsPage savedSolutionsPage;
     SolverExplanationPage solverExplanationPage;
     AboutPage aboutPage;
 
@@ -142,6 +140,9 @@ private:
 
     // Change la page visible quand l'utilisateur clique sur un onglet.
     void showPage(CurrentPage page);
+
+    // Charge la configuration sauvegardée choisie et rafraîchit toute l'UI.
+    void loadSavedConfiguration(const juce::File& file);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };
