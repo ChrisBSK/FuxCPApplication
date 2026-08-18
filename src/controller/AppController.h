@@ -3,6 +3,7 @@
 #include <juce_core/juce_core.h>
 #include <juce_events/juce_events.h>
 #include <juce_data_structures/juce_data_structures.h>
+#include <juce_gui_basics/juce_gui_basics.h>
 
 #include "../model/CantusProblem.h"
 #include "../service/GenerationService.h"
@@ -22,10 +23,12 @@
 class LeftPanel;
 
 
-class AppController : public juce::AsyncUpdater
+class AppController : public juce::AsyncUpdater,
+                      private juce::Timer
 {
 public:
     AppController();
+    ~AppController() override;
     //explicit AppController(const juce::String& title);
 
     // =========================
@@ -195,4 +198,61 @@ private:
 
     juce::ValueTree generationState { "GenerationState" };
 
+    // =========================
+    // Fenêtre de progression (compte à rebours pendant la recherche)
+    //
+    // Vit ici et pas côté UI : AppController est déjà celui qui démarre
+    // la génération (startGeneration/startNextSolution) et qui affiche le
+    // résultat (handleAsyncUpdate) via des AlertWindow. La fenêtre de
+    // progression suit donc le même cycle de vie, au même endroit.
+    // =========================
+
+    // Fenêtre affichée tant que le solveur cherche une solution.
+    // nullptr quand aucune génération n'est en cours.
+    std::unique_ptr<juce::AlertWindow> generationProgressWindow;
+
+    // Nombre de secondes restantes affiché dans la fenêtre de progression.
+    int remainingSeconds = 0;
+
+    // Ouvre la fenêtre de progression et démarre le compte à rebours.
+    void showGenerationProgressWindow();
+
+    // Ferme la fenêtre de progression et arrête le compte à rebours.
+    void closeGenerationProgressWindow();
+
+    // Construit le texte affiché dans la fenêtre, à partir de remainingSeconds.
+    juce::String buildGenerationProgressMessage() const;
+
+    // Appelé chaque seconde tant que la fenêtre de progression est ouverte.
+    void timerCallback() override;
+
+    /*
+        Date de démarrage de la fenêtre de progression (en millisecondes,
+        horloge de juce::Time::getMillisecondCounter()).
+
+        Sert à garantir un affichage minimum (voir showGenerationResult) :
+        sans ça, un solveur qui répond en quelques millisecondes qu'aucune
+        solution n'existe ferait clignoter "Génération en cours" puis
+        "Aucune solution n'existe" presque instantanément, ce qui ressemble
+        à un bug plutôt qu'à un vrai résultat.
+    */
+    juce::uint32 generationStartTimeMs = 0;
+
+    // Durée minimale (ms) pendant laquelle la fenêtre de progression reste
+    // affichée, même si le solveur a déjà répondu.
+    static constexpr int minimumProgressDisplayMs = 3000;  //(3s)
+
+    /*
+        Affiche réellement le résultat de la génération (succès ou échec) et
+        referme la fenêtre de progression.
+
+        Appelée depuis handleAsyncUpdate(), après le délai minimum décrit
+        ci-dessus. Les valeurs sont passées en paramètres (plutôt que
+        relues sur generationService à ce moment-là) pour rester fiable
+        même si une nouvelle génération a déjà démarré entre-temps.
+    */
+    void showGenerationResult(bool success,
+                              const juce::String& midiPath,
+                              const juce::String& errorMessage,
+                              bool isValidationError);
 };

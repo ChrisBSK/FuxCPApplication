@@ -30,6 +30,15 @@ public:
     GenerationService();
     ~GenerationService() override;
 
+    /*
+        Durée maximale (en secondes) laissée au solveur pour rechercher une
+        solution. Sert à la fois à configurer Gecode::Search::TimeStop dans
+        run(), et de référence côté interface pour afficher un compte à
+        rebours pendant la génération (voir LeftPanel) : une seule valeur,
+        jamais deux nombres à tenir synchronisés à la main.
+    */
+    static constexpr int searchTimeoutSeconds = 20;
+
     // =========================
     // Lancement génération
     // =========================

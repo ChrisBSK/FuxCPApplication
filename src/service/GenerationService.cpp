@@ -749,7 +749,8 @@ bool GenerationService::generateMidiFromInputs(const CantusProblem& problem,
         // Timeout Gecode
         // =========================
         Gecode::Search::Options opts;
-        Gecode::Search::TimeStop timeout(20000); // Laisse le BAB optimiser les coûts, pas seulement trouver une solution.
+        // Laisse le BAB optimiser les coûts, pas seulement trouver une solution.
+        Gecode::Search::TimeStop timeout(searchTimeoutSeconds * 1000);
         opts.stop = &timeout;
         opts.threads = 1;
 

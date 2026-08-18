@@ -28,6 +28,18 @@
 //==============================================================================
 AppController::AppController() = default;
 
+/*
+    Destructeur.
+
+    Referme proprement la fenêtre de progression (et arrête le compte à
+    rebours) si une génération était encore en cours au moment où
+    AppController est détruit.
+*/
+AppController::~AppController()
+{
+    closeGenerationProgressWindow();
+}
+
 //==============================================================================
 // ACCÈS AU MODÈLE COURANT EN ECRITURE
 // Utilisé par l'UI pour construire ou modifier le problème.
@@ -123,6 +135,7 @@ void AppController::startGeneration(const juce::String& outputPath)
     }
 
     generationState.setProperty("generationStatus", "generating", nullptr);
+    showGenerationProgressWindow();
 
     CantusProblem copyProblem = problem;
 
@@ -130,6 +143,11 @@ void AppController::startGeneration(const juce::String& outputPath)
 
     if (!started)
     {
+        // Échec avant même le démarrage du thread : handleAsyncUpdate() ne
+        // sera jamais appelé pour cette tentative, donc on referme la
+        // fenêtre de progression ici.
+        closeGenerationProgressWindow();
+
         generationState.setProperty("generationError",
                                     generationService->getLastError(),
                                     nullptr);
@@ -160,11 +178,17 @@ void AppController::startNextSolution(const juce::String& outputPath)
     }
 
     generationState.setProperty("generationStatus", "generating", nullptr);
+    showGenerationProgressWindow();
 
     bool started = generationService->startNextSolution(outputPath, this);
 
     if (!started)
     {
+        // Même raisonnement que dans startGeneration() : le thread n'a
+        // jamais démarré, donc handleAsyncUpdate() ne fermera pas la
+        // fenêtre de progression à notre place.
+        closeGenerationProgressWindow();
+
         generationState.setProperty("generationError",
                                     generationService->getLastError(),
                                     nullptr);
@@ -205,14 +229,51 @@ void AppController::startNextSolution(const juce::String& outputPath)
 void AppController::handleAsyncUpdate()
 {
     if (generationService == nullptr)
+    {
+        closeGenerationProgressWindow();
         return;
+    }
 
-    bool success = generationService->getLastGenerationSuccess();
+    /*
+        On capture tout de suite le résultat du solveur : lui n'a plus
+        besoin d'attendre. Seul l'AFFICHAGE du résultat est retardé, pour
+        que la fenêtre de progression reste visible au moins
+        minimumProgressDisplayMs, même quand le solveur répond quasi
+        instantanément (voir showGenerationResult).
+    */
+    const bool success = generationService->getLastGenerationSuccess();
+    const juce::String midiPath = generationService->getLastGeneratedMidiPath();
+    const juce::String errorMessage = generationService->getLastError();
+    const bool validationError = generationService->isInputValidationError();
+
+    const auto elapsedMs = (int) (juce::Time::getMillisecondCounter() - generationStartTimeMs);
+    const int remainingDelayMs = juce::jmax(0, minimumProgressDisplayMs - elapsedMs);
+
+    juce::Timer::callAfterDelay(remainingDelayMs,
+        [this, success, midiPath, errorMessage, validationError]()
+        {
+            showGenerationResult(success, midiPath, errorMessage, validationError);
+        });
+}
+
+/*
+    Affiche le résultat de la génération (succès ou échec) et referme la
+    fenêtre de progression.
+
+    Appelée depuis handleAsyncUpdate(), au plus tôt minimumProgressDisplayMs
+    après le début de la recherche.
+*/
+void AppController::showGenerationResult(bool success,
+                                         const juce::String& midiPath,
+                                         const juce::String& errorMessage,
+                                         bool isValidationError)
+{
+    // Le résultat va être affiché : la fenêtre de progression n'a plus
+    // lieu d'être.
+    closeGenerationProgressWindow();
 
     if (success)
     {
-        juce::String midiPath = generationService->getLastGeneratedMidiPath();
-
         juce::AlertWindow::showOkCancelBox(
             juce::AlertWindow::QuestionIcon,
             juce::String::fromUTF8("Solution trouvée"),
@@ -232,14 +293,9 @@ void AppController::handleAsyncUpdate()
     }
     else
     {
-        generationState.setProperty("generationError",
-                                    generationService->getLastError(),
-                                    nullptr);
-
+        generationState.setProperty("generationError", errorMessage, nullptr);
         generationState.setProperty("generationStatus",
-                                    generationService->isInputValidationError()
-                                        ? "warning"
-                                        : "error",
+                                    isValidationError ? "warning" : "error",
                                     nullptr);
 
         juce::AlertWindow::showMessageBoxAsync(
@@ -247,6 +303,94 @@ void AppController::handleAsyncUpdate()
             juce::String::fromUTF8("Résultat"),
             juce::String::fromUTF8("Aucune solution n'existe."));
     }
+}
+
+//==============================================================================
+// FENÊTRE DE PROGRESSION (compte à rebours pendant la recherche)
+//==============================================================================
+
+/*
+    Ouvre la fenêtre de progression et démarre son compte à rebours.
+
+    Le compte à rebours part de GenerationService::searchTimeoutSeconds,
+    la même valeur que celle réellement utilisée par le solveur (Gecode
+    TimeStop) : les deux ne peuvent donc jamais se désynchroniser.
+*/
+void AppController::showGenerationProgressWindow()
+{
+    remainingSeconds = GenerationService::searchTimeoutSeconds;
+
+    // Mémorise le moment de départ pour pouvoir garantir un affichage
+    // minimum dans showGenerationResult(), même si le solveur répond
+    // très vite.
+    generationStartTimeMs = juce::Time::getMillisecondCounter();
+
+    generationProgressWindow = std::make_unique<juce::AlertWindow>(
+        juce::String::fromUTF8("Génération en cours"),
+        buildGenerationProgressMessage(),
+        juce::AlertWindow::InfoIcon);
+
+    // Fenêtre purement informative : pas de bouton, elle se referme
+    // toute seule dès que le solveur a terminé (voir handleAsyncUpdate
+    // et les échecs synchrones dans startGeneration/startNextSolution).
+    generationProgressWindow->enterModalState(true);
+
+    // Rafraîchit le texte affiché une fois par seconde.
+    startTimer(1000);
+}
+
+/*
+    Ferme la fenêtre de progression (si elle est ouverte) et arrête le
+    compte à rebours.
+
+    Appelée aussi bien quand le solveur a réellement terminé que par
+    sécurité si aucune fenêtre n'était ouverte : ne fait alors simplement rien.
+*/
+void AppController::closeGenerationProgressWindow()
+{
+    stopTimer();
+
+    if (generationProgressWindow != nullptr)
+    {
+        // Referme proprement l'état modal avant de détruire la fenêtre.
+        generationProgressWindow->exitModalState(0);
+        generationProgressWindow.reset();
+    }
+}
+
+/*
+    Construit le texte affiché dans la fenêtre de progression, à partir du
+    nombre de secondes restantes.
+*/
+juce::String AppController::buildGenerationProgressMessage() const
+{
+    return juce::String::fromUTF8("Le solveur recherche une solution...\n\nTemps restant : ")
+        + juce::String(remainingSeconds)
+        + juce::String::fromUTF8(" s");
+}
+
+/*
+    Appelé chaque seconde tant que la fenêtre de progression est ouverte.
+
+    Décrémente le compte à rebours et met à jour le texte affiché. Le
+    compteur peut atteindre 0 avant que le solveur ait réellement fini
+    (écriture du fichier MIDI, etc.) : dans ce cas, on arrête simplement de
+    décrémenter et on laisse la fenêtre affichée jusqu'à ce que
+    handleAsyncUpdate() la referme.
+*/
+void AppController::timerCallback()
+{
+    if (generationProgressWindow == nullptr)
+    {
+        stopTimer();
+        return;
+    }
+
+    remainingSeconds = juce::jmax(0, remainingSeconds - 1);
+    generationProgressWindow->setMessage(buildGenerationProgressMessage());
+
+    if (remainingSeconds == 0)
+        stopTimer();
 }
 
 //==============================================================================
