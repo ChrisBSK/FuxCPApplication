@@ -150,4 +150,4 @@ sudo spctl --add --label "Fuxophone" ~/Library/Audio/Plug-Ins/Components/Fuxopho
 
 ## Crédits
 
-FuxCP repose sur les travaux successifs de Thibaut Wafflard, Anton Lamotte, Luc Cleenewerk, Diego de Patoul, Tom Lai et Dorian Genon. L'interface Fuxophone (contrôleur, modèle, vue, service, plug-in) a été développée par **Chris Bakashika** dans le cadre de ce mémoire.
+FuxCP repose sur les travaux successifs de Thibaut Wafflard, Anton Lamotte, Luc Cleenewerk, Diego de Patoul, Tom Lai et Dorian Genon. L'interface Fuxophone (contrôleur, modèle, vue, service, plug-in) a été développée par **Chris Bakashika**.
