@@ -148,6 +148,24 @@ sudo spctl --add --label "Fuxophone" ~/Library/Audio/Plug-Ins/Components/Fuxopho
 
 ---
 
+## Code Source
+
+Le dossier `src/` contient le code source du plug-in. Les fichiers sont organisés en dossiers selon leur rôle dans l'architecture Contrôleur / Modèle / Vue / Service décrite dans le mémoire :
+
+- **`src/plugin/`** : Point d'entrée du plug-in (`PluginProcessor`, `PluginEditor`), qui fait le lien avec l'hôte audio (GarageBand) via l'API Audio Unit de JUCE et porte l'état persistant de l'application entre les ouvertures/fermetures de la fenêtre.
+
+- **`src/ui/`** : Tous les composants graphiques JUCE de l'interface — panneau principal, en-tête de navigation, pages secondaires (Solver, About, Saved configurations), clavier virtuel, et le panneau central de configuration des contrepoints avec ses sous-composants.
+
+- **`src/controller/`** : Contient `AppController`, qui coordonne les échanges entre l'interface, le modèle musical et le service de génération, sans jamais dépendre directement de FuxCP.
+
+- **`src/model/`** : Classes représentant le problème musical manipulé par le solveur (`CantusProblem`, `ConstraintSettings`), ainsi que les utilitaires de conversion entre notation MIDI et noms de notes.
+
+- **`src/service/`** : Contient `GenerationService`, seule classe du plug-in directement dépendante de FuxCP : elle construit le problème à partir du modèle, lance le solveur dans un thread séparé, et remonte le résultat à l'interface.
+
+- **`src/audio/`** : Synthèse sonore utilisée par le clavier virtuel intégré au plug-in (`SimpleSynth`).
+
+---
+
 ## Crédits
 
 FuxCP repose sur les travaux successifs de Thibaut Wafflard, Anton Lamotte, Luc Cleenewerk, Diego de Patoul, Tom Lai et Dorian Genon. L'interface Fuxophone (contrôleur, modèle, vue, service, plug-in) a été développée par **Chris Bakashika**.
