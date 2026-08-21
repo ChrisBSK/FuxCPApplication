@@ -29,11 +29,14 @@ KeyboardComponent::KeyboardComponent(juce::MidiKeyboardState& state)
 /*
     Se désinscrit de keyboardState avant sa propre destruction.
 
-    Indispensable : keyboardState survit à cette fenêtre (il vit dans
-    PluginProcessor). Sans ce désenregistrement, un pointeur mort resterait
+    - Indispensable : keyboardState survit à cette fenêtre (il vit dans
+    PluginProcessor).
+
+    Sans ce désenregistrement, un pointeur mort resterait
     dans sa liste de Listener, et le thread audio temps réel pourrait
-    l'appeler à la prochaine note MIDI reçue - exactement le crash observé
-    (EXC_BAD_ACCESS sur com.apple.audio.IOThread.client).
+    l'appeler à la prochaine note MIDI reçue
+
+
 */
 KeyboardComponent::~KeyboardComponent()
 {
