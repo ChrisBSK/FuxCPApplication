@@ -38,8 +38,8 @@ private:
     void handleNoteOff(juce::MidiKeyboardState*, int, int, float) override {}
 
     /*
-        Référence gardée uniquement pour pouvoir se désinscrire proprement
-        dans le destructeur (voir KeyboardComponent.cpp).
+        Référence gardée pour pouvoir se désinscrire proprement dans le
+        destructeur (voir KeyboardComponent.cpp).
 
         keyboardState vit dans PluginProcessor et survit donc à cette
         fenêtre : sans désinscription explicite, le thread audio temps réel

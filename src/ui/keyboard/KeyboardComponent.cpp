@@ -46,6 +46,20 @@ KeyboardComponent::~KeyboardComponent()
 void KeyboardComponent::handleNoteOn(juce::MidiKeyboardState*, int,
                                      int midiNoteNumber, float)
 {
+//     /*
+//         keyboardState est partagé avec le vrai flux MIDI du plug-in
+//
+//
+//         un clic sur le clavier - > toujours lieu sur le thread graphique (message thread)
+//
+//         le MIDI reçu par le plug-in est traité sur le thread audio - > temps réel, à l'intérieur de processBlock()
+
+//         Seul un vrai clic remplit le Cantus Firmus
+//
+//     */
+    if (! juce::MessageManager::getInstance()->isThisTheMessageThread())
+        return;
+
     if (onNotePressed)
         onNotePressed(midiNoteNumber);
 }
