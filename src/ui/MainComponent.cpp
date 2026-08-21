@@ -210,6 +210,23 @@ MainComponent::MainComponent(AppController& controllerToUse, juce::MidiKeyboardS
     };
 
 
+    /*
+        AppController (possédé par PluginProcessor) survit à la fermeture
+        de cette fenêtre : rouvrir le plug-in reconstruit un tout nouveau
+        MainComponent, mais pas un nouvel AppController.
+
+        S'il contient déjà
+        un problème - fenêtre rouverte en cours de session GarageBand -
+        on resynchronise l'interface avec ce problème dès la construction.
+
+    */
+    if (! appController.getProblem().isEmpty())
+    {
+        leftPanel.updateCantusDisplay();
+        leftPanel.setNumVoicesDisplay(appController.getProblem().getVoiceCount());
+        optionsPanel.loadFromModel();
+    }
+
     tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 500);
     showPage(CurrentPage::mainScreen);
 }

@@ -1,7 +1,8 @@
 #include "KeyboardComponent.h"
 
 KeyboardComponent::KeyboardComponent(juce::MidiKeyboardState& state)
-    : midiKeyboard(state,
+    : keyboardState(state),
+      midiKeyboard(state,
         juce::MidiKeyboardComponent::Orientation::horizontalKeyboard)
 {
     addAndMakeVisible(midiKeyboard);
@@ -23,9 +24,20 @@ KeyboardComponent::KeyboardComponent(juce::MidiKeyboardState& state)
     setWantsKeyboardFocus(true);
 
     state.addListener(this);
+}
 
+/*
+    Se désinscrit de keyboardState avant sa propre destruction.
 
-
+    Indispensable : keyboardState survit à cette fenêtre (il vit dans
+    PluginProcessor). Sans ce désenregistrement, un pointeur mort resterait
+    dans sa liste de Listener, et le thread audio temps réel pourrait
+    l'appeler à la prochaine note MIDI reçue - exactement le crash observé
+    (EXC_BAD_ACCESS sur com.apple.audio.IOThread.client).
+*/
+KeyboardComponent::~KeyboardComponent()
+{
+    keyboardState.removeListener(this);
 }
 
 // =============================

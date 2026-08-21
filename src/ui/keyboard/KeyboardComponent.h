@@ -24,6 +24,7 @@ class KeyboardComponent : public juce::Component, public juce::MidiKeyboardState
 {
 public:
     KeyboardComponent(juce::MidiKeyboardState& state);
+    ~KeyboardComponent() override;
 
     void resized() override;
 
@@ -35,6 +36,18 @@ private:
                       int midiNoteNumber, float velocity) override;
 
     void handleNoteOff(juce::MidiKeyboardState*, int, int, float) override {}
+
+    /*
+        Référence gardée uniquement pour pouvoir se désinscrire proprement
+        dans le destructeur (voir KeyboardComponent.cpp).
+
+        keyboardState vit dans PluginProcessor et survit donc à cette
+        fenêtre : sans désinscription explicite, le thread audio temps réel
+        pourrait encore appeler handleNoteOn() sur ce KeyboardComponent
+        après sa destruction dès qu'une note MIDI arrive - un accès à de
+        la mémoire déjà libérée, provoquant un crash (EXC_BAD_ACCESS).
+    */
+    juce::MidiKeyboardState& keyboardState;
 
     juce::MidiKeyboardComponent midiKeyboard;
 
