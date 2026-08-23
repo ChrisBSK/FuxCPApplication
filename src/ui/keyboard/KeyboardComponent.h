@@ -23,7 +23,7 @@
 class KeyboardComponent : public juce::Component, public juce::MidiKeyboardStateListener
 {
 public:
-    KeyboardComponent(juce::MidiKeyboardState& state);
+    KeyboardComponent(juce::MidiKeyboardState& audioState);
     ~KeyboardComponent() override;
 
     void resized() override;
@@ -35,19 +35,29 @@ private:
     void handleNoteOn(juce::MidiKeyboardState*, int midiChannel,
                       int midiNoteNumber, float velocity) override;
 
-    void handleNoteOff(juce::MidiKeyboardState*, int, int, float) override {}
+    void handleNoteOff(juce::MidiKeyboardState*, int midiChannel,
+                       int midiNoteNumber, float velocity) override;
 
     /*
-        Référence gardée pour pouvoir se désinscrire proprement dans le
-        destructeur (voir KeyboardComponent.cpp).
+        État MIDI propre à ce clavier visuel, utilisé UNIQUEMENT en
+        lecture : le seul état auquel on s'abonne comme Listener
 
-        keyboardState vit dans PluginProcessor et survit donc à cette
-        fenêtre : sans désinscription explicite, le thread audio temps réel
-        pourrait encore appeler handleNoteOn() sur ce KeyboardComponent
-        après sa destruction dès qu'une note MIDI arrive - un accès à de
-        la mémoire déjà libérée, provoquant un crash (EXC_BAD_ACCESS).
+        Seul un vrai clic sur une
+        touche peut donc déclencher handleNoteOn()/handleNoteOff()
+
     */
-    juce::MidiKeyboardState& keyboardState;
+    juce::MidiKeyboardState ownKeyboardState;
+
+    /*
+        État MIDI du plug-in (PluginProcessor::keyboardState), utilisé
+        UNIQUEMENT en écriture, pour déclencher le son via SimpleSynth
+        quand on clique une touche (voir handleNoteOn/handleNoteOff).
+
+        On ne s'y abonne jamais pas comme Listener
+
+        impossible qu'un événement MIDI y arrivant de l'extérieur déclenche quoi que ce soit
+    */
+    juce::MidiKeyboardState& audioKeyboardState;
 
     juce::MidiKeyboardComponent midiKeyboard;
 

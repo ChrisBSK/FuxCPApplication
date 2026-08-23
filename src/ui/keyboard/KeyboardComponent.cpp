@@ -1,8 +1,8 @@
 #include "KeyboardComponent.h"
 
-KeyboardComponent::KeyboardComponent(juce::MidiKeyboardState& state)
-    : keyboardState(state),
-      midiKeyboard(state,
+KeyboardComponent::KeyboardComponent(juce::MidiKeyboardState& audioState)
+    : audioKeyboardState(audioState),
+      midiKeyboard(ownKeyboardState,
         juce::MidiKeyboardComponent::Orientation::horizontalKeyboard)
 {
     addAndMakeVisible(midiKeyboard);
@@ -23,48 +23,62 @@ KeyboardComponent::KeyboardComponent(juce::MidiKeyboardState& state)
 
     setWantsKeyboardFocus(true);
 
-    state.addListener(this);
+    // On s'abonne uniquement à ownKeyboardState : jamais à
+    // audioKeyboardState, qui ne sert qu'en écriture (voir handleNoteOn).
+    ownKeyboardState.addListener(this);
 }
 
 /*
-    Se désinscrit de keyboardState avant sa propre destruction.
+    Se désinscrit de ownKeyboardState avant sa propre destruction.
 
-    - Indispensable : keyboardState survit à cette fenêtre (il vit dans
-    PluginProcessor).
-
-    Sans ce désenregistrement, un pointeur mort resterait
-    dans sa liste de Listener, et le thread audio temps réel pourrait
-    l'appeler à la prochaine note MIDI reçue
-
-
+    ownKeyboardState est un membre de cette classe : il partage exactement
+    le même cycle de vie que KeyboardComponent, donc ce désenregistrement
+    n'est plus strictement nécessaire pour éviter un crash (contrairement
+    à l'ancienne version, qui s'abonnait à un état externe survivant à la
+    fenêtre). On le garde par prudence et par symétrie avec addListener().
 */
 KeyboardComponent::~KeyboardComponent()
 {
-    keyboardState.removeListener(this);
+    ownKeyboardState.removeListener(this);
 }
 
 // =============================
 // Callback des notes jouées
 // =============================
-void KeyboardComponent::handleNoteOn(juce::MidiKeyboardState*, int,
-                                     int midiNoteNumber, float)
+
+/*
+    Ce callback ne peut être déclenché QUE par ownKeyboardState (voir
+    addListener ci-dessus), donc uniquement par un vrai clic sur ce
+    clavier - jamais par le MIDI reçu par le plug-in, puisqu'on ne s'abonne
+    jamais à audioKeyboardState. Peu importe le thread ou le mécanisme que
+    l'hôte utilise pour envoyer ce MIDI : il ne peut simplement pas
+    atteindre ce code.
+*/
+void KeyboardComponent::handleNoteOn(juce::MidiKeyboardState*, int midiChannel,
+                                     int midiNoteNumber, float velocity)
 {
-//     /*
-//         keyboardState est partagé avec le vrai flux MIDI du plug-in
-//
-//
-//         un clic sur le clavier - > toujours lieu sur le thread graphique (message thread)
-//
-//         le MIDI reçu par le plug-in est traité sur le thread audio - > temps réel, à l'intérieur de processBlock()
-
-//         Seul un vrai clic remplit le Cantus Firmus
-//
-//     */
-    if (! juce::MessageManager::getInstance()->isThisTheMessageThread())
-        return;
-
+    // Ajoute la note au Cantus Firmus.
     if (onNotePressed)
         onNotePressed(midiNoteNumber);
+
+    /*
+        Déclenche aussi le son : on écrit directement dans l'état audio du
+        plug-in, sans jamais s'y être abonné comme Listener.
+
+        SimpleSynth entendra la note au prochain bloc audio (PluginProcessor::processBlock)
+    */
+    audioKeyboardState.noteOn(midiChannel, midiNoteNumber, velocity);
+}
+
+/*
+    Relâche la note déclenchée dans audioKeyboardState par handleNoteOn(),
+    pour que le son ne reste pas tenu indéfiniment après avoir relâché la
+    touche.
+*/
+void KeyboardComponent::handleNoteOff(juce::MidiKeyboardState*, int midiChannel,
+                                      int midiNoteNumber, float velocity)
+{
+    audioKeyboardState.noteOff(midiChannel, midiNoteNumber, velocity);
 }
 
 void KeyboardComponent::resized()

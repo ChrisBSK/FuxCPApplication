@@ -199,8 +199,6 @@ MainComponent::MainComponent(AppController& controllerToUse, juce::MidiKeyboardS
     //boutoun Generate
     optionsPanel.setLeftPanel(&leftPanel);
 
-    optionsPanel.setNumVoices(defaultVoiceCount);
-
     // Onglet Saved configurations : lit la liste sauvegardée et charge la
     // configuration choisie par l'utilisateur.
     savedSolutionsPage.setAppController(&appController);
@@ -219,12 +217,19 @@ MainComponent::MainComponent(AppController& controllerToUse, juce::MidiKeyboardS
         un problème - fenêtre rouverte en cours de session GarageBand -
         on resynchronise l'interface avec ce problème dès la construction.
 
+
     */
     if (! appController.getProblem().isEmpty())
     {
         leftPanel.updateCantusDisplay();
         leftPanel.setNumVoicesDisplay(appController.getProblem().getVoiceCount());
         optionsPanel.loadFromModel();
+    }
+    else
+    {
+        // Vraie première ouverture : aucun problème à restaurer, on met en
+        // place le workspace vide par défaut.
+        optionsPanel.setNumVoices(defaultVoiceCount);
     }
 
     tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 500);

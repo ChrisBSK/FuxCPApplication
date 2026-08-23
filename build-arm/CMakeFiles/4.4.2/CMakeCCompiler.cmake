@@ -19,7 +19,7 @@ set(CMAKE_C_SIMULATE_ID "")
 set(CMAKE_C_COMPILER_FRONTEND_VARIANT "GNU")
 set(CMAKE_C_COMPILER_APPLE_SYSROOT "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk")
 set(CMAKE_C_SIMULATE_VERSION "")
-set(CMAKE_C_COMPILER_ARCHITECTURE_ID "arm64")
+set(CMAKE_C_COMPILER_ARCHITECTURE_ID "x86_64")
 
 
 
