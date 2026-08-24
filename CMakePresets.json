@@ -1,0 +1,26 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "x86_64",
+      "displayName": "macOS x86_64",
+      "binaryDir": "${sourceDir}/build-x86_64",
+      "cacheVariables": {
+        "CMAKE_OSX_ARCHITECTURES": "x86_64"
+      }
+    },
+    {
+      "name": "arm64",
+      "displayName": "macOS arm64 (Apple Silicon)",
+      "binaryDir": "${sourceDir}/build-arm64",
+      "cacheVariables": {
+        "CMAKE_OSX_ARCHITECTURES": "arm64"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "x86_64", "configurePreset": "x86_64" },
+    { "name": "arm64", "configurePreset": "arm64" }
+  ]
+}

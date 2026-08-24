@@ -86,23 +86,25 @@ Cela installe `Gecode.framework` dans `/Library/Frameworks/`, où le projet ira 
 
 ### 4. Compiler le plug-in
 
+Le projet fournit un `CMakePresets.json` avec un preset par architecture, qui fixe automatiquement `CMAKE_OSX_ARCHITECTURES` et isole chaque build dans son propre dossier.
+
 #### Sur Mac Apple Silicon (ARM64)
 
 ```bash
-cmake -B build-arm -DCMAKE_OSX_ARCHITECTURES=arm64
-cmake --build build-arm
+cmake --preset arm64
+cmake --build --preset arm64
 ```
 
 #### Sur Mac Intel (x86_64)
 
 ```bash
-cmake -B build -DCMAKE_OSX_ARCHITECTURES=x86_64
-cmake --build build
+cmake --preset x86_64
+cmake --build --preset x86_64
 ```
 
 À la fin de la compilation :
 - le composant Audio Unit (`Fuxophone.component`) est automatiquement copié dans `~/Library/Audio/Plug-Ins/Components/`
-- l'application Standalone est disponible dans `build(-arm)/Fuxophone_artefacts/Standalone/Fuxophone.app`
+- l'application Standalone est disponible dans `build-arm64/Fuxophone_artefacts/Standalone/Fuxophone.app` (ou `build-x86_64/...` sur Intel)
 
 ### 5. Rafraîchir le cache Audio Unit de macOS
 

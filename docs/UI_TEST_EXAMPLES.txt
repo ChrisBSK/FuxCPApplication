@@ -638,11 +638,11 @@ modifier CP1 ne modifie pas automatiquement CP2 ou CP3.
 
 
 ============================================================
-EXEMPLE BONUS — Save solution
+EXEMPLE BONUS — Save configuration
 ============================================================
 
 Objectif :
-Tester le bouton Save solution.
+Tester le bouton Save configuration.
 
 Cantus Firmus à copier :
 60 62 64 65 67 65 64 62 60
@@ -663,14 +663,14 @@ Une alerte doit dire :
 
 Puis :
 1. Generate.
-2. Save solution.
+2. Save configuration.
 
 Effet attendu :
-La solution générée peut être sauvegardée.
+La configuraiton peut être sauvegardée.
 
 
 ============================================================
-EXEMPLE BONUS — Input Cantus Firmus flexible
+EXEMPLE — Input Cantus Firmus flexible
 ============================================================
 
 Objectif :

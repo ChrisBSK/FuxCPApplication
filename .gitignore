@@ -2,6 +2,5 @@
 node_modules/
 dist/
 build/
-build-arm/
 build-*/
 .DS_Store
