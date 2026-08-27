@@ -1,3 +1,17 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   LeftPanel.h
+
+   Panneau principal de saisie utilisateur (à gauche de l'interface) :
+   Cantus Firmus, nombre de voix, lancement de la génération et affichage
+   du fichier MIDI généré.
+//==============================================================================
+*/
+
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -6,23 +20,6 @@
 #include "../optionsPanel/OptionsPanel.h"
 
 
-/*
-==============================================================================
-    LeftPanel
-
-    Panneau principal de saisie utilisateur. (sur la gauche de l'interface)
-
-    Rôle :
-    - récupérer le Cantus Firmus
-    - choisir le nombre de voix
-    - transmettre les paramètres de contrepoint au modèle
-    - lancer la génération via l'AppController
-    - afficher le fichier MIDI généré dans la zone de drag & drop
-
-    Ce composant reste une couche UI :
-    il ne résout pas le problème et ne contient pas de logique solveur.
-==============================================================================
-*/
 
 class AppController;
 class OptionsPanel;

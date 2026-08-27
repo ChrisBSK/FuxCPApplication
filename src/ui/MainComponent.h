@@ -1,3 +1,19 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   MainComponent.h
+
+   Racine de l'application : assemble toute l'UI (header, pages, panneaux),
+   connecte les composants entre eux et gère la navigation entre pages.
+
+   Reçoit l'AppController et le MidiKeyboardState par référence (partagés
+   avec le PluginProcessor) plutôt que de les posséder.
+//==============================================================================
+*/
+
 #pragma once
 
 #include <juce_audio_utils/juce_audio_utils.h>
@@ -19,16 +35,7 @@
 #include "../audio/synth/SimpleSynth.h"
 #include "../audio/AudioPlayer.h"
 
-/**
- * MainComponent = racine de l’application
- *
- * Rôle :
- * - assemble toute l’UI
- * - connecte les composants entre eux
- * - gère l’audio (synth + MIDI)
- *
- *
- */
+
 class MainComponent : public juce::Component,
                       public juce::DragAndDropContainer
 {

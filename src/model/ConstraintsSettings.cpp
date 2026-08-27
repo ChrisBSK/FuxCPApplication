@@ -1,3 +1,22 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   ConstraintSettings.cpp
+
+   Centralise les paramètres de pondération du solveur.
+
+   Principe :
+    - chaque méthode publique construit un vecteur complet pour FuxCP
+    - chaque vecteur part d'une configuration de base lisible
+    - les sliders modifient ensuite uniquement les coûts qui les concernent
+//==============================================================================
+*/
+
+
+
 #include "ConstraintsSettings.h"
 
 #include "CostModel.hpp"
@@ -5,18 +24,6 @@
 #include <algorithm>
 #include <cstddef>
 
-/*
-==============================================================================
-    ConstraintSettings.cpp
-
-    Centralise les paramètres de pondération du solveur.
-
-    Principe :
-    - chaque méthode publique construit un vecteur complet pour FuxCP
-    - chaque vecteur part d'une configuration de base lisible
-    - les sliders modifient ensuite uniquement les coûts qui les concernent
-==============================================================================
-*/
 
 namespace
 {

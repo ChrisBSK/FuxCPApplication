@@ -1,3 +1,24 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   GenerationService.h
+
+   Exécute la génération de contrepoint dans un thread séparé : traduit le
+   CantusProblem en CounterpointProblem, lance le solveur, puis génère le
+   fichier MIDI de la solution.
+
+   REMARQUE: Ce fichier a été inspiré de l'architecture de la couche Service
+   réalisée par Cédric Niyikiza dans son plug-in "DiatonyDawApplication" disponible
+   à l'adresse suivant:
+
+            https://github.com/cedricniyi/DiatonyDawApplication.git
+
+//==============================================================================
+*/
+
 #pragma once
 
 #include <juce_core/juce_core.h>
@@ -8,21 +29,6 @@
 #include "CounterpointProblems/CounterpointProblem.hpp"
 
 class AppController;
-
-/*
-==============================================================================
-    GenerationService
-
-    Rôle :
-    - Exécute la génération de contrepoint dans un thread séparé
-    - Traduit CantusProblem → CounterpointProblem (Fux)
-    - Lance le solveur (Gecode)
-    - Génère un fichier MIDI
-
-    Flux :
-    AppController --> GenerationService --> Solveur --> MIDI --> AppController
-==============================================================================
-*/
 
 class GenerationService : public juce::Thread
 {

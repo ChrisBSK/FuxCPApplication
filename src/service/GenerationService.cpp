@@ -1,3 +1,33 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   GenerationService
+
+   Pont entre l'application JUCE et le solveur FuxCP.
+
+   Flux :
+   AppController --> GenerationService --> Solveur (Gecode) --> MIDI --> AppController
+
+   Convertit le CantusProblem en données FuxCP, lance la recherche Gecode,
+   récupère la meilleure solution et écrit le fichier MIDI correspondant.
+
+   -Remarque : Support de l'intelligence artificielle (ChatGPT) pour construire la méthode
+   writeMidiFile
+
+   Sources :
+   - Des méthodes de ce fichier sont inspirées ou tirées de GenerationService.cpp
+   réalisé par Cédric Niyikiza (https://github.com/cedricniyi/DiatonyDawApplication)
+
+   - Un modèle "CostModel" utilisé dans ce fichier a été réalisé par Dorian Genon
+   (https://github.com/AarnorDeDardaliel/FuxCP5/tree/dorian)
+
+
+//==============================================================================
+*/
+
 #include "GenerationService.h"
 
 #include <juce_audio_basics/juce_audio_basics.h>
@@ -13,27 +43,7 @@
 #include <algorithm>
 #include <functional>
 #include <memory>
-/*
-   =====================================================================
-   GenerationService.cpp — lance FuxCP et génère le MIDI
 
-   Ce fichier fait le pont entre l'application JUCE et le solveur FuxCP.
-
-   Rôle général :
-     1. recevoir un CantusProblem depuis l'application,
-     2. le convertir en données compréhensibles par FuxCP,
-     3. lancer la recherche Gecode,
-     4. récupérer la meilleure solution,
-     5. écrire cette solution dans un fichier MIDI.
-
-    -> C'est le coeur du côté opérationnel
-
-    Sources:
-    - Des méthodes dans ce fichier sont inspirées ou entièrement tirées du fichier GenerationService.cpp
-    réalisé par Cédric Niyikiza (Disponible sur ce github: https://github.com/cedricniyi/DiatonyDawApplication)
-
-   =====================================================================
-*/
 
 //==============================================================================
 // Impl interne
@@ -174,14 +184,9 @@ namespace
     {
         juce::MidiFile midi;
 
-        /*
-        Définit la résolution temporelle du fichier MIDI.
 
-        960 ticks = une noire.
-
-        plus cette valeur est grande, plus le MIDI peut placer les notes
-        avec précision dans le temps.
-        */
+        // Définit la résolution temporelle du fichier MIDI.
+        //960 ticks = une noire.
         midi.setTicksPerQuarterNote(960); // Provient de la documentation juce
                                           // MidiFile::setRicksPerQuarterNote
 
@@ -200,21 +205,10 @@ namespace
             - noteOn  : démarre la note au temps `start`
             - noteOff : arrête la note au temps `end`
 
-            JUCE recommande ce modèle dans sa documentation MidiMessage :
-            on crée un message avec MidiMessage::noteOn(...), puis le noteOff
-            correspondant avec MidiMessage::noteOff(...).
+            Technique issue de la documentation de JUCE MidiMessage/
+            MidiMessageSequence
 
-            La classe MidiMessageSequence permet ensuite d'ajouter ces événements
-            avec addEvent(message, time), où `time` indique la position temporelle
-            de l'événement dans la piste.
 
-            Sources :
-            - JUCE MidiMessage::noteOn / noteOff :
-              https://docs.juce.com/develop/classjuce_1_1MidiMessage.html
-            - JUCE MidiMessageSequence::addEvent :
-              https://docs.juce.com/develop/classjuce_1_1MidiMessageSequence.html
-            - Tutoriel JUCE "Create MIDI data" :
-              https://juce.com/tutorials/tutorial_midi_message/
         */
         for (size_t i = 0; i < cantusFirmus.size(); ++i)
         {
@@ -231,54 +225,44 @@ namespace
         // Tracks suivantes : contrepoints
         // =========================
 
-        // On commence donc les contrepoints au canal MIDI 2
-        int channel = 2;
+        int channel = 2; // commence donc les contrepoints au canal MIDI 2
 
-        // On parcourt chaque contrepoint généré.
-        // Chaque `voice` représente une voix complète : CP1, CP2, CP3
-        for (const auto& voice : counterpointVoices)
+        for (const auto& voice : counterpointVoices)  // parcourt chaque contrepoint généré (CP1, ...)
         {
-            // On crée une piste MIDI séparée pour ce contrepoint.
+            // crée une piste MIDI séparée pour ce contrepoint
             juce::MidiMessageSequence track;
 
-            // On parcourt toutes les notes de cette voix.
+            // parcourt toutes les notes de cette voix
             for (size_t i = 0; i < voice.size(); ++i)
             {
+                double start = (double) i * ticksPerNote; // La note i commence après i durées de note
 
-                // La note i commence après i durées de note.
-                // Exemple avec ticksPerNote = 960 :
-                // i = 0 -> start = 0
-                // i = 1 -> start = 960
-                // i = 2 -> start = 1920
-                double start = (double) i * ticksPerNote;
-                // La note s'arrête juste avant la note suivante.
-                // Exemple :
-                // i = 0 -> end = 960
-                // i = 1 -> end = 1920
-                // i = 2 -> end = 2880
-                double end   = (double) (i + 1) * ticksPerNote;
+                double end   = (double) (i + 1) * ticksPerNote; // La note s'arrête juste avant la note suivante
 
-                // Démarre la note MIDI au temps `start`.
-                // channel : canal MIDI utilisé pour cette voix.
-                // voice[i] : hauteur MIDI de la note.
-                // 100 : vélocité, donc intensité de la note.
+                /*
+                * - Démarre la note MIDI au temps `start`.
+                * - channel : canal MIDI utilisé pour cette voix.
+                * - voice[i] : hauteur MIDI de la note.
+                * - 100 : vélocité, donc intensité de la note.
+                * */
                 track.addEvent(juce::MidiMessage::noteOn(channel, voice[i], (juce::uint8) 100), start);
+
                 // Arrête la même note au temps `end`.
                 track.addEvent(juce::MidiMessage::noteOff(channel, voice[i]), end);
             }
 
-            // On ajoute la piste complète de ce contrepoint au fichier MIDI.
+            // ajoute la piste complète de ce contrepoint au fichier MIDI.
             midi.addTrack(track);
 
-            // On passe au canal MIDI suivant pour le prochain contrepoint.
-            if (++channel > 16) // MIDI possède seulement 16 canaux standards, donc on s'arrête après 16.
+            // passe au canal MIDI suivant pour le prochain contrepoint.
+            if (++channel > 16)
                 break;
         }
 
-        // On essaie de créer un fichier en écriture à l'emplacement demandé.
+        // essaie de créer un fichier en écriture à l'emplacement demandé.
         if (auto stream = file.createOutputStream())
         {
-            // Si le fichier peut être ouvert, on écrit tout le contenu MIDI dedans.
+            // Si le fichier peut être ouvert, écrit tout le contenu MIDI dedans.
             midi.writeTo(*stream);
             return true;
         }
@@ -381,8 +365,8 @@ namespace
 
         L'interface garde des noms simples.
         FuxCP attend les constantes définies par Dorian :
-        - OBJECTIVE_LEX
-        - OBJECTIVE_SUMWEIGHTED
+        - OBJECTIVE_LEX (pour lexicographique)
+        - OBJECTIVE_SUMWEIGHTED (pour somme pondérée)
     */
     ObjectiveMode mapMinimizationMethodToFux(ConstraintSettings::MinimizationMethod method)
     {
@@ -406,6 +390,10 @@ namespace
         - coûts par défaut,
         - sliders propres à chaque contrepoint,
         - shapes choisies dans l'interface.
+
+        Remarque: support de l'intelligence artificielle (Claude) comme conseil
+        pour trouver comment organiser d'abord les fonctions de coûts
+        puis ensuite les shapes
     */
     CostModel buildCostModelFromSettings(const ConstraintSettings& settings,
                                          const std::vector<int>& melodicCosts,

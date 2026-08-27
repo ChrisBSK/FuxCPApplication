@@ -1,3 +1,19 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   main.cpp
+
+   Point d'entrée de la version Standalone de l'application (hors plug-in
+   AU).
+
+   Définit la fenêtre principale (MainWindow) qui héberge le
+   MainComponent, ainsi que le cycle de vie JUCE (Application).
+//==============================================================================
+*/
+
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "MainComponent.h"
 

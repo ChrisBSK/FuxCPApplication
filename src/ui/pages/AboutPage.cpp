@@ -1,3 +1,17 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   AboutPage.cpp
+
+   Construit le texte (AttributedString) retraçant les contributions
+   successives à FuxCP, avec mise en page automatique via TextLayout dans
+   un viewport défilant.
+//==============================================================================
+*/
+
 #include "AboutPage.h"
 
 namespace

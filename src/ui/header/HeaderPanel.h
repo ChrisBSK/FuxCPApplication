@@ -1,18 +1,20 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   HeaderPanel.h
+
+   Barre d'onglets principale : permet de choisir une page
+   (Main Screen, Saved configurations, Solver,
+   About)
+//==============================================================================
+*/
+
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
 
-/*
-    HeaderPanel — barre d'onglets principale.
-
-    Ce composant ne connaît pas le contenu des pages.
-    Il permet seulement à l'utilisateur de choisir une page :
-    - Main Screen,
-    - Saved configurations,
-    - Solver,
-    - About.
-
-    MainComponent reçoit ensuite le choix via onPageChanged.
-*/
 class HeaderPanel : public juce::Component
 {
 public:

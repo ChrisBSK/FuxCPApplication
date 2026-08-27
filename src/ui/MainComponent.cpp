@@ -1,3 +1,18 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   MainComponent.cpp
+
+   Implémente l'assemblage de l'UI : connexion du LeftPanel, de
+   l'OptionsPanel et du clavier virtuel à l'AppController, navigation entre
+   pages (showPage), layout de la fenêtre, ainsi que le chargement d'une
+   configuration sauvegardée (loadSavedConfiguration).
+//==============================================================================
+*/
+
 #include "MainComponent.h"
 
 //==============================================================================

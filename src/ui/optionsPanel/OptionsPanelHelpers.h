@@ -1,14 +1,21 @@
-#pragma once
+//
+// Créé par Chris BAKASHIKA (2026)
+//
 
-#include <juce_gui_basics/juce_gui_basics.h>
 /*
 //==============================================================================
-   OptionsPanelHelpers
+   OptionsPanelHelpers.h
 
    Fonctions utilitaires pour configurer les éléments visuels
    réutilisables de l'OptionsPanel.
 //==============================================================================
 */
+
+
+#pragma once
+
+#include <juce_gui_basics/juce_gui_basics.h>
+
 namespace OptionsPanelHelpers
 {
     void setupTitle(juce::Component& parent,

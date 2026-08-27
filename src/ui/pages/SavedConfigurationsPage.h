@@ -1,3 +1,17 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   SavedConfigurationsPage.h
+
+   Page listant les configurations sauvegardées (nom, date), la plus
+   récente en premier. Cliquer sur une ligne charge la configuration
+   correspondante ; une croix permet de la supprimer.
+//==============================================================================
+*/
+
 #pragma once
 
 #include <vector>

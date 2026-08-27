@@ -1,14 +1,21 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   AboutPage.h
+
+   Page de présentation de l'application. Utilise le même principe que la
+   page Solver : un titre simple et un texte déroulant pour garder la
+   lecture confortable.
+//==============================================================================
+*/
+
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
-/*
-    AboutPage
-
-    Page de présentation de l'application.
-    Elle utilise le même principe que la page Solver : un titre simple
-    et un texte déroulant pour garder la lecture confortable.
-*/
 class AboutPage : public juce::Component
 {
 public:

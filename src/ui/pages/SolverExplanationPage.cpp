@@ -1,13 +1,22 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   SolverExplanationPage.cpp
+
+    Il est gardé ici, dans le fichier de la page, pour éviter de surcharger
+    MainComponent avec du contenu pédagogique
+
+//==============================================================================
+*/
+
 #include "SolverExplanationPage.h"
 
 namespace
 {
-    /*
-        Texte affiché dans la page.
 
-        Il est gardé ici, dans le fichier de la page, pour éviter de surcharger
-        MainComponent avec du contenu pédagogique.
-    */
     juce::String buildSolverExplanationText()
     {
         return juce::String::fromUTF8(

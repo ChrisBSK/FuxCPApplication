@@ -1,3 +1,18 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   KeyboardComponent.cpp
+
+   Implémente le clavier visuel avec deux MidiKeyboardState séparés :
+   - ownKeyboardState détecte les clics (seul état écouté)
+   - audioKeyboardState (celui du plug-in) est utilisé en écriture pour
+   déclencher réellement le son via SimpleSynth.
+//==============================================================================
+*/
+
 #include "KeyboardComponent.h"
 
 KeyboardComponent::KeyboardComponent(juce::MidiKeyboardState& audioState)
@@ -23,7 +38,7 @@ KeyboardComponent::KeyboardComponent(juce::MidiKeyboardState& audioState)
 
     setWantsKeyboardFocus(true);
 
-    // On s'abonne uniquement à ownKeyboardState : jamais à
+    // s'abonne uniquement à ownKeyboardState : pas à
     // audioKeyboardState, qui ne sert qu'en écriture (voir handleNoteOn).
     ownKeyboardState.addListener(this);
 }
@@ -32,10 +47,7 @@ KeyboardComponent::KeyboardComponent(juce::MidiKeyboardState& audioState)
     Se désinscrit de ownKeyboardState avant sa propre destruction.
 
     ownKeyboardState est un membre de cette classe : il partage exactement
-    le même cycle de vie que KeyboardComponent, donc ce désenregistrement
-    n'est plus strictement nécessaire pour éviter un crash (contrairement
-    à l'ancienne version, qui s'abonnait à un état externe survivant à la
-    fenêtre). On le garde par prudence et par symétrie avec addListener().
+    le même cycle de vie que KeyboardComponent (désenregistrement pour éviter un crash)
 */
 KeyboardComponent::~KeyboardComponent()
 {
@@ -47,12 +59,12 @@ KeyboardComponent::~KeyboardComponent()
 // =============================
 
 /*
-    Ce callback ne peut être déclenché QUE par ownKeyboardState (voir
+    Callback déclenché QUE par ownKeyboardState (voir
     addListener ci-dessus), donc uniquement par un vrai clic sur ce
-    clavier - jamais par le MIDI reçu par le plug-in, puisqu'on ne s'abonne
-    jamais à audioKeyboardState. Peu importe le thread ou le mécanisme que
-    l'hôte utilise pour envoyer ce MIDI : il ne peut simplement pas
-    atteindre ce code.
+    clavier
+
+    (il ne faut pas que l'hôte puisse écrire ici, bug constaté en passant
+    de la version standalone à la version plug-in)
 */
 void KeyboardComponent::handleNoteOn(juce::MidiKeyboardState*, int midiChannel,
                                      int midiNoteNumber, float velocity)
@@ -62,7 +74,7 @@ void KeyboardComponent::handleNoteOn(juce::MidiKeyboardState*, int midiChannel,
         onNotePressed(midiNoteNumber);
 
     /*
-        Déclenche aussi le son : on écrit directement dans l'état audio du
+        Déclenche aussi le son : écrit directement dans l'état audio du
         plug-in, sans jamais s'y être abonné comme Listener.
 
         SimpleSynth entendra la note au prochain bloc audio (PluginProcessor::processBlock)
@@ -74,6 +86,8 @@ void KeyboardComponent::handleNoteOn(juce::MidiKeyboardState*, int midiChannel,
     Relâche la note déclenchée dans audioKeyboardState par handleNoteOn(),
     pour que le son ne reste pas tenu indéfiniment après avoir relâché la
     touche.
+
+    (bug constaté sur la version standalone, résolu par la suite)
 */
 void KeyboardComponent::handleNoteOff(juce::MidiKeyboardState*, int midiChannel,
                                       int midiNoteNumber, float velocity)

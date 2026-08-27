@@ -1,16 +1,23 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   ArrowIconButton.h
+
+   Bouton compact qui dessine une flèche (haut/bas), utilisé pour
+   réordonner des éléments dans une liste (voir SolverPriorityList).
+
+   Remarque: support de l'intellgence artificielle (ChatGPT) pour aider à
+   construire ces deux flèches
+//==============================================================================
+*/
+
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
-/*
-//==============================================================================
-   ArrowIconButton
-
-   Bouton compact qui dessine une vraie flèche.
-
-    --> Ce fichier a été réalisé avec l'aide de ChatGPT
-//==============================================================================
-*/
 class ArrowIconButton : public juce::Button
 {
 public:

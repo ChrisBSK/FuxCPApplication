@@ -1,3 +1,27 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   VoiceWorkspace.h
+
+   - (contenu dans la zone optionsPanel de l'interface)
+
+   Zone centrale des contrepoints :
+        - titres,
+        - ComboBox Species/Voice Range,
+        - sliders des fonctions de coûts, ComboBox Shape et mini-sliders part1-part5.
+
+
+   - Fonctionne en envoyant des callbacks à
+   OptionsPanel, qui transmet ensuite à AppController et ConstraintSettings.
+
+   (on ne modifie pas directement le modèle)
+   (Le Cantus Firmus n'est pas affiché ici, il reste dans le LeftPanel.)
+//==============================================================================
+*/
+
 #pragma once
 
 #include <array>
@@ -6,27 +30,6 @@
 #include <vector>
 #include <juce_gui_basics/juce_gui_basics.h>
 
-/*
-    =====================================================================
-    VoiceWorkspace.h — zone centrale des contrepoints
-
-    Ce composant affiche les contrôles propres à chaque contrepoint.
-
-    Il contient :
-    - les titres Counterpoint 1, 2, 3,
-    - les ComboBox Species / Type,
-    - les sliders des fonctions de coût,
-    - les ComboBox Shape,
-    - les 5 mini-sliders part1-part5 pour visualiser/modifier une shape.
-
-    Le Cantus Firmus n'est pas affiché ici.
-    Il reste dans le LeftPanel.
-
-    VoiceWorkspace ne modifie pas directement le modèle.
-    Il envoie des callbacks à OptionsPanel, qui transmet ensuite les valeurs
-    à AppController et ConstraintSettings.
-    =====================================================================
-*/
 class VoiceWorkspace : public juce::Component
 {
 public:
@@ -60,8 +63,8 @@ public:
     /*
         Détache le LookAndFeel personnalisé des ComboBox.
 
-        JUCE demande de retirer un LookAndFeel avant que l'objet qui le possède
-        soit détruit, sinon les composants peuvent garder un pointeur invalide.
+        (JUCE demande de retirer un LookAndFeel avant que l'objet qui le possède
+        soit détruit, sinon les composants peuvent garder un pointeur invalide.)
     */
     ~VoiceWorkspace() override
     {
@@ -93,10 +96,10 @@ public:
     // Espèce modifiée pour un contrepoint.
     std::function<void(int counterpointIndex, int species)> onSpeciesChanged;
 
-    // Type modifié pour un contrepoint.
+    // Tessiture modifiée pour un contrepoint.
     std::function<void(int counterpointIndex, int type)> onTypeChanged;
 
-    // Slider de coût modifié pour un contrepoint.
+    // Slider de coûts modifié pour un contrepoint.
     std::function<void(int counterpointIndex, CostSliderTarget target, double value)> onCostSliderChanged;
 
     // Shape ou valeur part1-part5 modifiée pour un contrepoint.
@@ -106,7 +109,7 @@ public:
                        const std::vector<double>& values)> onShapeChanged;
 
     /*
-        Remet le workspace dans son état initial.
+        Remet le workspace dans son état initial. (utile: pour le bouton clear)
 
         Cette méthode réinitialise :
         - Species à 1,
@@ -314,12 +317,13 @@ private:
     /*
         LookAndFeel compact pour les petites ComboBox du workspace.
 
-        Il réduit :
+         réduit :
         - la taille du texte,
         - la taille de la flèche,
         - l'épaisseur du contour.
 
-        Objectif : rendre Species, Type et Shape lisibles malgré leur petite taille.
+        Objectif : rendre Species, Voice range et Shape lisibles malgré leur petite taille.
+
     */
     class CompactComboBoxLookAndFeel : public juce::LookAndFeel_V4
     {
@@ -422,7 +426,7 @@ private:
     std::array<juce::ComboBox, maxCounterpoints> typeSelectors;
 
     //==============================================================================
-    // Contrôles des fonctions de coût
+    // Contrôles des fonctions de coûts
     //==============================================================================
 
     // Sliders visuels des trois fonctions de coûts.
@@ -478,6 +482,8 @@ private:
                                                                    maxGapBetweenCounterpoints,
                                                                    availableArea.getWidth() / 42);
 
+        // Support de l'intelligence artigicielle, pour bien calibrer la Flexbox,
+        // avec l'aide de la documentation JUCE.
         juce::FlexBox counterpointRow;
         counterpointRow.flexDirection = juce::FlexBox::Direction::row;
         counterpointRow.alignItems = juce::FlexBox::AlignItems::stretch;
@@ -513,6 +519,9 @@ private:
         - Type -3 en bas.
 
         Les valeurs sont ensuite converties en ids positifs pour JUCE.
+
+        Remarque: Les species/types  sont exprimés toujours comme dans FuxCP,
+        en pratique Fuxophone utilise trois tessitures définie dans le code du plug-in
     */
     void setupCounterpointSelectors()
     {
@@ -542,11 +551,7 @@ private:
             styleSelector(typeSelector);
 
             /*
-                Courte explication au survol de chaque menu.
-
-                juce::ComboBox hérite déjà de SettableTooltipClient : setTooltip()
-                suffit, le TooltipWindow créé dans MainComponent affiche le texte
-                automatiquement, comme pour les autres contrôles de l'interface.
+                Tooltips explicatifs comme pour les autres fichiers
             */
             speciesSelector.setTooltip(juce::String::fromUTF8(
                 "Species : définit l'espèce du contrepoint."));
@@ -843,10 +848,7 @@ private:
     }
 
     /*
-        Vide vraiment une ComboBox Shape.
-
-        setSelectedId(0) ne suffit pas toujours à retirer le texte affiché.
-        On force donc l'état "rien sélectionné".
+        Vide une ComboBox Shape. (pour le bouton clear)
     */
     void clearShapeSelector(juce::ComboBox& shapeSelector)
     {
@@ -903,7 +905,7 @@ private:
     }
 
     /*
-        Remet tous les sliders principaux à zéro.
+        Remet tous les sliders des fonctions de coûts à zéro. (bouton clear)
 
         dontSendNotification évite de relancer les callbacks inutilement.
     */
@@ -918,7 +920,7 @@ private:
     }
 
     /*
-        Cache et remet à zéro tous les contrôles part1-part5.
+        Cache et remet à zéro tous les contrôles part1-part5. (bouton clear)
 
         Le modèle est vidé séparément par OptionsPanel.
         Ici, on nettoie seulement l'affichage.
@@ -937,7 +939,7 @@ private:
     }
 
     /*
-        Réinitialise un groupe de 5 mini-sliders de shape.
+        Réinitialise un groupe de 5 mini-sliders de shape. (bouton clear)
     */
     void resetShapeControlGroup(ShapeControlSliders& controls)
     {
@@ -949,7 +951,7 @@ private:
     }
 
     /*
-        Cache les labels part1..part5 d'un groupe de shape.
+        Cache les labels part1..part5 d'un groupe de shape. (bouton clear)
     */
     void resetShapeLabelGroup(ShapeControlLabels& labels)
     {
@@ -976,7 +978,7 @@ private:
                               const juce::String& leftReference,
                               const juce::String& rightReference)
     {
-        // Nom visible du paramètre + explication au survol.
+        // Nom visible du paramètre + explication au survol
         label.setText(text, juce::dontSendNotification);
         label.setTooltip(tooltipText);
         label.setFont(juce::Font(juce::FontOptions(9.5f, juce::Font::bold)));
@@ -984,7 +986,7 @@ private:
         label.setColour(juce::Label::textColourId, juce::Colours::white);
         label.setMinimumHorizontalScale(0.55f);
 
-        // Slider principal entre 0 et 1.
+        // Slider principal entre 0 et 1
         slider.setRange(0.0, 1.0, 0.01);
         slider.setValue(0.0, juce::dontSendNotification);
         slider.setSliderStyle(juce::Slider::LinearHorizontal);
@@ -992,13 +994,14 @@ private:
         slider.setColour(juce::Slider::trackColourId, juce::Colour(0xff2f4f4f));
         slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
 
-        // Shape à droite.
+        // Shape à droite
         setupShapeSelector(shapeSelector);
 
         /*
             Les repères gauche/droite (ex: "+ Mouvements conjoints") ne sont plus
             affichés sous le slider : l'explication est maintenant uniquement
             dans le tooltip du nom du paramètre, pour un rendu plus propre.
+
             On garde les labels en mémoire (inutilisés) pour ne pas toucher
             à la signature de cette méthode.
         */
@@ -1017,6 +1020,8 @@ private:
 
         Exemple :
         Smooth à gauche, Jumpy à droite.
+
+        --> Ce n'est plus utilisé dans cette version de l'application
     */
     void setupReferenceLabel(juce::Label& referenceLabel,
                              const juce::String& text,
@@ -1048,11 +1053,10 @@ private:
         styleSelector(shapeSelector);
 
         /*
-            Explication au survol : cette méthode est partagée par les trois
+            Tooltip : cette méthode est partagée par les trois
             ComboBox Shape de chaque contrepoint (Melody moves, Interval
             colour, Perfect intervals), le tooltip s'applique donc à toutes
-            en une seule fois. juce::ComboBox hérite déjà de
-            SettableTooltipClient, le TooltipWindow de MainComponent fait le reste.
+            en une seule fois.
         */
         shapeSelector.setTooltip(juce::String::fromUTF8(
             "Shape : définit la shape associée à la fonction de coûts."));
@@ -1142,7 +1146,7 @@ private:
     /*
         Calcule la hauteur totale nécessaire pour afficher tous les paramètres.
 
-        Si on ajoute une fonction de coût plus tard, on augmente seulement
+        --> Si on ajoute une fonction de coûts plus tard, on augmente seulement
         costParameterCount ou on centralise la liste des paramètres ici.
     */
     int getRequiredCostSlidersHeight() const
@@ -1153,8 +1157,7 @@ private:
     /*
         Calcule combien on peut défiler verticalement dans les paramètres.
 
-        Si le contenu tient dans la zone visible, le maximum vaut 0 :
-        aucun scroll n'est nécessaire.
+        --> (Pour l'instant aucun scroll n'est nécessaire, cela est prévu en cas d'extension)
     */
     int getMaxCostScrollOffset() const
     {
@@ -1167,6 +1170,7 @@ private:
 
     /*
         Garde le défilement dans des limites valides.
+         --> (Pour l'instant aucun scroll n'est nécessaire, cela est prévu en cas d'extension)
     */
     void clampCostScrollOffset()
     {
@@ -1224,17 +1228,13 @@ private:
 
         /*
             Label, slider et ComboBox Shape se répartissent la largeur réelle
-            de la ligne via FlexBox, au lieu de largeurs fixes en pixels :
-            le slider prend tout ce qui reste une fois label et shape placés
-            à leur taille minimale.
+            de la ligne via FlexBox
         */
         juce::FlexBox mainRowBox;
         mainRowBox.flexDirection = juce::FlexBox::Direction::row;
         mainRowBox.alignItems = juce::FlexBox::AlignItems::stretch;
 
-        // Hauteur explicite + centrage : sans ça, le label et le slider
-        // s'étirent sur toute la hauteur de la ligne (trop épais pour le
-        // slider, et assez haut pour que le label retourne le texte à la ligne).
+        // Hauteur explicite + centrage
         mainRowBox.items.add(juce::FlexItem(label)
             .withFlex(0.0f, 1.0f, 62.0f)
             .withMinWidth(38.0f)
@@ -1242,15 +1242,13 @@ private:
             .withAlignSelf(juce::FlexItem::AlignSelf::center)
             .withMargin(juce::FlexItem::Margin(0.0f, 4.0f, 0.0f, 0.0f)));
 
-        // Flex plus important : le slider principal profite de tout l'espace
-        // libéré par le label et la ComboBox Shape rétrécis.
-        // Hauteur relevée pour correspondre visuellement aux mini-sliders Part.
+        //config zone slider - fonction de coûts
         mainRowBox.items.add(juce::FlexItem(slider)
             .withFlex(1.0f)
             .withMinWidth(20.0f)
             .withHeight(12.0f)
             .withAlignSelf(juce::FlexItem::AlignSelf::center));
-
+        //config zone shape
         mainRowBox.items.add(juce::FlexItem(shapeSelector)
             .withFlex(0.0f, 1.0f, 38.0f)
             .withMinWidth(26.0f)
@@ -1262,15 +1260,15 @@ private:
     }
 
     /*
-        Place les 5 mini-sliders part1-part5 sous le slider principal.
+        Place 5 mini-sliders part1-part5 sous le slider principal.
     */
     void layoutShapeControls(juce::Rectangle<int> row,
                              ShapeControlSliders& controls,
                              ShapeControlLabels& labels)
     {
-        // Indentation proportionnelle à la largeur réelle de la colonne,
-        // plutôt qu'une marge fixe qui peut dépasser une colonne étroite.
-        // Plus marquée qu'avant : les mini-sliders Part. restent volontairement
+        // Indentation proportionnelle à la largeur réelle de la colonne
+        //
+        // Plus marquée qu'avant : les mini-sliders Part. sont volontairement
         // plus étroits que le slider principal, pour un rendu plus propre.
         const int indent = juce::jmax(10, row.getWidth() / 5);
         row = row.withTrimmedLeft(indent).withTrimmedRight(indent);
@@ -1465,7 +1463,7 @@ private:
     }
 
     /*
-        Calcule la zone réelle du contenu des paramètres.
+        Calcule la zone réelle du contenu des paramètres (VoiceWorkspace).
 
         Cette zone peut être plus haute que la zone visible.
         Le décalage costScrollOffsetY permet alors de défiler sans couper
@@ -1483,11 +1481,7 @@ private:
     /*
         Dessine le bandeau Counterpoint X.
 
-        Même logique visuelle que le LeftPanel :
-        les titres restent toujours verts pour montrer clairement les colonnes.
-
-        L'état actif/inactif est géré par les contrôles situés sous le titre,
-        pas par le titre lui-même.
+        L'état actif/inactif est géré par les contrôles situés sous le titre.
     */
     void drawCounterpointTitle(juce::Graphics& g,
                                juce::Rectangle<int> titleBox,
@@ -1517,9 +1511,7 @@ private:
         Dessine un trait vertical fin et blanc entre deux colonnes de
         contrepoint voisines, pour bien les différencier visuellement.
 
-        Le trait est centré dans l'espace qui sépare les deux colonnes
-        (calculé à partir de leurs bounds réels, jamais d'une largeur fixe),
-        et s'étend sur toute leur hauteur.
+        Le trait est centré dans l'espace qui sépare les deux colonnes.
     */
     void drawColumnSeparator(juce::Graphics& g,
                              juce::Rectangle<int> leftColumn,

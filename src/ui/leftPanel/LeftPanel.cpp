@@ -1,21 +1,24 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   LeftPanel.cpp
+
+   Implémente la construction du problème depuis la saisie utilisateur
+   (parsing du Cantus Firmus, validation),le déclenchement de la
+   génération/sauvegarde via l'AppController, l'affichage du MIDI généré
+   en drag & drop, et la réaction aux changements de generationState.
+//==============================================================================
+*/
+
 #include "LeftPanel.h"
 #include "../optionsPanel/OptionsPanel.h"
 #include "../../controller/AppController.h"
 #include "../../model/NoteConverter.h"
 
-/*
-//==============================================================================
-   LeftPanel
 
-   Interface principale de saisie utilisateur.
-
-   Permet de :
-   - entrer le Cantus Firmus
-   - configurer les voix de contrepoint
-   - lancer la génération
-   - afficher et exporter le fichier MIDI généré
-//==============================================================================
-*/
 
 LeftPanel::~LeftPanel()
 {

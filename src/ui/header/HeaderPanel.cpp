@@ -1,5 +1,20 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+    HeaderPanel.cpp
+
+    Dessine les onglets (état actif, survol, soulignement) et gère la
+    sélection au clic via selectPage, qui notifie MainComponent par
+    onPageChanged.
+//==============================================================================
+*/
+
 #include "HeaderPanel.h"
 
+// Dessine un onglet : fond au survol, texte, et soulignement si actif.
 void HeaderPanel::TabButton::paintButton(juce::Graphics& g,
                                          bool shouldDrawButtonAsHighlighted,
                                          bool)
@@ -32,6 +47,7 @@ void HeaderPanel::TabButton::paintButton(juce::Graphics& g,
     }
 }
 
+// Crée les quatre onglets et sélectionne Main Screen par défaut.
 HeaderPanel::HeaderPanel()
 {
     setupTabButton(mainScreenButton, "Main Screen");
@@ -56,6 +72,7 @@ HeaderPanel::~HeaderPanel()
 {
 }
 
+// Fond de la barre d'onglets et fine ligne de séparation en bas.
 void HeaderPanel::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colours::darkgrey);
@@ -68,6 +85,7 @@ void HeaderPanel::paint(juce::Graphics& g)
                1.0f);
 }
 
+// Place les quatre onglets côte à côte, de gauche à droite.
 void HeaderPanel::resized()
 {
     auto area = getLocalBounds().reduced(18, 0);
@@ -87,6 +105,7 @@ void HeaderPanel::resized()
     aboutButton.setBounds(area.removeFromLeft(tabWidth));
 }
 
+// Met à jour l'onglet actif et notifie MainComponent du changement de page.
 void HeaderPanel::selectPage(Page page)
 {
     selectedPage = page;
@@ -100,6 +119,7 @@ void HeaderPanel::selectPage(Page page)
         onPageChanged(selectedPage);
 }
 
+// Configure un bouton d'onglet
 void HeaderPanel::setupTabButton(juce::TextButton& button, const juce::String& text)
 {
     button.setButtonText(text);

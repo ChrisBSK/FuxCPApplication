@@ -1,24 +1,34 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   OptionsPanel.cpp
+
+   Ce fichier sert  à synchroniser l'UI avec le modèle
+
+    (VoiceWorkspace (panneau du milieu), MinimizationModePanel (panneau de droite), SolverPriorityList)
+    et le modèle :
+
+    Le fichier gère:
+
+    - la grande zone des contrepoints
+    - la colonne Search
+    - les boutons Clear / Generate
+    - les connexions entre l'interface et AppController
+    - reset
+    - réaffichage depuis une configuration rengistrée
+//==============================================================================
+*/
+
+
 #include "OptionsPanel.h"
 
 #include "../leftPanel/LeftPanel.h"
 #include "../../controller/AppController.h"
 #include "OptionsPanelHelpers.h"
 
-/*
-    =====================================================================
-    OptionsPanel.cpp — panneau principal de configuration
-
-    Ce fichier construit la partie centrale de l'interface.
-
-    Il contient :
-    - la grande zone des contrepoints,
-    - la colonne Search,
-    - les boutons Clear / Generate,
-    - les connexions entre l'interface et AppController.
-
-    Son rôle est surtout de synchroniser l'UI avec le modèle.
-    =====================================================================
-*/
 
 //==============================================================================
 // Fonctions internes de conversion
@@ -32,7 +42,7 @@ namespace
         L'interface parle en CostSliderTarget.
         Le modèle parle en ShapeCostTarget.
 
-        Cette fonction fait simplement le pont entre les deux.
+        Cette fonction fait le pont entre les deux.
     */
     ConstraintSettings::ShapeCostTarget mapShapeTarget(VoiceWorkspace::CostSliderTarget target)
     {
@@ -129,8 +139,10 @@ namespace
     Crée le panneau et initialise tous ses sous-composants.
 
     L'ordre est important :
-    on crée d'abord les zones visuelles, puis les boutons,
-    puis les connexions vers le modèle.
+
+    - on crée d'abord les zones visuelles,
+    - puis les boutons,
+    - puis les connexions vers le modèle.
 */
 OptionsPanel::OptionsPanel()
 {
@@ -241,10 +253,10 @@ void OptionsPanel::setupColumns()
 /*
     Configure les boutons principaux du panneau.
 
-    Generate lance la génération via LeftPanel.
-    Next Solution relance une génération pour demander une autre proposition.
-    Save configuration est préparé pour sauvegarder la configuration courante.
-    Clear remet l'interface dans son état initial.
+    - Generate : lance la génération via LeftPanel.
+    - Next Solution : relance une génération pour demander une autre proposition.
+    - Save configuration : est préparé pour sauvegarder la configuration courante.
+    - Clear : remet l'interface dans son état initial.
 */
 void OptionsPanel::setupButtons()
 {
@@ -398,7 +410,8 @@ void OptionsPanel::setupMinimizationModePanel()
     /*
         L'utilisateur choisit entre Lexicographic et Weighted Sum.
 
-        Ce choix est stocké dans ConstraintSettings.
+        Ce choix est stocké dans ConstraintSettings
+
         GenerationService le traduira ensuite vers OBJECTIVE_LEX
         ou OBJECTIVE_SUMWEIGHTED au moment de créer FuxCP.
     */
@@ -591,7 +604,6 @@ void OptionsPanel::resized()
     /*
         FlexBox répartit horizontalement les grandes colonnes.
 
-        Ici :
         - LeftPanel garde une largeur bornée,
         - workspaceColumn prend la majorité de l'espace,
         - searchColumn garde une largeur compacte.
@@ -605,9 +617,8 @@ void OptionsPanel::resized()
     {
         // Colonne gauche : entrées principales de génération.
         //
-        // alignSelf::flexStart + une hauteur fixe l'empêchent de s'étirer
-        // sur toute la hauteur disponible (contrairement au workspace et à
-        // Search) : ça laisse une vraie zone libre en dessous pour les boutons,
+        // alignSelf::flexStart + une hauteur fixe :
+        // laisse une vraie zone libre en dessous pour les boutons,
         // sans dépendre de l'espace réservé au clavier.
         mainRow.items.add(juce::FlexItem(*leftPanel)
             .withFlex(0.0f, 1.0f, 220.0f)
@@ -641,7 +652,7 @@ void OptionsPanel::resized()
 
         // Les boutons occupent tout l'espace réellement libre entre le bas
         // du LeftPanel et le bas de la zone de contenu (avant réservation du
-        // clavier) : plus d'approximation, juste ce qui reste vraiment.
+        // clavier)
         const int buttonAreaHeight = juce::jmax(0,
             leftArea.getBottom() - (leftPanelBounds.getBottom() + leftButtonGap));
 
@@ -655,7 +666,7 @@ void OptionsPanel::resized()
         layoutButtons(leftButtonArea);
     }
 
-    // Le workspace réel vit à l'intérieur de la colonne centrale.
+    // Le workspace réel vit à l'intérieur de la colonne centrale. (zone qui contient les contrepoints)
     workspaceBounds = workspaceColumn.getBounds();
     workspaceColumn.setBounds(workspaceBounds);
     voiceWorkspace.setBounds(workspaceBounds.reduced(3));
@@ -698,26 +709,22 @@ void OptionsPanel::layoutMinimizationModePanel(juce::Rectangle<int> columnBounds
     // Petit espace entre le panneau Search et la liste des priorités.
     area.removeFromTop(listGap);
 
-    /*
-        Le titre "Priority vector" est placé ici, sur toute la largeur
-        encore disponible de "area" - la même largeur que celle utilisée
-        juste au-dessus pour minimizationModePanel. C'est ce qui garantit
-        qu'il reste centré au même endroit que "Search Method" et
-        "Minimization Method" : la liste elle-même (solverPriorityList),
-        plus bas, n'occupe qu'une largeur réduite par la colonne des flèches.
-    */
+    /* titre "Priority vector"  */
     priorityVectorTitle.setBounds(area.removeFromTop(titleHeight));
     area.removeFromTop(titleGap);
 
-    // La liste prend la zone principale ; les flèches occupent une petite colonne à droite.
-    // removeFromRight coupe la colonne en deux :
-    // - arrowArea reçoit la bande de droite pour les flèches,
-    // - area garde le reste pour la liste.
+    /*
+        -La liste prend la zone principale ;
+        -Les flèches occupent une petite colonne à droite.
+
+        removeFromRight coupe la colonne en deux :
+            - arrowArea reçoit la bande de droite pour les flèches,
+            - area garde le reste pour la liste.
+    */
     auto arrowArea = area.removeFromRight(arrowColumnWidth);
 
-    // Seul le bas garde un peu de marge : le haut reste collé à
-    // titleGap, comme "Search Method"/"Minimization Method" collent
-    // directement à leurs boutons juste en dessous.
+    // Seul le bas garde un peu de marge : le haut du texte reste collé à
+    // titleGap, comme "Search Method"/"Minimization Method"
     auto listArea = area.withTrimmedBottom(2);
 
     solverPriorityList.setBounds(listArea);
@@ -739,7 +746,7 @@ void OptionsPanel::layoutMinimizationModePanel(juce::Rectangle<int> columnBounds
 /*
     Place les boutons Generate, Next solution, Save solution et Clear sous le LeftPanel.
 
-    Les boutons sont empilés verticalement pour rester lisibles.
+    Les boutons sont empilés verticalement .
     FlexBox permet de garder leur alignement propre même si la fenêtre change.
 */
 void OptionsPanel::layoutButtons(juce::Rectangle<int> buttonArea)
@@ -795,6 +802,8 @@ void OptionsPanel::layoutButtons(juce::Rectangle<int> buttonArea)
     En JUCE, si deux composants se superposent, celui du dessus reçoit le clic.
     Cette méthode garantit que Generate, Next solution, Save solution et Clear
     restent au-dessus des fonds décoratifs.
+
+    (Permet de Fix un bug rencontré lors de l'implémentation)
 */
 void OptionsPanel::bringActionButtonsToFront()
 {
@@ -811,7 +820,7 @@ void OptionsPanel::bringActionButtonsToFront()
 /*
     Remet la page dans son état initial.
 
-    Cette méthode vide :
+    La méthode vide :
     - le Cantus Firmus,
     - le nombre de voix,
     - les paramètres de coûts,
@@ -887,9 +896,10 @@ void OptionsPanel::clearGenerationInputs()
     À la différence des callbacks onXChanged, on n'écrit rien dans le modèle
     ici : AppController::loadConfiguration() vient déjà de le remplacer par
     la configuration sauvegardée (voir CantusProblem::restoreFromValueTree).
-    Cette méthode ne fait donc que rafraîchir l'affichage, colonne par
+
+    Cette méthode rafraichit l'affichage, colonne par
     colonne, en s'appuyant sur la taille réelle des données chargées
-    (aucun nombre de voix ou de shapes n'est supposé à l'avance).
+
 */
 void OptionsPanel::loadFromModel()
 {

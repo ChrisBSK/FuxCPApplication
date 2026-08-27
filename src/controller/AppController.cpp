@@ -1,3 +1,23 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+
+/*
+//==============================================================================
+   AppController.cpp
+
+  Coordonne les interactions entre l'UI,
+  le modèle musical et le moteur de génération.
+
+  Responsable de :
+   - construire le problème à générer
+   - lancer la génération en appelant GenerationService
+   - recevoir les résultats du solveur
+   - notifier l'interface utilisateur
+//==============================================================================
+*/
+
 #include "AppController.h"
 
 #include <algorithm>
@@ -6,22 +26,6 @@
 
 #include "../ui/leftPanel/LeftPanel.h"
 #include "../ui/optionsPanel/OptionsPanel.h"
-
-
-/*
-//==============================================================================
-   AppController
-
-  Coordonne les interactions entre l'UI,
-  le modèle musical et le moteur de génération.
-
-  Responsable de :
-   - construire le problème à générer
-   - lancer la génération
-   - recevoir les résultats du solveur
-   - notifier l'interface utilisateur
-//==============================================================================
-*/
 
 //==============================================================================
 // CONSTRUCTEUR  -  Initialise le contrôleur principal de l'application.
@@ -287,7 +291,8 @@ void AppController::showGenerationResult(bool success,
                     if (result == 1 && midiPath.isNotEmpty())
                     {
                         generationState.setProperty("midiFilePath", midiPath, nullptr);
-                        generationState.setProperty("generationStatus", "completed", nullptr);
+                        generationState.setProperty("generationStatus", "completed",
+                            nullptr);
                     }
                 }));
     }
@@ -331,8 +336,7 @@ void AppController::showGenerationProgressWindow()
         juce::AlertWindow::InfoIcon);
 
     // Fenêtre purement informative : pas de bouton, elle se referme
-    // toute seule dès que le solveur a terminé (voir handleAsyncUpdate
-    // et les échecs synchrones dans startGeneration/startNextSolution).
+    // toute seule dès que le solveur a terminé (voir handleAsyncUpdate)
     generationProgressWindow->enterModalState(true);
 
     // Rafraîchit le texte affiché une fois par seconde.
@@ -420,19 +424,16 @@ bool AppController::isGenerating() const
     return generationService->isGenerating();
 }
 
+/*
 //==============================================================================
-// CONFIGURATIONS SAUVEGARDÉES
-//
-// Une configuration sauvegardée est un fichier XML : le ValueTree produit
-// par CantusProblem::toValueTree(), auquel on ajoute juste un nom et une
-// date avant de l'écrire sur le disque.
-//
-//
-//
-// AppController ne connaît pas
-// le détail de ce que contient un problème : il se contente de déléguer
-// à CantusProblem, puis de gérer le fichier.
+   CONFIGURATIONS SAUVEGARDÉES
+
+   Une configuration sauvegardée est un fichier XML : le ValueTree produit
+   par CantusProblem::toValueTree(), auquel on ajoute juste un nom et une
+   date avant de l'écrire sur le disque.
+
 //==============================================================================
+*/
 
 /*
     Retourne le dossier utilisé pour stocker les configurations, et le crée
@@ -475,16 +476,17 @@ bool AppController::saveConfiguration(const juce::String& name)
     // Nom affiché tel quel dans la liste des configurations.
     state.setProperty("name", name, nullptr);
     // Texte affiché sous le nom, dans la liste.
-    state.setProperty("dateDisplay", now.toString(true, true, false, true), nullptr);
+    state.setProperty("dateDisplay", now.toString
+        (true, true, false, true), nullptr);
 
     /*
         Le nom du fichier sur le disque n'est jamais montré à l'utilisateur :
         seule la propriété "name" ci-dessus l'est.
 
 
-        -On simplifie le nom choisi pour qu'il reste un nom de fichier valide
+        On simplifie le nom choisi pour qu'il reste un nom de fichier valide
 
-        -On ajoute l'horodatage pour être certain de ne jamais écraser une ancienne
+        On ajoute l'horodatage pour être certain de ne jamais écraser une ancienne
         sauvegarde qui porterait le même nom.
     */
     auto fileName = juce::File::createLegalFileName(name.isNotEmpty() ? name : "Configuration")
@@ -507,7 +509,8 @@ std::vector<AppController::SavedConfigurationInfo> AppController::getSavedConfig
 {
     std::vector<SavedConfigurationInfo> entries;
 
-    for (const auto& file : getSavedConfigurationsDirectory().findChildFiles(juce::File::findFiles, false, "*.xml"))
+    for (const auto& file : getSavedConfigurationsDirectory().findChildFiles
+        (juce::File::findFiles, false, "*.xml"))
     {
         auto xml = juce::XmlDocument::parse(file);
 
@@ -561,7 +564,7 @@ bool AppController::loadConfiguration(const juce::File& file)
     /*
         voiceSettings sert uniquement à synchroniser LeftPanel <-> OptionsPanel
         avant un Generate : on le reconstruit à partir des voix qui viennent
-        d'être chargées, pour que l'espèce et le type de chaque contrepoint
+        d'être chargées, pour que l'espèce et la tesiture (type) de chaque contrepoint
         restent corrects si l'utilisateur relance une génération sans rien
         modifier.
     */

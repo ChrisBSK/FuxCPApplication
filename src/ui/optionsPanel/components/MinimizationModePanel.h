@@ -1,21 +1,21 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   MinimizationModePanel.h
+
+   Panneau de la colonne Search : choix de la méthode de recherche
+   (DFS/BAB) et de minimisation (Lexicographic/Weighted Sum).
+
+//==============================================================================
+*/
+
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
-/*
-    =====================================================================
-    MinimizationModePanel.h — choix de recherche et de minimisation
-
-    Petit panneau affiché dans la colonne Search.
-
-    Il permet de choisir :
-    - la méthode de recherche : DFS ou BAB,
-    - la méthode de minimisation : Lexicographic ou Weighted Sum.
-
-    Le composant ne modifie pas directement le modèle.
-    Il expose des callbacks que OptionsPanel connecte ensuite à AppController.
-    =====================================================================
-*/
 class MinimizationModePanel : public juce::Component
 {
 public:
@@ -46,10 +46,11 @@ public:
         addAndMakeVisible(weightedSumButton);
 
         /*
-            Explication brève au survol de chaque méthode.
+            Tooltips: explication brève au survol de chaque méthode.
 
-            juce::Button hérite déjà de SettableTooltipClient : setTooltip()
-            suffit, le TooltipWindow créé dans MainComponent affiche le
+            juce::Button hérite de (SettableTooltipClient : setTooltip())
+
+             le TooltipWindow créé dans MainComponent affiche le
             texte automatiquement, comme pour les priorités du solveur.
         */
         dfsButton.setTooltip(juce::String::fromUTF8(
@@ -131,12 +132,6 @@ public:
 
     /*
         Place les titres et les boutons dans le panneau.
-
-        Le layout est vertical :
-        - titre Search Method,
-        - boutons DFS / BAB,
-        - titre Minimization Method,
-        - boutons Lexicographic / Weighted Sum.
     */
     void resized() override
     {
@@ -281,7 +276,7 @@ private:
     ModeButton weightedSumButton { "Weighted Sum" };
 
     /*
-        Configure un titre de groupe compact.
+        Configure un titre de groupe
 
         Utilisé pour :
         - Search Method,

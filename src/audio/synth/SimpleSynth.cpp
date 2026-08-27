@@ -1,3 +1,28 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   SimpleSynth.h
+
+   Déclarations du synthétiseur simple utilisé pour le clavier virtuel
+   intégré au plug-in.
+
+   Contient :
+    - SimpleSound  : le "son" générique appliqué à toutes les notes/canaux
+    - SimpleVoice  : une voix individuelle, responsable du rendu audio
+                     d'une note jouée (attaque, harmoniques, extinction)
+    - SimpleSynth  : conteneur qui gère le pool de voix polyphoniques
+                     et expose une interface simple (prepare/render)
+                     au reste du plug-in
+
+    REMARQUE: Support de l'intelligence artificielle pour construire le synthéthiseur +
+              Documentation JUCE en la matière
+//==============================================================================
+*/
+
+
 #include "SimpleSynth.h"
 #include <cmath>
 
@@ -64,9 +89,11 @@ void SimpleVoice::renderNextBlock(juce::AudioBuffer<float>& buffer,
             - harmoniques légèrement désaccordées pour éviter le son "synthé",
             - aigus qui disparaissent plus vite que le corps de la note.
         */
-        const float attack = static_cast<float>(juce::jlimit(0.0, 1.0, noteAgeSeconds / 0.004));
+        const float attack = static_cast<float>(juce::jlimit(0.0, 1.0,
+            noteAgeSeconds / 0.004));
 
-        const float noteHeight = static_cast<float>(juce::jlimit(0.0, 1.0, (baseFrequency - 80.0) / 900.0));
+        const float noteHeight = static_cast<float>(juce::jlimit(0.0, 1.0,
+         (baseFrequency - 80.0) / 900.0));
         const float bodyDecay = 0.45f + noteHeight * 0.85f;
         const float body = static_cast<float>(std::exp(-noteAgeSeconds * bodyDecay));
         const float brightness = static_cast<float>(std::exp(-noteAgeSeconds * 7.0));

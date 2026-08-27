@@ -1,3 +1,18 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   SimpleSynth.cpp
+
+   Synthétiseur simple utilisé pour le clavier virtuel intégré au plug-in.
+
+    REMARQUE: Support de l'intelligence artificielle pour construire le synthéthiseur +
+              Documentation JUCE en la matière
+//==============================================================================
+*/
+
 #pragma once
 
 #include <juce_audio_basics/juce_audio_basics.h>

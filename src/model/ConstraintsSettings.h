@@ -1,24 +1,26 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   ConstraintSettings.h
+
+   Représente l'état des réglages choisis dans l'interface : valeurs des
+   sliders, shapes, priorités du solveur, options globales (borrow mode,
+   méthode de recherche/minimisation).
+
+    GenerationService lit ces réglages et les transforme en CostModel
+   ou en vecteurs de coûts compréhensibles par FuxCP.
+   =====================================================================
+*/
+
 #pragma once
 
 #include <algorithm>
 #include <cstddef>
 #include <utility>
 #include <vector>
-
-/*
-   =====================================================================
-   ConstraintSettings.h — Retient les réglages choisis dans l'interface
-
-   Le fichier garde les paramètres choisis par l'utilisateur :
-     - les valeurs des sliders,
-     - les shapes,
-     - les priorités du solveur,
-     - les options globales comme borrow mode ou BAB/DFS.
-
-   Ensuite, GenerationService lit ces réglages et les transforme en CostModel
-   ou en vecteurs de coûts compréhensibles par FuxCP.
-   =====================================================================
-*/
 
 struct ConstraintSettings
 {

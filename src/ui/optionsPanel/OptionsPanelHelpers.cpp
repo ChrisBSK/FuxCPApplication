@@ -1,13 +1,18 @@
-#include "OptionsPanelHelpers.h"
+//
+// Créé par Chris BAKASHIKA (2026)
+//
 
 /*
 //==============================================================================
-// OptionsPanelHelpers
-//
-// Fonctions utilitaires pour configurer les éléments visuels
-// réutilisables de l'OptionsPanel.
+   OptionsPanelHelpers.cpp
+
+   Implémente la configuration standard des titres, labels, boutons et
+   sliders horizontaux réutilisés dans l'OptionsPanel (couleurs, police,
+   ajout au parent).
 //==============================================================================
 */
+
+#include "OptionsPanelHelpers.h"
 
 namespace OptionsPanelHelpers
 {

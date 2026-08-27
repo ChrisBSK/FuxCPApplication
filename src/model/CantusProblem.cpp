@@ -1,7 +1,10 @@
-#include "CantusProblem.h"
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
 /*
 //==============================================================================
-  CantusProblem
+  CantusProblem.cpp
 
   Modèle central représentant un problème de contrepoint.
 
@@ -9,11 +12,14 @@
    - le Cantus Firmus
    - les contrepoints
    - les paramètres du solveur
-   - les vecteurs de coûts calculés
+   - les vecteurs de coûts calculés(ou re-calculés)
+   - la sérialisation du problème en ValueTree (utilisé pour les Sauvegarde XML)
 
   Utilisé par le GenerationService pour construire le problème Fux/Gecode.
 //==============================================================================
 */
+
+#include "CantusProblem.h"
 
 namespace
 {
@@ -336,12 +342,12 @@ juce::ValueTree CantusProblem::toValueTree() const
     juce::ValueTree root(idRoot);
     root.setProperty("title", title, nullptr);
 
-    // ----- Cantus Firmus -----
+    // Cantus Firmus
     juce::ValueTree cantusFirmusNode(idCantusFirmus);
     cantusFirmusNode.setProperty("notes", numbersToString(voices.cf), nullptr);
     root.addChild(cantusFirmusNode, -1, nullptr);
 
-    // ----- Voix (une entrée par contrepoint, dans leur ordre réel) -----
+    // Voix (une entrée par contrepoint, dans leur ordre réel)
     juce::ValueTree voicesNode(idVoices);
     voicesNode.setProperty("count", voiceCount, nullptr);
 
@@ -354,7 +360,8 @@ juce::ValueTree CantusProblem::toValueTree() const
     }
     root.addChild(voicesNode, -1, nullptr);
 
-    // ----- Réglages globaux du solveur -----
+    //  Réglages globaux du solveur
+
     // Les enums sont stockés tels quels (static_cast en int) : ConstraintSettings
     // reste la seule source de vérité sur leur signification.
     juce::ValueTree globalSettingsNode(idGlobalSettings);
@@ -367,12 +374,13 @@ juce::ValueTree CantusProblem::toValueTree() const
                                    nullptr);
     root.addChild(globalSettingsNode, -1, nullptr);
 
-    // ----- Ordre d'importance des priorités -----
+    // Ordre d'importance des priorités
     juce::ValueTree importanceNode(idImportance);
-    importanceNode.setProperty("costs", numbersToString(settings.getImportanceCosts()), nullptr);
+    importanceNode.setProperty("costs", numbersToString(settings.getImportanceCosts()),
+        nullptr);
     root.addChild(importanceNode, -1, nullptr);
 
-    // ----- Sliders de coûts, un groupe de valeurs par contrepoint -----
+    // Sliders de coûts, un groupe de valeurs par contrepoint
     juce::ValueTree counterpointParamsNode(idCounterpointParams);
 
     for (const auto& params : settings.getAllCounterpointCostParameters())
@@ -385,7 +393,7 @@ juce::ValueTree CantusProblem::toValueTree() const
     }
     root.addChild(counterpointParamsNode, -1, nullptr);
 
-    // ----- Shapes assignées (aucune, une ou plusieurs par contrepoint) -----
+    // Shapes assignées (aucune, une ou plusieurs par contrepoint)
     juce::ValueTree shapeAssignmentsNode(idShapeAssignments);
 
     for (const auto& assignment : settings.getShapeAssignments())
@@ -394,7 +402,8 @@ juce::ValueTree CantusProblem::toValueTree() const
         shapeNode.setProperty("voiceIndex", assignment.voiceIndex, nullptr);
         shapeNode.setProperty("target", static_cast<int>(assignment.target), nullptr);
         shapeNode.setProperty("shape", static_cast<int>(assignment.shape), nullptr);
-        shapeNode.setProperty("values", numbersToString(assignment.controlValues), nullptr);
+        shapeNode.setProperty("values", numbersToString(assignment.controlValues),
+            nullptr);
         shapeAssignmentsNode.addChild(shapeNode, -1, nullptr);
     }
     root.addChild(shapeAssignmentsNode, -1, nullptr);
@@ -419,16 +428,16 @@ void CantusProblem::restoreFromValueTree(const juce::ValueTree& state)
 
     title = state.getProperty("title", "").toString();
 
-    // ----- Cantus Firmus -----
+    // Cantus Firmus
     Voices restoredVoices;
 
     if (auto cantusFirmusNode = state.getChildWithName(idCantusFirmus); cantusFirmusNode.isValid())
         restoredVoices.cf = stringToIntVector(cantusFirmusNode.getProperty("notes").toString());
 
-    // ----- Voix -----
+    // Voix
+
     // On reconstruit la liste des contrepoints en parcourant les enfants
-    // "Voice" dans leur ordre d'origine : ni plus ni moins que ce qui a
-    // réellement été sauvegardé.
+    // "Voice" dans leur ordre d'origine. (Comme ça a été sauvegardé)
     if (auto voicesNode = state.getChildWithName(idVoices); voicesNode.isValid())
     {
         voiceCount = (int) voicesNode.getProperty("count", 0);
@@ -447,7 +456,7 @@ void CantusProblem::restoreFromValueTree(const juce::ValueTree& state)
 
     voices = restoredVoices;
 
-    // ----- Réglages globaux -----
+    //  Réglages globaux (BorrowMode, Méthode de recherche et Méthode de minimisation)
     if (auto globalSettingsNode = state.getChildWithName(idGlobalSettings); globalSettingsNode.isValid())
     {
         settings.setBorrowMode((int) globalSettingsNode.getProperty("borrowMode", 1));
@@ -458,14 +467,16 @@ void CantusProblem::restoreFromValueTree(const juce::ValueTree& state)
 
         settings.setMinimizationMethod(static_cast<ConstraintSettings::MinimizationMethod>(
             (int) globalSettingsNode.getProperty("minimizationMethod",
-                                                 static_cast<int>(ConstraintSettings::MinimizationMethod::lexicographic))));
+                                                 static_cast<int>(ConstraintSettings::
+                                                     MinimizationMethod::lexicographic))));
     }
 
-    // ----- Ordre d'importance -----
+    //  Ordre d'importance
     if (auto importanceNode = state.getChildWithName(idImportance); importanceNode.isValid())
         settings.setImportanceCosts(stringToIntVector(importanceNode.getProperty("costs").toString()));
 
-    // ----- Sliders de coûts par contrepoint -----
+    // Sliders de coûts par contrepoint
+
     // setCounterpointCount prépare d'abord une case par contrepoint,
     // pour que chaque setCounterpoint*() ci-dessous écrive au bon endroit.
     settings.setCounterpointCount((int) restoredVoices.counterpoints.size());
@@ -476,13 +487,17 @@ void CantusProblem::restoreFromValueTree(const juce::ValueTree& state)
         {
             auto paramsNode = counterpointParamsNode.getChild(i);
 
-            settings.setCounterpointMelodyMovement(i, (double) paramsNode.getProperty("melodyMovement", 0.0));
-            settings.setCounterpointIntervalColour(i, (double) paramsNode.getProperty("intervalColour", 0.0));
-            settings.setCounterpointPerfectIntervals(i, (double) paramsNode.getProperty("perfectIntervals", 0.0));
+            settings.setCounterpointMelodyMovement(i, (double) paramsNode.getProperty("melodyMovement",
+                0.0));
+            settings.setCounterpointIntervalColour(i, (double) paramsNode.getProperty("intervalColour",
+                0.0));
+            settings.setCounterpointPerfectIntervals(i, (double) paramsNode.getProperty("perfectIntervals",
+                0.0));
         }
     }
 
-    // ----- Shapes assignées -----
+    //  Shapes assignées
+
     // On repart d'une liste vide avant de réajouter uniquement les shapes
     // réellement présentes dans le ValueTree.
     settings.setShapeAssignments({});
@@ -504,7 +519,8 @@ void CantusProblem::restoreFromValueTree(const juce::ValueTree& state)
             settings.setShapeAssignment(voiceIndex,
                                         target,
                                         shape,
-                                        stringToDoubleVector(shapeNode.getProperty("values").toString()));
+                                        stringToDoubleVector(
+                                            shapeNode.getProperty("values").toString()));
         }
     }
 

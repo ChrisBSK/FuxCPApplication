@@ -1,25 +1,23 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   NoteConverter.h
+
+   Conversion entre notes MIDI (0 --> 127) et noms musicaux (C, C#, D, ...),
+   dans les deux sens :
+    - midiToNoteName / midiLineToString : MIDI -> texte
+    - noteNameToMidi                    : texte -> MIDI
+//==============================================================================
+*/
+
 #pragma once
 
 #include <juce_core/juce_core.h>
 #include <vector>
 #include <map>
-
-/*
-==============================================================================
-    NoteConverter
-
-    Rôle :
-    - Convertir une note MIDI (0 → 127)
-      en nom musical (C, C#, D, etc.)
-
-    Pour la base :
-    60 → C (Do)
-    61 → C# (Do dièse)
-
-    Et ainsi de suite
-
-==============================================================================
-*/
 
 class NoteConverter
 {

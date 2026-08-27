@@ -1,24 +1,19 @@
-// ============================================================================
-// FuxTypes.h
-// ----------------------------------------------------------------------------
-// Définitions centralisées, *génériques* des types & constantes pour le modèle
-// FuxCP.
 //
-// Objectif :
-//  - Fournir un seul endroit propre et structuré pour les enums, constantes
-//    d’intervalles musicaux, constantes de mouvement, et petites tables globales
-//    utilisées dans le modèle.
-//  - Rester générique : tout est exprimé en demi-tons / conventions MIDI, et
-//    les tables sont faciles à étendre sans modifier la logique.
+// Créé par Chris BAKASHIKA (2026)
 //
-// Remarques :
-//  - Le projet utilise une grille temporelle de 4 "ticks" par mesure (voir
-//    Voice.cpp).
-//  - La correspondance espèce -> notes par mesure est donnée dans
-//    `notesPerMeasure`.
-//  - Les gammes sont représentées ici comme des *boucles d’intervalles*
-//    (cf. Utilities.cpp), c.-à-d. une suite de pas qui boucle sur l’octave.
-// ============================================================================
+
+/*
+//==============================================================================
+   FuxTypes.h
+
+   Définitions génériques centralisées pour le modèle FuxCP : enums,
+   constantes d'intervalles/mouvements musicaux, gammes (suites de pas en
+   demi-tons) et petites tables (coûts par défaut, noms de notes).
+
+   Tout est exprimé en demi-tons / convention MIDI, pour rester indépendant
+   de la logique du solveur.
+//==============================================================================
+*/
 
 #ifndef FUXCP_MODEL_FUXTYPES_H
 #define FUXCP_MODEL_FUXTYPES_H
@@ -29,12 +24,6 @@
 #include <vector>
 
 
-//==============================================================================
-// FuxTypes
-//
-// Regroupe les types, constantes et énumérations
-// nécessaires à la construction des problèmes Fux/Gecode.
-//==============================================================================
 namespace fuxcp {
 
 // ---------------------------------------------------------------------------

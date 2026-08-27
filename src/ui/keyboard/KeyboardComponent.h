@@ -1,40 +1,43 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   KeyboardComponent.h
+
+   Clavier MIDI interactif (Vue). Affiche un MidiKeyboardComponent et émet
+   les notes jouées via onNotePressed.
+
+//==============================================================================
+*/
+
 #pragma once
 
 
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <juce_audio_utils/juce_audio_utils.h>
 
-/**
- * @brief Composant clavier MIDI interactif (Vue).
- *
- * Rôle :
- * - Affiche un clavier piano (MidiKeyboardComponent)
- * - Permet de jouer des notes via l’interface
- * - Émet les notes jouées via un callback (onNotePressed)
- *
- * Responsabilités :
- * - Gérer l’interaction utilisateur (clics sur le clavier)
- * - Convertir ces interactions en événements MIDI simples
- *
- * Ne contient PAS :
- * - de logique audio (synthèse)
- * - de traitement métier
- */
+
 class KeyboardComponent : public juce::Component, public juce::MidiKeyboardStateListener
 {
 public:
+    // Construit le clavier visuel et s'abonne à ownKeyboardState pour détecter les clics
     KeyboardComponent(juce::MidiKeyboardState& audioState);
     ~KeyboardComponent() override;
 
     void resized() override;
 
+    // Callback déclenché quand une note est jouée sur le clavier.
     std::function<void(int)> onNotePressed;
 
 
 private:
+
+    // Déclenche le son (audioKeyboardState) et le callback onNotePressed pour une note pressée
     void handleNoteOn(juce::MidiKeyboardState*, int midiChannel,
                       int midiNoteNumber, float velocity) override;
-
+    // Relâche le son correspondant sur audioKeyboardState
     void handleNoteOff(juce::MidiKeyboardState*, int midiChannel,
                        int midiNoteNumber, float velocity) override;
 
@@ -51,7 +54,7 @@ private:
     /*
         État MIDI du plug-in (PluginProcessor::keyboardState), utilisé
         UNIQUEMENT en écriture, pour déclencher le son via SimpleSynth
-        quand on clique une touche (voir handleNoteOn/handleNoteOff).
+        quand on clique une touche (voir handleNoteOn/handleNoteOff)
 
         On ne s'y abonne jamais pas comme Listener
 

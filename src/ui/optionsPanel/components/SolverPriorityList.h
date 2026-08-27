@@ -1,11 +1,6 @@
-#pragma once
-
-#include <algorithm>
-#include <array>
-#include <functional>
-#include <vector>
-
-#include <juce_gui_basics/juce_gui_basics.h>
+//
+// Créé par Chris BAKASHIKA (2026)
+//
 
 /*
     =====================================================================
@@ -15,17 +10,26 @@
     en mode Lexicographic.
 
     - chaque ligne affiche un rang visible : 1, 2, 3...
-    - chaque ligne contient le nom d'une contrainte FuxCP,
+    - chaque ligne contient le nom d'une famille de coûts liée à une contrainte FuxCP
     - l'utilisateur peut sélectionner une ligne,
     - puis la déplacer avec les flèches haut / bas.
 
-    Le composant ne modifie pas directement le modèle.
-    Il renvoie seulement le nouvel ordre via onPriorityOrderChanged.
-
-    En mode Weighted Sum, la même liste affiche aussi le poids associé :
+    Remarque: En mode Weighted Sum, la même liste affiche aussi le poids associé :
     weight = 15 - rank.
+
+    --> renvoie le nouvel ordre via onPriorityOrderChanged.
     =====================================================================
 */
+
+#pragma once
+
+#include <algorithm>
+#include <array>
+#include <functional>
+#include <vector>
+
+#include <juce_gui_basics/juce_gui_basics.h>
+
 class SolverPriorityList : public juce::Component
 {
 public:
@@ -282,7 +286,7 @@ private:
     }};
 
     /*
-        Courtes explications affichées en tooltip au survol de chaque ligne.
+        Tooltips, pour les 14 familles de coûts
 
         Même ordre que fixedPriorityNames : la description à l'index i
         correspond toujours au nom à l'index i, quel que soit l'ordre
@@ -313,12 +317,12 @@ private:
     /*
         Ligne visuelle d'une priorité.
 
-        Elle affiche :
+         affiche :
         - une bulle avec le rang visible,
         - un rectangle avec le nom de la contrainte,
         - un fond léger si la ligne est sélectionnée.
 
-        Hérite aussi de juce::SettableTooltipClient : cela lui ajoute
+        Hérite de (juce::SettableTooltipClient) : cela lui ajoute
         setTooltip()/getTooltip(), ce qui suffit pour que le TooltipWindow
         déjà créé dans MainComponent affiche automatiquement un texte
         d'aide au survol de la ligne (voir refreshRows()).
@@ -617,10 +621,7 @@ private:
 
             /*
                 Le tooltip suit toujours le nom de la contrainte, pas la
-                position de la ligne : si l'utilisateur déplace "melodic"
-                en première place, c'est bien l'explication de "melodic"
-                qui doit rester affichée sur cette ligne, quel que soit
-                le mode d'affichage (rang ou poids).
+                position de la ligne
             */
             rows[i].setTooltip(getPriorityDescription(priorityNames[i]));
         }
@@ -629,8 +630,10 @@ private:
     /*
         Calcule le poids associé à un rang.
 
-        En Weighted Sum, Dorian utilise :
-        weight = 15 - rank.
+        En Weighted Sum, on utilise :
+        weight = 15 - rank,
+
+        La même chose est appliquée dans l'interface
     */
     int getWeightForRank(int rank) const
     {
@@ -673,10 +676,13 @@ private:
 
     // Lignes visibles de la liste.
     std::array<PriorityRow, priorityCount> rows;
+
     // Index de la ligne sélectionnée, ou -1 si aucune ligne n'est sélectionnée.
     int selectedIndex = -1;
+
     // Mode d'affichage dense utilisé dans la colonne Search.
     bool compactMode = false;
+
     // Lecture actuelle de la colonne gauche : rang ou poids.
     DisplayMode displayMode = DisplayMode::rank;
 };

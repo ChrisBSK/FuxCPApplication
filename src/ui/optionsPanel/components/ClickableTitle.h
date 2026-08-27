@@ -1,9 +1,23 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   ClickableTitle.h
+
+   Label cliquable : expose des callbacks pour le clic et le survol
+   (onClick, onEnter, onExit), utilisé pour les titres interactifs de
+   l'interface.
+
+   (beaucoup utilisé pour l'ancienne version de l'interface, pour les colonnes
+   de contrepoint)
+//==============================================================================
+*/
+
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
 
-/**
- * Label cliquable (hover + click)
- */
 class ClickableTitle : public juce::Label
 {
 public:

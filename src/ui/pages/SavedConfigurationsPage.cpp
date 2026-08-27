@@ -1,16 +1,21 @@
-#include "SavedConfigurationsPage.h"
+//
+// Créé par Chris BAKASHIKA (2026)
+//
 
 /*
-    =====================================================================
-    SavedConfigurationsPage.cpp
+//==============================================================================
+   SavedConfigurationsPage.cpp
 
-    Construction, affichage et gestion de la liste des configurations
-    sauvegardées. La page ne lit et n'écrit jamais de fichiers elle-même :
-    tout passe par AppController::getSavedConfigurations() et
-    AppController::loadConfiguration(), qui délèguent eux-mêmes à
-    CantusProblem (voir CantusProblem::toValueTree/restoreFromValueTree).
-    =====================================================================
+   Construit et gère la liste des configurations sauvegardées (ListBox).
+
+
+   AppController::getSavedConfigurations()/loadConfiguration()/
+   deleteConfiguration().
+//==============================================================================
 */
+
+#include "SavedConfigurationsPage.h"
+
 
 SavedConfigurationsPage::SavedConfigurationsPage()
 {

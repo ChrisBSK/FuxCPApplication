@@ -1,3 +1,16 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   OptionsPanel.h
+
+   Panneau de configuration de la génération.
+
+//==============================================================================
+*/
+
 #pragma once
 
 #include <vector>
@@ -13,20 +26,6 @@
 
 class LeftPanel;
 class AppController;
-
-/*
-//==============================================================================
-  OptionsPanel
-
-  Panneau de configuration de la génération.
-
-  Permet de :
-  - choisir les paramètres des voix
-  - modifier les contraintes de génération
-  - lancer la génération via le LeftPanel
-  - synchroniser l'interface avec l'AppController
-//==============================================================================
-*/
 
 class OptionsPanel : public juce::Component
 {
@@ -70,16 +69,13 @@ private:
     VoiceWorkspace voiceWorkspace;
     MinimizationModePanel minimizationModePanel;
 
-    ColumnBox workspaceColumn;
-    ColumnBox searchColumn;
+
+    ColumnBox workspaceColumn; //rectangle du panneau central
+    ColumnBox searchColumn; // rectangle du panneau de droite
 
 
 
     // Titre "Priority vector" au-dessus de la liste des priorités.
-    // Vit ici (et pas dans SolverPriorityList) car il doit être centré sur
-    // toute la largeur de la colonne Search, comme "Search Method" et
-    // "Minimization Method" : SolverPriorityList, elle, n'occupe que la
-    // largeur restante une fois les flèches haut/bas retirées.
     juce::Label priorityVectorTitle;
 
     // Ancienne colonne Solver Priorities.

@@ -1,9 +1,20 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   ColumnBox.h
+
+   Colonne interactive utilisée comme conteneur visuel d'une voix de
+   contrepoint (VoiceWorkspace) : fond, contour actif/survol, et callbacks
+   d'interaction (onClick, onEnter, onExit).
+//==============================================================================
+*/
+
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
 
-/**
- * Colonne interactive.
- */
 class ColumnBox : public juce::Component
 {
 public:

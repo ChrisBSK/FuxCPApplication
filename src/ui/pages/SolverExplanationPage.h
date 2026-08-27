@@ -1,3 +1,18 @@
+//
+// Créé par Chris BAKASHIKA (2026)
+//
+
+/*
+//==============================================================================
+   SolverExplanationPage.h
+
+   Page pédagogique qui explique simplement le chemin suivi par le
+   solveur : variables de notes, contraintes, unitedCosts, finalCosts,
+   puis BAB.
+//==============================================================================
+*/
+
+
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
